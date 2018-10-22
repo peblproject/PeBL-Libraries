@@ -1,8 +1,8 @@
-interface XApiStatements {
+interface XApiStatement {
 
 }
 
-class Reference implements XApiStatements {
+class Reference implements XApiStatement {
 
 }
 
