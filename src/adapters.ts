@@ -61,13 +61,13 @@ interface NetworkAdapter {
 
 interface StorageAdapter {
 
-    getAnnotations(userProfile: UserProfile, thread: string, callback: (stmts: XApiStatement[]) => void): void;
+    getAnnotations(userProfile: UserProfile, book: string, callback: (stmts: Annotation[]) => void): void;
 
-    saveAnnotations(userProfile: UserProfile, book: string, stmts: (XApiStatement | XApiStatement[])): void;
+    saveAnnotations(userProfile: UserProfile, book: string, stmts: (Annotation | Annotation[])): void;
 
-    saveGeneralAnnotations(userProfile: UserProfile, book: string, stmts: (XApiStatement | XApiStatement[])): void;
+    saveGeneralAnnotations(userProfile: UserProfile, book: string, stmts: (GeneralAnnotation | GeneralAnnotation[])): void;
 
-    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: XApiStatement[]) => void): void;
+    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: GeneralAnnotation[]) => void): void;
 
     removeAnnotation(userProfile: UserProfile, id: string, book: string): void;
 
@@ -76,16 +76,16 @@ interface StorageAdapter {
 
     saveCurrentUser(userProfile: UserProfile, callback: () => void): void;
 
-    getCurrentUser(callback: (userIdentity: string) => void): void;
+    getCurrentUser(callback: (userIdentity: (string | null)) => void): void;
 
-    getUserProfile(userIdentity: string, callback: (userProfile: UserProfile) => void): void;
+    getUserProfile(userIdentity: string, callback: (userProfile: (UserProfile | null)) => void): void;
 
     saveUserProfile(userProfile: UserProfile): void;
 
 
-    saveCurrentBook(userProfile: UserProfile, book: string, callback: () => void): void;
+    saveCurrentBook(book: string): void;
 
-    getCurrentBook(callback: (book: string) => void): void;
+    getCurrentBook(callback: (book: (string | null)) => void): void;
 
 
     saveEvent(userProfile: UserProfile, book: string, event: (XApiStatement | XApiStatement[])): void;
@@ -117,7 +117,7 @@ interface StorageAdapter {
 
     saveQueuedReference(userProfile: UserProfile, ref: Reference): void;
 
-    getQueuedReference(userProfile: UserProfile, callback: (ref: Reference) => void): void;
+    getQueuedReference(userProfile: UserProfile, callback: (ref: (Reference | null)) => void): void;
 
     removeQueuedReference(userProfile: UserProfile, refId: string): void;
 
@@ -127,4 +127,8 @@ interface StorageAdapter {
     getToc(userProfile: UserProfile, book: string, callback: (data: object) => void): void;
 
     removeToc(userProfile: UserProfile, book: string, section: string, id: string): void;
+}
+
+interface PeblHandler {
+
 }
