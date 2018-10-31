@@ -23,7 +23,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
             let competencyStore = db.createObjectStore("competencies", { keyPath: ["url", "identity"] });
             let generalAnnotationStore = db.createObjectStore("generalAnnotations", { keyPath: "id" });
             let outgoingStore = db.createObjectStore("outgoing", { keyPath: ["identity", "id"] });
-            let messageStore = db.createObjectStore("messages", { keyPath: "id" });
+            let messageStore = db.createObjectStore("messages", { keyPath: ["identity", "id"] });
             db.createObjectStore("user", { keyPath: "identity" });
             db.createObjectStore("state", { keyPath: "id" });
             db.createObjectStore("assets", { keyPath: "id" });
@@ -107,7 +107,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveGeneralAnnotations(userProfile: UserProfile, book: string, stmts: (GeneralAnnotation | GeneralAnnotation[])): void {
+    saveGeneralAnnotations(userProfile: UserProfile, book: string, stmts: (GeneralAnnotation | GeneralAnnotation[]), callback?: (() => void)): void {
         if (this.db) {
             if (stmts instanceof GeneralAnnotation) {
                 let ga: GeneralAnnotation = stmts;
@@ -152,7 +152,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeGeneralAnnotation(userProfile: UserProfile, id: string, book: string): void {
+    removeGeneralAnnotation(userProfile: UserProfile, id: string, book: string, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["generalAnnotations"], "readwrite").objectStore("generalAnnotations").delete(IDBKeyRange.only(id));
             request.onerror = function(e) {
@@ -213,7 +213,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     }
 
-    removeAnnotation(userProfile: UserProfile, id: string, book: string): void {
+    removeAnnotation(userProfile: UserProfile, id: string, book: string, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["annotations"], "readwrite").objectStore("annotations").delete(IDBKeyRange.only(id));
             request.onerror = function(e) {
@@ -227,7 +227,20 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveCurrentUser(userProfile: UserProfile, callback: () => void): void {
+    removeCurrentUser(callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readwrite").objectStore("state").delete(IDBKeyRange.only(CURRENT_USER));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function(e) {
+                if (callback)
+                    callback();
+            };
+        }
+    }
+
+    saveCurrentUser(userProfile: UserProfile, callback?: () => void): void {
         let pack = {
             id: CURRENT_USER,
             value: userProfile.identity
@@ -279,7 +292,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    saveUserProfile(userProfile: UserProfile): void {
+    saveUserProfile(userProfile: UserProfile, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["user"], "readwrite").objectStore("user").put(this.cleanRecord(userProfile));
             request.onerror = function(e) {
@@ -293,7 +306,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveCurrentBook(book: string): void {
+    saveCurrentBook(book: string, callback?: (() => void)): void {
         let pack = {
             value: book,
             id: CURRENT_BOOK
@@ -329,10 +342,10 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveEvent(userProfile: UserProfile, book: string, events: xEvent | xEvent[]): void {
+    saveEvent(userProfile: UserProfile, book: string, events: (XApiStatement | XApiStatement[]), callback?: (() => void)): void {
         if (this.db) {
-            if (events instanceof xEvent) {
-                let ga: xEvent = events;
+            if (events instanceof XApiStatement) {
+                let ga: XApiStatement = events;
                 let request = this.db.transaction(["events"], "readwrite").objectStore("events").put(ga);
                 request.onerror = function(e) {
                     console.log(e);
@@ -342,10 +355,10 @@ class IndexedDBStorageAdapter implements StorageAdapter {
                 };
             } else {
                 let objectStore = this.db.transaction(["events"], "readwrite").objectStore("events");
-                let stmtsCopy: xEvent[] = events.slice(0);
+                let stmtsCopy: XApiStatement[] = events.slice(0);
                 let self: IndexedDBStorageAdapter = this;
                 let callback = function() {
-                    let record: (xEvent | undefined) = stmtsCopy.pop();
+                    let record: (XApiStatement | undefined) = stmtsCopy.pop();
                     if (record) {
                         let request = objectStore.put(self.cleanRecord(record.toObject()));
                         request.onerror = callback;
@@ -396,7 +409,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }): void {
+    saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }, callback?: (() => void)): void {
         if (this.db) {
             let os = this.db.transaction(["competencies"], "readwrite").objectStore("competencies");
             for (let p of Object.keys(competencies)) {
@@ -420,7 +433,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveOutgoing(userProfile: UserProfile, stmt: XApiStatement): void {
+    saveOutgoing(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["outgoing"], "readwrite").objectStore("outgoing").put(this.cleanRecord(stmt));
             request.onerror = function(e) {
@@ -451,7 +464,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    clearOutgoing(userProfile: UserProfile, toClear: XApiStatement[]): void {
+    removeOutgoing(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void {
         if (this.db) {
             let objectStore = this.db.transaction(["outgoing"], "readwrite").objectStore("outgoing");
             let toClearCopy = toClear.slice(0);
@@ -471,7 +484,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveMessage(userProfile: UserProfile, stmts: Message | Message[]): void {
+    saveMessages(userProfile: UserProfile, stmts: Message | Message[], callback?: (() => void)): void {
         if (this.db) {
             if (stmts instanceof Message) {
                 let request = this.db.transaction(["messages"], "readwrite").objectStore("messages").put(this.cleanRecord(stmts));
@@ -479,26 +492,41 @@ class IndexedDBStorageAdapter implements StorageAdapter {
                     console.log(e);
                 };
                 request.onsuccess = function(e) {
-                    //console.log(e);
+                    if (callback)
+                        callback();
                 };
             } else {
                 let objectStore = this.db.transaction(["messages"], "readwrite").objectStore("messages");
                 let stmtsCopy: Message[] = stmts.slice(0);
                 let self: IndexedDBStorageAdapter = this;
-                let callback = function() {
+                let processCallback = function() {
                     let record: (Message | undefined) = stmtsCopy.pop();
                     if (record) {
                         let request = objectStore.put(self.cleanRecord(record.toObject()));
-                        request.onerror = callback;
-                        request.onsuccess = callback;
-                    }
+                        request.onerror = processCallback;
+                        request.onsuccess = processCallback;
+                    } else if (callback)
+                        callback();
                 };
-                callback();
+                processCallback();
             }
         }
     }
 
-    getMessages(userProfile: UserProfile, thread: string, callback: (stmts: XApiStatement[]) => void): void {
+    removeMessage(userProfile: UserProfile, id: string, callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["messages"], "readwrite").objectStore("messages").delete(IDBKeyRange.only([userProfile.identity, id]));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function(e) {
+                if (callback)
+                    callback();
+            };
+        }
+    }
+
+    getMessages(userProfile: UserProfile, thread: string, callback: (stmts: Message[]) => void): void {
         if (this.db) {
             let index = this.db.transaction(["messages"], "readonly").objectStore("messages").index(MASTER_INDEX);
             this.getAll(index,
@@ -509,7 +537,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveAsset(assetId: string, data: object): void {
+    saveAsset(assetId: string, data: object, callback?: (() => void)): void {
         // data.id = id;
         // data.content = new Blob([data.content.response], { type: data.content.getResponseHeader("Content-Type") });
         // let request = this.db.transaction(["assets"], "readwrite").objectStore("assets").put(cleanRecord(data));
@@ -539,14 +567,15 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveQueuedReference(userProfile: UserProfile, ref: Reference): void {
+    saveQueuedReference(userProfile: UserProfile, ref: Reference, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["queuedReferences"], "readwrite").objectStore("queuedReferences").put(this.cleanRecord(ref));
             request.onerror = function(e) {
                 console.log(e);
             }
             request.onsuccess = function(e) {
-                //console.log(e);
+                if (callback)
+                    callback();
             };
         }
     }
@@ -579,28 +608,30 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeQueuedReference(userProfile: UserProfile, refId: string): void {
+    removeQueuedReference(userProfile: UserProfile, refId: string, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["queuedReferences"], "readwrite").objectStore("queuedReferences").delete(IDBKeyRange.only([userProfile.identity, refId]));
             request.onerror = function(e) {
                 console.log(e);
             };
             request.onsuccess = function(e) {
-                //console.log(e);
+                if (callback)
+                    callback();
             };
         }
     }
 
     // -------------------------------
 
-    saveToc(userProfile: UserProfile, book: string, data: object): void {
+    saveToc(userProfile: UserProfile, book: string, data: object, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["tocs"], "readwrite").objectStore("tocs").put(this.cleanRecord(data));
             request.onerror = function(e) {
                 console.log(e);
             };
             request.onsuccess = function(e) {
-                //console.log(e);
+                if (callback)
+                    callback();
             };
         }
     }
@@ -620,14 +651,15 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeToc(userProfile: UserProfile, book: string, section: string, id: string): void {
+    removeToc(userProfile: UserProfile, book: string, section: string, id: string, callback?: (() => void)): void {
         if (this.db) {
             let request = this.db.transaction(["tocs"], "readwrite").objectStore("tocs").delete(IDBKeyRange.only([userProfile.identity, book, section, id]));
             request.onerror = function(e) {
                 console.log(e);
             };
             request.onsuccess = function(e) {
-                //console.log(e);
+                if (callback)
+                    callback();
             };
         }
     }
