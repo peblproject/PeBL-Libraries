@@ -1,9 +1,11 @@
+
+
 const MASTER_INDEX = "master";
 const CURRENT_BOOK = "peblCurrentBook";
 const CURRENT_USER = "peblCurrentUser";
-const VERB_INDEX = "verbs";
+// const VERB_INDEX = "verbs";
 
-class IndexedDBStorageAdapter implements StorageAdapter {
+export class IndexedDBStorageAdapter implements StorageAdapter {
 
     private db: (IDBDatabase | null) = null;
 
@@ -11,7 +13,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         let request = window.indexedDB.open("pebl", 10);
         let self: IndexedDBStorageAdapter = this;
 
-        request.onupgradeneeded = function(event) {
+        request.onupgradeneeded = function() {
             let db = request.result;
 
             let objectStores = db.objectStoreNames;
@@ -44,7 +46,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
 
         };
 
-        request.onsuccess = function(event) {
+        request.onsuccess = function() {
             self.db = request.result;
 
             callback();
@@ -63,7 +65,7 @@ class IndexedDBStorageAdapter implements StorageAdapter {
         request.onerror = function(e) {
             console.log("Error", query, e);
         };
-        request.onsuccess = function(e) {
+        request.onsuccess = function() {
             let r = request.result;
             if (result) {
                 if (r) {

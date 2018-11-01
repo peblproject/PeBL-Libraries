@@ -1,4 +1,6 @@
-class User implements UserAdapter {
+import { PEBL } from "./pebl"
+
+export class User implements UserAdapter {
     private pebl: PEBL;
 
     constructor(pebl: PEBL) {

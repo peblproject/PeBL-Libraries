@@ -1,4 +1,7 @@
-class Activity implements ActivityAdapter {
+import { PEBL } from "./pebl";
+
+
+export class Activity implements ActivityAdapter {
     private pebl: PEBL;
 
     constructor(pebl: PEBL) {

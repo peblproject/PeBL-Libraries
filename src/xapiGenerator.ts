@@ -1,4 +1,4 @@
-class XApiGenerator {
+export class XApiGenerator {
 
     addExtensions(stmt: { [key: string]: any }, extensions: { [key: string]: any }): { [key: string]: any } {
 

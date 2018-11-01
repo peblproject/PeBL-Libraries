@@ -1,4 +1,6 @@
-class LLSyncAction implements SyncProcess {
+import { PEBL } from "./pebl";
+
+export class LLSyncAction implements SyncProcess {
 
     private bookPoll: (number | null) = null;
     private threadPoll: (number | null) = null;

@@ -1,4 +1,6 @@
-class Messenger implements MessageAdapter {
+import { PEBL } from "./pebl";
+
+export class Messenger implements MessageAdapter {
 
     // private pebl: PEBL;
 

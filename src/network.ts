@@ -1,4 +1,7 @@
-class Network implements NetworkAdapter {
+import { PEBL } from "./pebl";
+import { LLSyncAction } from "./syncing";
+
+export class Network implements NetworkAdapter {
 
     private pebl: PEBL;
 
