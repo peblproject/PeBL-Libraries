@@ -1,4 +1,6 @@
-class UserProfile {
+// -------------------------------
+
+export class UserProfile {
     readonly identity: string;
     readonly name: string;
     readonly homePage: string;
@@ -33,7 +35,9 @@ class UserProfile {
 
 }
 
-class Endpoint {
+// -------------------------------
+
+export class Endpoint {
     readonly url: string;
     readonly username: string;
     readonly password: string;
@@ -65,3 +69,5 @@ class Endpoint {
         };
     }
 }
+
+// -------------------------------

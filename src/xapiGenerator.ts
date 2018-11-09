@@ -1,15 +1,16 @@
+const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
+
 export class XApiGenerator {
 
-    addExtensions(stmt: { [key: string]: any }, extensions: { [key: string]: any }): { [key: string]: any } {
+    addExtensions(extensions: { [key: string]: any }): { [key: string]: any } {
 
-        if (!stmt.extensions)
-            stmt.extensions = {};
+        let result: { [key: string]: any } = {};
 
         for (let key of Object.keys(extensions)) {
-            stmt.extensions[key] = extensions[key];
+            result[PREFIX_PEBL_EXTENSION + key] = extensions[key];
         }
 
-        return stmt;
+        return result;
     }
 
     makeAccountAgent(homePage: string, user: string): { [key: string]: any } {
@@ -30,6 +31,7 @@ export class XApiGenerator {
             stmt.result.score = {};
 
         stmt.result.score.raw = score;
+        stmt.result.score.duration = duration;
         stmt.result.score.scaled = (score - minScore) / (maxScore - minScore);
         stmt.result.score.min = minScore;
         stmt.result.score.max = maxScore;
@@ -46,7 +48,37 @@ export class XApiGenerator {
         return stmt;
     }
 
-    addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, description: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][]): { [key: string]: any } {
+    addObject(stmt: { [key: string]: any }, activityId: string, name?: string, description?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
+        if (!stmt.object)
+            stmt.object = {};
+
+        stmt.object.id = activityId;
+        stmt.object.objectType = "Activity";
+
+        if (!stmt.object.definition)
+            stmt.object.definition = {}
+
+        if (name) {
+            if (!stmt.object.definition.name)
+                stmt.object.definition.name = {}
+
+            stmt.object.definition.name["en-US"] = name;
+        }
+
+        if (description) {
+            if (!stmt.object.definition.description)
+                stmt.object.definition.description = {}
+
+            stmt.object.definition.description["en-US"] = description;
+        }
+
+        if (extensions)
+            stmt.object.definition.extensions = extensions;
+
+        return stmt;
+    }
+
+    addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][]): { [key: string]: any } {
         if (!stmt.object)
             stmt.object = {};
 
@@ -63,9 +95,8 @@ export class XApiGenerator {
         stmt.object.definition.interactionType = interaction;
 
         let answerArr = [];
-        for (let answers of correctAnswers) {
+        for (let answers of correctAnswers)
             answerArr.push(answers.join("[,]"));
-        }
         stmt.object.definition.correctResponsePattern = answerArr;
 
         if (interaction == "choice") {
@@ -88,12 +119,12 @@ export class XApiGenerator {
         if (!stmt.object.definition.description)
             stmt.object.definition.description = {}
 
-        stmt.object.definition.description["en-US"] = description;
+        stmt.object.definition.description["en-US"] = prompt;
 
         return stmt;
     }
 
-    addVerb(name: string, url: string, stmt: { [key: string]: any }): { [key: string]: any } {
+    addVerb(stmt: { [key: string]: any }, url: string, name: string): { [key: string]: any } {
         stmt.verb = {
             id: url,
             display: {
@@ -143,8 +174,27 @@ export class XApiGenerator {
         return stmt;
     }
 
-    addContext(options: { [key: string]: any }, stmt: { [key: string]: any }): { [key: string]: any } {
+    addContext(stmt: { [key: string]: any }, options: { [key: string]: any }): { [key: string]: any } {
         stmt.context = options;
         return stmt;
     }
+
+    addParentActivity(stmt: { [key: string]: any }, parentId: string): { [key: string]: any } {
+        if (!stmt.context)
+            stmt.context = {};
+
+        if (!stmt.context.contextActivities)
+            stmt.context.contextActivities = {};
+
+        if (!stmt.context.contextActivities.parent)
+            stmt.context.contextActivities.parent = [];
+
+        stmt.context.contextActivities.parent.push({
+            objectType: "Activity",
+            id: parentId
+        });
+
+        return stmt;
+    }
+
 }

@@ -1,4 +1,6 @@
 import { PEBL } from "./pebl";
+import { MessageAdapter } from "./adapters";
+import { XApiStatement, Reference } from "./xapi";
 
 export class Messenger implements MessageAdapter {
 

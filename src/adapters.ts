@@ -1,17 +1,23 @@
-interface ActivityAdapter {
-    getBook(callback: (book: (string | null)) => void): void;
+import { XApiStatement, Reference, Message, Annotation, GeneralAnnotation } from "./xapi";
+import { UserProfile } from "./models";
+
+
+export interface ActivityAdapter {
+    getBook(callback: (book?: string) => void): void;
 
     openBook(book: string, callback: (sameBook: boolean) => void): void;
 
-    initializeToc(toc: object): void;
-    getToc(callback: object): void;
+    initializeToc(toc: { [key: string]: any }): void;
+    getToc(callback: { [key: string]: any }): void;
 
     clearParentActivity(): void;
     getParentActivity(callback: (parentActivity: string) => void): void;
     startParentActivity(activity: string): void;
 }
 
-interface MessageAdapter {
+// -------------------------------
+
+export interface MessageAdapter {
 
 
     setDirectMessageHandler(callback: (messages: XApiStatement[]) => void): void;
@@ -26,14 +32,18 @@ interface MessageAdapter {
     queueReference(ref: Reference): void;
 }
 
-interface LauncherAdapter {
+// -------------------------------
+
+export interface LauncherAdapter {
     connect(): void;
     close(): void;
-    setLaunchHandler(callback: (payload: object) => void): void;
+    setLaunchHandler(callback: (payload: { [key: string]: any }) => void): void;
 }
 
-interface UserAdapter {
-    getUser(callback: (userProfile: (UserProfile | null)) => void): void;
+// -------------------------------
+
+export interface UserAdapter {
+    getUser(callback: (userProfile?: UserProfile) => void): void;
 
     isLoggedIn(callback: (loggedIn: boolean) => void): void;
 
@@ -42,59 +52,72 @@ interface UserAdapter {
     logout(callback?: (() => void)): void;
 }
 
-interface SyncProcess {
+// -------------------------------
+
+export interface SyncProcess {
     pull(): void;
 
-    push(outgoing: XApiStatement[], callback: (target: Endpoint, result: boolean) => void): void;
+    push(outgoing: XApiStatement[], callback: (result: boolean) => void): void;
 
     terminate(): void;
 }
 
-interface NetworkAdapter {
+// -------------------------------
+
+export interface NetworkAdapter {
     activate(): void;
     disable(): void;
 
     push(finished: (() => void)): void;
 }
 
-interface StorageAdapter {
+// -------------------------------
+
+export interface StorageAdapter {
 
     getAnnotations(userProfile: UserProfile, book: string, callback: (stmts: Annotation[]) => void): void;
 
-    saveAnnotations(userProfile: UserProfile, book: string, stmts: (Annotation | Annotation[]), callback?: (() => void)): void;
+    saveAnnotations(userProfile: UserProfile, stmts: (Annotation | Annotation[]), callback?: (() => void)): void;
 
-    saveGeneralAnnotations(userProfile: UserProfile, book: string, stmts: (GeneralAnnotation | GeneralAnnotation[]), callback?: (() => void)): void;
+    saveGeneralAnnotations(userProfile: UserProfile, stmts: (GeneralAnnotation | GeneralAnnotation[]), callback?: (() => void)): void;
 
     getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: GeneralAnnotation[]) => void): void;
 
-    removeAnnotation(userProfile: UserProfile, id: string, book: string, callback?: (() => void)): void;
+    removeAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void;
 
-    removeGeneralAnnotation(userProfile: UserProfile, id: string, book: string, callback?: (() => void)): void;
+    removeGeneralAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void;
 
 
     saveCurrentUser(userProfile: UserProfile, callback?: (() => void)): void;
 
-    getCurrentUser(callback: (userIdentity: (string | null)) => void): void;
+    getCurrentUser(callback: (userIdentity?: string) => void): void;
 
     removeCurrentUser(callback?: (() => void)): void;
 
-    getUserProfile(userIdentity: string, callback: (userProfile: (UserProfile | null)) => void): void;
+    getUserProfile(userIdentity: string, callback: (userProfile?: UserProfile) => void): void;
 
     saveUserProfile(userProfile: UserProfile, callback?: (() => void)): void;
 
 
+    saveCurrentActivity(activity: string, callback?: (() => void)): void;
+
+    getCurrentActivity(callback: ((activity?: string) => void)): void;
+
+    removeCurrentActivity(callback?: (() => void)): void;
+
+
     saveCurrentBook(book: string, callback?: (() => void)): void;
 
-    getCurrentBook(callback: (book: (string | null)) => void): void;
+    getCurrentBook(callback: (book?: string) => void): void;
 
 
-    saveEvent(userProfile: UserProfile, book: string, event: (XApiStatement | XApiStatement[]), callback?: (() => void)): void;
+    saveEvent(userProfile: UserProfile, event: (XApiStatement | XApiStatement[]), callback?: (() => void)): void;
 
     getEvents(userProfile: UserProfile, book: string, callback: (stmts: XApiStatement[]) => void): void;
 
-    getCompetencies(userProfile: UserProfile, callback: (competencies: object) => void): void;
+    getCompetencies(userProfile: UserProfile, callback: (competencies: { [key: string]: any }) => void): void;
 
-    saveCompetencies(userProfile: UserProfile, competencies: object, callback?: (() => void)): void;
+    saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }, callback?: (() => void)): void;
 
 
     saveOutgoing(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void;
@@ -111,21 +134,27 @@ interface StorageAdapter {
     removeMessage(userProfile: UserProfile, id: string, callback?: () => void): void;
 
 
-    saveAsset(assetId: string, data: object, callback?: (() => void)): void;
+    saveAsset(assetId: string, data: { [key: string]: any }, callback?: (() => void)): void;
 
-    getAsset(assetId: string, callback: (data: object) => void): void;
+    getAsset(assetId: string, callback: (data: { [key: string]: any }) => void): void;
 
 
     saveQueuedReference(userProfile: UserProfile, ref: Reference, callback?: (() => void)): void;
 
-    getQueuedReference(userProfile: UserProfile, callback: (ref: (Reference | null)) => void): void;
+    getQueuedReference(userProfile: UserProfile, callback: (ref?: Reference) => void): void;
 
     removeQueuedReference(userProfile: UserProfile, refId: string, callback?: (() => void)): void;
 
 
-    saveToc(userProfile: UserProfile, book: string, data: object, callback?: (() => void)): void;
+    saveToc(userProfile: UserProfile, book: string, data: { [key: string]: any }, callback?: (() => void)): void;
 
-    getToc(userProfile: UserProfile, book: string, callback: (data: object) => void): void;
+    getToc(userProfile: UserProfile, book: string, callback: (data: { [key: string]: any }) => void): void;
 
     removeToc(userProfile: UserProfile, book: string, section: string, id: string, callback?: (() => void)): void;
+}
+
+// -------------------------------
+
+export interface PEBLHandler extends EventListener {
+    (stmts: XApiStatement[]): void;
 }

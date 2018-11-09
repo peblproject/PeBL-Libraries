@@ -1,4 +1,6 @@
+import { UserAdapter } from "./adapters";
 import { PEBL } from "./pebl"
+import { UserProfile } from "./models";
 
 export class User implements UserAdapter {
     private pebl: PEBL;
@@ -13,7 +15,7 @@ export class User implements UserAdapter {
         });
     }
 
-    getUser(callback: (userProfile: (UserProfile | null)) => void): void {
+    getUser(callback: (userProfile?: UserProfile) => void): void {
         let self = this;
         this.pebl.storage.getCurrentUser(function(currentUser) {
             if (currentUser) {
@@ -22,10 +24,10 @@ export class User implements UserAdapter {
                         if (userProfile)
                             callback(userProfile);
                         else
-                            callback(null);
+                            callback();
                     });
             } else
-                callback(null);
+                callback();
         });
     }
 
@@ -43,9 +45,5 @@ export class User implements UserAdapter {
             this.pebl.storage.removeCurrentUser(callback);
         else
             this.pebl.storage.removeCurrentUser();
-    }
-
-    listener(): void {
-
     }
 }

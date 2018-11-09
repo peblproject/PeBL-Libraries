@@ -1,4 +1,6 @@
 export class EventSet {
+    [key: string]: any;
+
     incomingAnnotations = "incomingAnnotations";
     incomingSharedAnnotations = "incomingSharedAnnotations";
     incomingNotifications = "incomingNotifications";

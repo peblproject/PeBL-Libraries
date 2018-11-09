@@ -1,3 +1,6 @@
+import { XApiStatement, Reference, Message, Voided } from "./xapi";
+import { SyncProcess } from "./adapters";
+import { Endpoint } from "./models";
 import { PEBL } from "./pebl";
 
 export class LLSyncAction implements SyncProcess {
@@ -238,7 +241,7 @@ export class LLSyncAction implements SyncProcess {
         this.threadPollingCallback();
     }
 
-    push(outgoing: XApiStatement[], callback: (target: Endpoint, result: boolean) => void): void {
+    push(outgoing: XApiStatement[], callback: (result: boolean) => void): void {
         throw new Error("Method not implemented.");
     }
 

@@ -1,5 +1,5 @@
+import { ActivityAdapter } from "./adapters";
 import { PEBL } from "./pebl";
-
 
 export class Activity implements ActivityAdapter {
     private pebl: PEBL;
@@ -10,7 +10,7 @@ export class Activity implements ActivityAdapter {
 
     // -------------------------------
 
-    getBook(callback: (book: string | null) => void): void {
+    getBook(callback: (book?: string) => void): void {
         this.pebl.storage.getCurrentBook(callback);
     }
 

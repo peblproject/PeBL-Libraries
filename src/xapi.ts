@@ -1,15 +1,19 @@
+const NAMESPACE_USER_MESSAGES = "user-";
 const PREFIX_PEBL_THREAD = "peblThread://";
-const PREFIX_PEBL_EXTENSION = "https://peblproject.org/extension/";
+const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
 
 // -------------------------------
 
-abstract class XApiStatement {
+export class XApiStatement {
 
+    identity?: string;
     readonly id: string;
     readonly "object": { [key: string]: any };
     readonly actor: { [key: string]: any };
     readonly verb: { [key: string]: any };
     readonly context: { [key: string]: any };
+    readonly result: { [key: string]: any };
+    readonly attachments: { [key: string]: any }[];
     readonly stored: string;
     readonly timestamp: string;
 
@@ -20,15 +24,24 @@ abstract class XApiStatement {
         this.context = raw.context;
         this.stored = raw.stored;
         this.timestamp = raw.timestamp;
+        this.result = raw.result;
         this["object"] = raw.object;
+        this.attachments = raw.attachments;
     }
 
-    abstract toObject(): { [key: string]: any };
+    toXAPI(): XApiStatement {
+        return new XApiStatement(this);
+    }
+
+    getActorId(): string {
+        return this.actor.mbox || this.actor.openid ||
+            (this.actor.account && this.actor.account.name);
+    }
 }
 
 // -------------------------------
 
-class Reference extends XApiStatement {
+export class Reference extends XApiStatement {
     readonly thread: string;
     readonly book: string;
     readonly docType: string;
@@ -42,7 +55,7 @@ class Reference extends XApiStatement {
     constructor(raw: { [key: string]: any }) {
         super(raw);
         this.thread = this["object"].id;
-        if (this.thread.substr(0, PREFIX_PEBL_THREAD.length) == PREFIX_PEBL_THREAD)
+        if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
             this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
         let extensions = this["object"].extensions;
@@ -57,10 +70,6 @@ class Reference extends XApiStatement {
         this.externalURL = extensions[PREFIX_PEBL_EXTENSION + "externalURL"];
     }
 
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
-    }
-
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "pushed") || (verb == "pulled");
@@ -69,7 +78,7 @@ class Reference extends XApiStatement {
 
 // -------------------------------
 
-class Annotation extends XApiStatement {
+export class Annotation extends XApiStatement {
     readonly book: string;
     readonly annId: string;
     readonly ["type"]: string;
@@ -96,10 +105,6 @@ class Annotation extends XApiStatement {
         this.owner = extensions[PREFIX_PEBL_EXTENSION + "owner"];
     }
 
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
-    }
-
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "commented");
@@ -108,13 +113,9 @@ class Annotation extends XApiStatement {
 
 // -------------------------------
 
-class GeneralAnnotation extends Annotation {
+export class GeneralAnnotation extends Annotation {
     constructor(raw: { [key: string]: any }) {
         super(raw);
-    }
-
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
     }
 
     static is(x: XApiStatement): boolean {
@@ -125,12 +126,11 @@ class GeneralAnnotation extends Annotation {
 
 // -------------------------------
 
-class Action extends XApiStatement {
+export class Action extends XApiStatement {
     readonly activityId: string;
     readonly target: string;
     readonly ["type"]: string;
     readonly action: string;
-
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -143,10 +143,6 @@ class Action extends XApiStatement {
         this.action = extensions[PREFIX_PEBL_EXTENSION + "action"];
     }
 
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
-    }
-
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "preferred") || (verb == "morphed") || (verb == "interacted");
@@ -155,30 +151,38 @@ class Action extends XApiStatement {
 
 // -------------------------------
 
-class Navigation extends XApiStatement {
+export class Navigation extends XApiStatement {
+    readonly activityId: string;
+
+    readonly type: string;
+
     constructor(raw: { [key: string]: any }) {
         super(raw);
+        this.type = this.verb.display["en-US"];
+        this.activityId = this.object.id;
     }
-
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
-    }
-
 }
 
 // -------------------------------
 
-class Message extends XApiStatement {
+export class Message extends XApiStatement {
     readonly thread: string;
+    readonly text: string;
+    readonly prompt: string;
+    readonly name: string;
+    readonly direct: boolean;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
 
         this.thread = this.object.id;
-    }
+        if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
+        this.prompt = this.object.name["en-US"];
+        this.name = this.actor.name;
+        this.direct = this.thread == (NAMESPACE_USER_MESSAGES + this.getActorId());
+        this.text = this.object.description["en-US"];
     }
 
     static is(x: XApiStatement): boolean {
@@ -187,22 +191,137 @@ class Message extends XApiStatement {
     }
 }
 
-class Voided extends XApiStatement {
+// -------------------------------
+
+export class Voided extends XApiStatement {
     readonly thread: string;
     readonly target: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
         this.thread = this.context.contextActivities.parent[0].id;
-        this.target = this.object.id;
-    }
+        if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
-    toObject(): { [key: string]: any } {
-        throw new Error("Method not implemented.");
+        this.target = this.object.id;
     }
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "voided");
     }
+}
+
+// -------------------------------
+
+export class Question extends XApiStatement {
+
+    readonly score: number;
+    readonly min: number;
+    readonly max: number;
+
+    readonly activityId: string;
+
+    readonly completion: boolean;
+    readonly success: boolean;
+
+    readonly answers: string[];
+    readonly prompt: string;
+
+    readonly response: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        this.score = this.result.score.raw;
+        this.min = this.result.score.min;
+        this.max = this.result.score.max;
+
+        this.completion = this.result.completion;
+        this.success = this.result.success;
+
+        this.response = this.result.response;
+
+        this.prompt = this.object.definition.description["en-US"];
+
+        this.activityId = this.object.id;
+
+        let choices = this.object.definition.choices;
+        this.answers = [];
+        for (let key of Object.keys(choices))
+            this.answers.push(choices[key].description["en-US"]);
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "answered");
+    }
+
+}
+
+// -------------------------------
+
+export class Quiz extends XApiStatement {
+
+    readonly score: number;
+    readonly min: number;
+    readonly max: number;
+
+    readonly activityId: string;
+
+    readonly quizId: string;
+    readonly quizName: string;
+
+    readonly completion: boolean;
+    readonly success: boolean;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        this.score = this.result.score.raw;
+        this.min = this.result.score.min;
+        this.max = this.result.score.max;
+
+        this.completion = this.result.completion;
+        this.success = this.result.success;
+
+        this.quizId = this.object.definition.name["en-US"];
+
+        this.quizName = this.object.definition.description["en-US"];
+
+        this.activityId = this.object.id;
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "failed") || (verb == "passed");
+    }
+
+}
+
+// -------------------------------
+
+export class Session extends XApiStatement {
+
+    readonly activityId: string;
+    readonly activityName: string;
+    readonly activityDescription: string;
+
+    readonly type: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+        this.activityId = this.object.id;
+        this.activityName = this.object.name["en-US"];
+        this.activityDescription = this.object.description["en-US"];
+
+        this.type = this.verb.display["en-US"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "entered") || (verb == "exited") || (verb == "logged-in") ||
+            (verb == "logged-out") || (verb == "terminated") || (verb == "initialized");
+    }
+
 }

@@ -1,5 +1,7 @@
 import { PEBL } from "./pebl";
 import { LLSyncAction } from "./syncing";
+import { NetworkAdapter, SyncProcess } from "./adapters";
+import { Endpoint } from "./models";
 
 export class Network implements NetworkAdapter {
 
@@ -51,7 +53,7 @@ export class Network implements NetworkAdapter {
                         if (self.syncingProcess.length == 1) {
                             if (stmts.length > 0) {
                                 self.syncingProcess[0].push(stmts,
-                                    function(endpoint, success) {
+                                    function(success) {
                                         if (success)
                                             self.pebl.storage.removeOutgoing(userProfile, stmts);
                                         if (self.running)

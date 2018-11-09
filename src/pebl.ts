@@ -3,14 +3,17 @@ import { Activity } from "./activity";
 import { User } from "./user";
 import { Network } from "./network";
 import { Messenger } from "./messenger";
-import { XApiGenerator } from "./xapiGenerator";
 import { EventSet } from "./eventSet";
+import { StorageAdapter, UserAdapter, ActivityAdapter, NetworkAdapter, MessageAdapter, PEBLHandler } from "./adapters";
 import { PEBLEventHandlers } from "./eventHandlers"
 
 export class PEBL {
 
     private firedEvents: Event[] = [];
-    private subscribedEventHandlers: { [eventName: string]: EventListener[] } = {};
+
+    private subscribedEventHandlers: { [eventName: string]: PEBLHandler[] } = {};
+
+    private subscribedStreamHandlers: { [stream: string]: PEBLHandler[] } = {};
 
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
@@ -25,7 +28,6 @@ export class PEBL {
     readonly network: NetworkAdapter;
     readonly messager: MessageAdapter;
     // readonly launcher: LauncherAdapter;
-    readonly xapiGenerator: XApiGenerator;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
 
@@ -45,12 +47,12 @@ export class PEBL {
         this.activity = new Activity(this);
         this.network = new Network(this);
         this.messager = new Messenger(this);
-        this.xapiGenerator = new XApiGenerator();
 
         let self = this;
         if (this.useIndexedDB) {
             this.storage = new IndexedDBStorageAdapter(function() {
                 self.loaded = true;
+                self.addSystemEventListeners();
                 if (callback)
                     callback(self);
                 self.processQueuedEvents();
@@ -66,9 +68,21 @@ export class PEBL {
             // }
 
             this.loaded = true;
+            this.addSystemEventListeners();
             if (callback)
                 callback(this);
             self.processQueuedEvents();
+        }
+    }
+
+    private addSystemEventListeners(): void {
+        let events = Object.keys(this.events);
+        for (let event of events) {
+            let listener = this.eventHandlers[event];
+            if (listener) {
+                document.removeEventListener(event, listener);
+                document.addEventListener(event, listener);
+            }
         }
     }
 
@@ -95,7 +109,15 @@ export class PEBL {
         }
     }
 
-    subscribeEvent(eventName: string, once: boolean, callback: EventListener): void {
+    unsubscribeEvent(eventName: string, once: boolean, callback: EventListener): void {
+        new Error("Method not implemented");
+    }
+
+    unsubscribeThread(thread: string, once: boolean, callback: EventListener): void {
+        new Error("Method not implemented");
+    }
+
+    subscribeEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
         if (!this.subscribedEventHandlers[eventName])
             this.subscribedEventHandlers[eventName] = [];
         this.subscribedEventHandlers[eventName].push(callback);
@@ -105,7 +127,7 @@ export class PEBL {
             document.addEventListener(eventName,
                 function(e) {
                     self.subscribedEventHandlers[eventName] = self.subscribedEventHandlers[eventName].filter(function(x) {
-                        return x != callback;
+                        return (x != callback);
                     });
                     callback(e);
                 },
@@ -115,13 +137,27 @@ export class PEBL {
         }
     }
 
-    subscribeThread(thread: string, callback: (stmts: XApiStatement[]) => void): void {
-        this.messager.subscribe(thread, callback);
+    subscribeThread(thread: string, callback: PEBLHandler): void {
+        let streamCallbacks = this.subscribedStreamHandlers[thread];
+        if (streamCallbacks) {
+            streamCallbacks = [];
+            this.subscribedStreamHandlers[thread] = streamCallbacks;
+        }
+
+        streamCallbacks.push(callback);
+
+        let self = this;
+        this.user.getUser(function(userProfile) {
+            if (userProfile)
+                self.storage.getMessages(userProfile, thread, callback);
+            else
+                callback([]);
+        });
     }
 
     emitEvent(eventName: string, data: any): void {
         let e: CustomEvent = document.createEvent("CustomEvent");
-        e.initCustomEvent(eventName, true, true, { detail: data });
+        e.initCustomEvent(eventName, true, true, data);
         if (this.loaded)
             document.dispatchEvent(e);
         else
