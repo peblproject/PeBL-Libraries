@@ -1,5 +1,5 @@
 import { StorageAdapter } from "./adapters";
-import { XApiStatement, Reference, Message, Annotation, GeneralAnnotation } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation } from "./xapi";
 import { UserProfile } from "./models";
 
 const MASTER_INDEX = "master";
@@ -10,6 +10,7 @@ const CURRENT_USER = "peblCurrentUser";
 export class IndexedDBStorageAdapter implements StorageAdapter {
 
     private db?: IDBDatabase;
+    private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
         let request = window.indexedDB.open("pebl", 10);
@@ -52,6 +53,9 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             self.db = request.result;
 
             callback();
+            for (let i = 0; i < self.invocationQueue.length; i++)
+                self.invocationQueue[i]();
+            self.invocationQueue = [];
         };
 
         request.onerror = function(event) {
@@ -111,9 +115,9 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveGeneralAnnotations(userProfile: UserProfile, stmts: (GeneralAnnotation | GeneralAnnotation[]), callback?: (() => void)): void {
+    saveGeneralAnnotations(userProfile: UserProfile, stmts: (SharedAnnotation | SharedAnnotation[]), callback?: (() => void)): void {
         if (this.db) {
-            if (stmts instanceof GeneralAnnotation) {
+            if (stmts instanceof SharedAnnotation) {
                 let ga = stmts;
                 ga.identity = userProfile.identity;
                 let request = this.db.transaction(["generalAnnotations"], "readwrite").objectStore("generalAnnotations").put(ga);
@@ -126,9 +130,9 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 };
             } else {
                 let objectStore = this.db.transaction(["generalAnnotations"], "readwrite").objectStore("generalAnnotations");
-                let stmtsCopy: GeneralAnnotation[] = stmts.slice(0);
+                let stmtsCopy: SharedAnnotation[] = stmts.slice(0);
                 let processCallback = function() {
-                    let record: (GeneralAnnotation | undefined) = stmtsCopy.pop();
+                    let record: (SharedAnnotation | undefined) = stmtsCopy.pop();
                     if (record) {
                         let ga = record;
                         ga.identity = userProfile.identity;
@@ -142,17 +146,26 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 };
                 processCallback();
             }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveGeneralAnnotations(userProfile, stmts, callback);
+            });
         }
-
     }
 
-    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: GeneralAnnotation[]) => void): void {
+    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void {
         if (this.db) {
             let index = this.db.transaction(["generalAnnotations"], "readonly").objectStore("generalAnnotations").index(MASTER_INDEX);
             let param = [userProfile.identity, book];
             this.getAll(index,
                 IDBKeyRange.only(param),
                 callback);
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getGeneralAnnotations(userProfile, book, callback);
+            });
         }
     }
 
@@ -166,6 +179,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeGeneralAnnotation(userProfile, id, callback);
+            });
         }
     }
 
@@ -178,6 +196,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             this.getAll(index,
                 IDBKeyRange.only(param),
                 callback);
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getAnnotations(userProfile, book, callback);
+            });
         }
     }
 
@@ -213,8 +236,12 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 };
                 processCallback();
             }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveAnnotations(userProfile, stmts, callback);
+            });
         }
-
     }
 
     removeAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void {
@@ -227,6 +254,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeAnnotation(userProfile, id, callback);
+            });
         }
     }
 
@@ -242,6 +274,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeCurrentUser(callback);
+            });
         }
     }
 
@@ -260,6 +297,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCurrentUser(userProfile, callback);
+            });
         }
     }
 
@@ -276,6 +318,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 else
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCurrentUser(callback);
+            });
         }
     }
 
@@ -290,10 +337,15 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             request.onsuccess = function() {
                 let r = request.result;
                 if (r != null)
-                    callback(r.value);
+                    callback(r);
                 else
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getUserProfile(userIdentity, callback);
+            });
         }
     }
 
@@ -307,6 +359,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveUserProfile(userProfile, callback);
+            });
         }
     }
 
@@ -326,6 +383,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCurrentActivity(book, callback);
+            });
         }
     }
 
@@ -344,6 +406,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                         callback();
                 }
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCurrentActivity(callback);
+            });
         }
     }
 
@@ -357,6 +424,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeCurrentActivity(callback);
+            });
         }
     }
 
@@ -376,6 +448,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCurrentBook(book, callback);
+            });
         }
     }
 
@@ -394,6 +471,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                         callback();
                 }
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCurrentBook(callback);
+            });
         }
     }
 
@@ -431,6 +513,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 };
                 processCallback();
             }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveEvent(userProfile, events, callback);
+            });
         }
     }
 
@@ -442,6 +529,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             self.getAll(index,
                 IDBKeyRange.only(param),
                 callback);
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getEvents(userProfile, book, callback);
+            });
         }
     }
 
@@ -463,6 +555,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     else
                         callback(arr);
                 });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCompetencies(userProfile, callback);
+            });
         }
     }
 
@@ -488,6 +585,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 }
             };
             processCallback();
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCompetencies(userProfile, competencies, callback);
+            });
         }
     }
 
@@ -505,6 +607,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveOutgoing(userProfile, stmt, callback);
+            });
         }
     }
 
@@ -524,6 +631,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     else
                         callback(arr);
                 });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getOutgoing(userProfile, callback);
+            });
         }
     }
 
@@ -545,6 +657,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 }
             };
             processCallback();
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeOutgoing(userProfile, toClear, callback);
+            });
         }
     }
 
@@ -580,6 +697,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 };
                 processCallback();
             }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveMessages(userProfile, stmts, callback);
+            });
         }
     }
 
@@ -593,6 +715,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeMessage(userProfile, id, callback);
+            });
         }
     }
 
@@ -602,6 +729,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             this.getAll(index,
                 IDBKeyRange.only([userProfile.identity, thread]),
                 callback);
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getMessages(userProfile, thread, callback);
+            });
         }
     }
 
@@ -648,6 +780,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveQueuedReference(userProfile, ref, callback);
+            });
         }
     }
 
@@ -676,6 +813,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 else
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getQueuedReference(userProfile, callback);
+            });
         }
     }
 
@@ -689,6 +831,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeQueuedReference(userProfile, refId, callback);
+            });
         }
     }
 
@@ -706,6 +853,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveToc(userProfile, book, data, callback);
+            });
         }
     }
 
@@ -721,6 +873,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             this.getAll(index,
                 IDBKeyRange.only([userProfile.identity, book]),
                 callback);
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getToc(userProfile, book, callback);
+            });
         }
     }
 
@@ -734,6 +891,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 if (callback)
                     callback();
             };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeToc(userProfile, book, section, id, callback);
+            });
         }
     }
 

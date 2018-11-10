@@ -75,13 +75,18 @@ export class PEBL {
         }
     }
 
+    private addListener(event: string, callback: (event: Event) => void): void {
+        document.removeEventListener(event, callback);
+        document.addEventListener(event, callback);
+    }
+
     private addSystemEventListeners(): void {
         let events = Object.keys(this.events);
         for (let event of events) {
             let listener = this.eventHandlers[event];
             if (listener) {
-                document.removeEventListener(event, listener);
-                document.addEventListener(event, listener);
+                let call = listener.bind(this.eventHandlers)
+                this.addListener(event, call);
             }
         }
     }

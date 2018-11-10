@@ -13,10 +13,11 @@ export class LLSyncAction implements SyncProcess {
 
     private pebl: PEBL;
 
-
-    constructor(pebl: PEBL, endpoint: Endpoint) {
-        this.pebl = pebl;
+    constructor(incomingPebl: PEBL, endpoint: Endpoint) {
+        this.pebl = incomingPebl;
         this.endpoint = endpoint;
+
+        this.pull();
     }
 
     private clearTimeouts(): void {
@@ -61,13 +62,13 @@ export class LLSyncAction implements SyncProcess {
     private bookPollingCallback(): void {
         let self = this;
         this.pebl.activity.getBook(function(book) {
-            if (book != null) {
+            if (book) {
                 let lastSynced = self.endpoint.lastSyncedBooksMine[book];
                 if (lastSynced == null)
                     lastSynced = new Date("2017-06-05T21:07:49-07:00");
                 self.pullBook(lastSynced, book);
             } else if (self.running)
-                self.bookPoll = setTimeout(self.bookPollingCallback, 5000);
+                self.bookPoll = setTimeout(self.bookPollingCallback.bind(self), 5000);
         });
     }
 
@@ -89,7 +90,7 @@ export class LLSyncAction implements SyncProcess {
             }
 
             if ((threadPairs.length == 0) && self.running)
-                self.threadPoll = setTimeout(self.threadPollingCallback, 2000);
+                self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
             else
                 self.pullMessages({ "$or": threadPairs }, threadCallbacks);
         });

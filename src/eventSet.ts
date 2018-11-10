@@ -9,6 +9,7 @@ export class EventSet {
 
     openedBook = "openedBook";
 
+    newMessage = "newMessage";
     newActivity = "newActivity";
     newAnnotation = "newAnnotation";
     newSharedAnnotation = "newSharedAnnotation";
@@ -18,6 +19,8 @@ export class EventSet {
 
     eventLoggedIn = "eventLoggedIn";
     eventLoggedOut = "eventLoggedOut";
+    eventLogin = "eventLogin";
+    eventLogout = "eventLogout";
     eventSessionStart = "eventSessionStart";
     eventSessionStop = "eventSessionStop";
     eventNextPage = "eventNextPage";

@@ -1,5 +1,7 @@
 const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
 
+import { UserProfile } from "./models";
+
 export class XApiGenerator {
 
     addExtensions(extensions: { [key: string]: any }): { [key: string]: any } {
@@ -11,13 +13,6 @@ export class XApiGenerator {
         }
 
         return result;
-    }
-
-    makeAccountAgent(homePage: string, user: string): { [key: string]: any } {
-        return {
-            homePage: homePage,
-            name: user
-        }
     }
 
     addResult(stmt: { [key: string]: any }, score: number, minScore: number, maxScore: number, complete: boolean, success: boolean, answered?: string, duration?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
@@ -134,27 +129,40 @@ export class XApiGenerator {
         return stmt;
     }
 
-    addActorAccount(name: string, accountAgent: { [key: string]: any }, stmt: { [key: string]: any }): { [key: string]: any } {
+    addActorAccount(stmt: { [key: string]: any }, userProfile: UserProfile): { [key: string]: any } {
         if (!stmt.actor)
             stmt.actor = {};
         stmt.actor.objectType = "agent";
-        stmt.actor.name = name;
-        stmt.actor.account = accountAgent;
+        stmt.actor.name = userProfile.name || userProfile.identity;
+        stmt.actor.account = {
+            homePage: userProfile.homePage,
+            name: userProfile.identity
+        };
         return stmt;
     }
 
-    addActorMBox(name: string, mbox: string, stmt: { [key: string]: any }): { [key: string]: any } {
+    addActorMBox(stmt: { [key: string]: any }, userProfile: UserProfile): { [key: string]: any } {
         if (!stmt.actor)
             stmt.actor = {};
         stmt.actor.objectType = "agent";
-        stmt.actor.name = name;
-        stmt.actor.mbox = mbox;
+        stmt.actor.name = userProfile.name;
+        stmt.actor.mbox = userProfile.identity;
         return stmt;
     }
 
     addTimestamp(stmt: { [key: string]: any }): { [key: string]: any } {
         if (!stmt.timestamp)
             stmt.timestamp = new Date().toISOString();
+
+        return stmt;
+    }
+
+    addStatementRef(stmt: { [key: string]: any }, id: string): { [key: string]: any } {
+        if (!stmt.object)
+            stmt.object = {}
+
+        stmt.object.objectType = "StatementRef";
+        stmt.object.id = id;
 
         return stmt;
     }

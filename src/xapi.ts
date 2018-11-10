@@ -113,7 +113,7 @@ export class Annotation extends XApiStatement {
 
 // -------------------------------
 
-export class GeneralAnnotation extends Annotation {
+export class SharedAnnotation extends Annotation {
     constructor(raw: { [key: string]: any }) {
         super(raw);
     }
@@ -312,8 +312,8 @@ export class Session extends XApiStatement {
     constructor(raw: { [key: string]: any }) {
         super(raw);
         this.activityId = this.object.id;
-        this.activityName = this.object.name["en-US"];
-        this.activityDescription = this.object.description["en-US"];
+        this.activityName = this.object.name && this.object.name["en-US"];
+        this.activityDescription = this.object.description && this.object.description["en-US"];
 
         this.type = this.verb.display["en-US"];
     }

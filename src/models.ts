@@ -5,14 +5,19 @@ export class UserProfile {
     readonly name: string;
     readonly homePage: string;
     readonly preferredName: string;
-    readonly lrsUrls: { [key: string]: Endpoint };
+    readonly endpoints: Endpoint[];
 
     constructor(raw: { [key: string]: any }) {
         this.identity = raw.identity;
         this.name = raw.name;
         this.homePage = raw.homePage;
         this.preferredName = raw.preferredName;
-        this.lrsUrls = raw.lrsUrls;
+
+        this.endpoints = [];
+
+        if (raw.endpoints)
+            for (let endpointObj of raw.endpoints)
+                this.endpoints.push(new Endpoint(endpointObj));
 
         if (this.homePage == null)
             this.homePage = "acct:keycloak-server";
@@ -20,10 +25,8 @@ export class UserProfile {
 
     toObject(): { [key: string]: any } {
         let urls: { [key: string]: any } = {};
-        for (let key of Object.keys(this.lrsUrls)) {
-            let e = this.lrsUrls[key];
+        for (let e of this.endpoints)
             urls[e.url] = e.toObject();
-        }
         return {
             "identity": this.identity,
             "name": this.name,

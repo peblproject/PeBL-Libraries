@@ -3,37 +3,37 @@ import { LLSyncAction } from "./syncing";
 import { NetworkAdapter, SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
 
+let pebl: PEBL;
+let syncingProcess: SyncProcess[];
+
 export class Network implements NetworkAdapter {
 
-    private pebl: PEBL;
-
     private running: boolean;
-    private pushTimeout: (number | null) = null;
+    private pushTimeout?: number = undefined;
 
-    private syncingProcess: SyncProcess[];
-
-    constructor(pebl: PEBL) {
-        this.pebl = pebl;
+    constructor(incomingPebl: PEBL) {
+        pebl = incomingPebl;
         this.running = false;
-        this.syncingProcess = [];
     }
 
     activate(): void {
-        this.running = true;
-
         let self = this;
 
-        this.pebl.user.getUser(function(userProfile) {
+        pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                let endpoints: { [key: string]: Endpoint } = userProfile.lrsUrls;
+                let endpoints: Endpoint[] = userProfile.endpoints;
 
-                for (let key of Object.keys(endpoints)) {
-                    self.syncingProcess.push(new LLSyncAction(self.pebl, endpoints[key]));
+                if (!self.running) {
+                    syncingProcess = [];
+                    for (let e of endpoints)
+                        syncingProcess.push(new LLSyncAction(pebl, e));
+
+
+                    self.push();
+                    self.running = true;
                 }
             }
         })
-
-        this.push();
     }
 
     disable(): void {
@@ -41,21 +41,21 @@ export class Network implements NetworkAdapter {
 
         if (this.pushTimeout)
             clearTimeout(this.pushTimeout);
-        this.pushTimeout = null;
+        this.pushTimeout = undefined;
     }
 
     push(finished?: (() => void)): void {
         let self = this;
-        this.pebl.user.getUser(function(userProfile) {
+        pebl.user.getUser(function(userProfile) {
             if (userProfile)
-                self.pebl.storage.getOutgoing(userProfile,
+                pebl.storage.getOutgoing(userProfile,
                     function(stmts): void {
-                        if (self.syncingProcess.length == 1) {
+                        if (syncingProcess.length == 1) {
                             if (stmts.length > 0) {
-                                self.syncingProcess[0].push(stmts,
+                                syncingProcess[0].push(stmts,
                                     function(success) {
                                         if (success)
-                                            self.pebl.storage.removeOutgoing(userProfile, stmts);
+                                            pebl.storage.removeOutgoing(userProfile, stmts);
                                         if (self.running)
                                             self.pushTimeout = setTimeout(self.push, 5000);
 

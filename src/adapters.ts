@@ -1,4 +1,4 @@
-import { XApiStatement, Reference, Message, Annotation, GeneralAnnotation } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation } from "./xapi";
 import { UserProfile } from "./models";
 
 
@@ -79,9 +79,9 @@ export interface StorageAdapter {
 
     saveAnnotations(userProfile: UserProfile, stmts: (Annotation | Annotation[]), callback?: (() => void)): void;
 
-    saveGeneralAnnotations(userProfile: UserProfile, stmts: (GeneralAnnotation | GeneralAnnotation[]), callback?: (() => void)): void;
+    saveGeneralAnnotations(userProfile: UserProfile, stmts: (SharedAnnotation | SharedAnnotation[]), callback?: (() => void)): void;
 
-    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: GeneralAnnotation[]) => void): void;
+    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void;
 
     removeAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void;
 
