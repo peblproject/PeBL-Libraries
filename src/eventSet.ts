@@ -6,12 +6,13 @@ export class EventSet {
     incomingNotifications = "incomingNotifications";
     incomingAssets = "incomingAssets";
     incomingEvents = "incomingEvents";
+    incomingMessages = "incomingMessages";
 
-    openedBook = "openedBook";
-
+    newBook = "newBook";
     newMessage = "newMessage";
     newActivity = "newActivity";
     newAnnotation = "newAnnotation";
+    newReference = "newReference";
     newSharedAnnotation = "newSharedAnnotation";
 
     removedAnnotation = "removedAnnotation";
@@ -37,6 +38,6 @@ export class EventSet {
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
-    eventPulled = "eventPulled";
-    eventPushed = "eventPushed";
+    // eventPulled = "eventPulled";
+    // eventPushed = "eventPushed";
 }

@@ -2,18 +2,18 @@ import { IndexedDBStorageAdapter } from "./storage";
 import { Activity } from "./activity";
 import { User } from "./user";
 import { Network } from "./network";
-import { Messenger } from "./messenger";
+// import { Messenger } from "./messenger";
 import { EventSet } from "./eventSet";
-import { StorageAdapter, UserAdapter, ActivityAdapter, NetworkAdapter, MessageAdapter, PEBLHandler } from "./adapters";
+import { StorageAdapter, UserAdapter, ActivityAdapter, NetworkAdapter, PEBLHandler } from "./adapters";
 import { PEBLEventHandlers } from "./eventHandlers"
 
 export class PEBL {
 
     private firedEvents: Event[] = [];
 
-    private subscribedEventHandlers: { [eventName: string]: PEBLHandler[] } = {};
+    readonly subscribedEventHandlers: { [eventName: string]: PEBLHandler[] } = {};
 
-    private subscribedStreamHandlers: { [stream: string]: PEBLHandler[] } = {};
+    readonly subscribedThreadHandlers: { [thread: string]: PEBLHandler[] } = {};
 
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
@@ -26,7 +26,6 @@ export class PEBL {
     readonly user: UserAdapter;
     readonly activity: ActivityAdapter;
     readonly network: NetworkAdapter;
-    readonly messager: MessageAdapter;
     // readonly launcher: LauncherAdapter;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
@@ -46,7 +45,6 @@ export class PEBL {
         this.user = new User(this);
         this.activity = new Activity(this);
         this.network = new Network(this);
-        this.messager = new Messenger(this);
 
         let self = this;
         if (this.useIndexedDB) {
@@ -143,13 +141,13 @@ export class PEBL {
     }
 
     subscribeThread(thread: string, callback: PEBLHandler): void {
-        let streamCallbacks = this.subscribedStreamHandlers[thread];
-        if (streamCallbacks) {
-            streamCallbacks = [];
-            this.subscribedStreamHandlers[thread] = streamCallbacks;
+        let threadCallbacks = this.subscribedThreadHandlers[thread];
+        if (threadCallbacks) {
+            threadCallbacks = [];
+            this.subscribedThreadHandlers[thread] = threadCallbacks;
         }
 
-        streamCallbacks.push(callback);
+        threadCallbacks.push(callback);
 
         let self = this;
         this.user.getUser(function(userProfile) {

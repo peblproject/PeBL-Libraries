@@ -6,12 +6,15 @@ export class UserProfile {
     readonly homePage: string;
     readonly preferredName: string;
     readonly endpoints: Endpoint[];
+    readonly registryEndpoint?: Endpoint;
 
     constructor(raw: { [key: string]: any }) {
         this.identity = raw.identity;
         this.name = raw.name;
         this.homePage = raw.homePage;
         this.preferredName = raw.preferredName;
+        if (raw.registryEndPoint)
+            this.registryEndpoint = new Endpoint(raw.registryEndPoint);
 
         this.endpoints = [];
 
@@ -32,7 +35,8 @@ export class UserProfile {
             "name": this.name,
             "homePage": this.homePage,
             "preferredName": this.preferredName,
-            "lrsUrls": urls
+            "lrsUrls": urls,
+            "registryEndpoint": this.registryEndpoint
         };
     }
 
@@ -54,6 +58,10 @@ export class Endpoint {
         this.username = raw.username;
         this.password = raw.password;
         this.token = raw.token;
+
+        if (!this.token) {
+            this.token = btoa(this.username + ":" + this.password);
+        }
 
         this.lastSyncedBooksMine = {};
         this.lastSyncedBooksShared = {};

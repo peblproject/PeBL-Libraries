@@ -1,4 +1,4 @@
-import { XApiStatement, Reference, Message, Voided } from "./xapi";
+import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
 import { PEBL } from "./pebl";
@@ -13,8 +13,8 @@ export class LLSyncAction implements SyncProcess {
 
     private pebl: PEBL;
 
-    constructor(incomingPebl: PEBL, endpoint: Endpoint) {
-        this.pebl = incomingPebl;
+    constructor(pebl: PEBL, endpoint: Endpoint) {
+        this.pebl = pebl;
         this.endpoint = endpoint;
 
         this.pull();
@@ -64,8 +64,10 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.activity.getBook(function(book) {
             if (book) {
                 let lastSynced = self.endpoint.lastSyncedBooksMine[book];
-                if (lastSynced == null)
+                if (lastSynced == null) {
                     lastSynced = new Date("2017-06-05T21:07:49-07:00");
+                    self.endpoint.lastSyncedBooksMine[book] = lastSynced;
+                }
                 self.pullBook(lastSynced, book);
             } else if (self.running)
                 self.bookPoll = setTimeout(self.bookPollingCallback.bind(self), 5000);
@@ -74,58 +76,58 @@ export class LLSyncAction implements SyncProcess {
 
     private threadPollingCallback(): void {
         let self = this;
-        this.pebl.messager.getThreads(function(threadCallbacks): void {
-            let threadPairs: { [key: string]: any }[] = [];
+        let threadPairs: { [key: string]: any }[] = [];
 
-            for (let thread of Object.keys(threadCallbacks)) {
-                let timeStr = self.endpoint.lastSyncedThreads[thread];
-                let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
-                self.endpoint.lastSyncedThreads[thread] = timestamp;
-                threadPairs.push({
-                    "statement.stored": {
-                        "$gt": timestamp.toISOString()
-                    },
-                    "statement.object.id": "peblThread://" + thread
-                });
-            }
+        for (let thread of Object.keys(this.pebl.subscribedThreadHandlers)) {
+            let timeStr = self.endpoint.lastSyncedThreads[thread];
+            let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
+            self.endpoint.lastSyncedThreads[thread] = timestamp;
+            threadPairs.push({
+                "statement.stored": {
+                    "$gt": timestamp.toISOString()
+                },
+                "statement.object.id": "peblThread://" + thread
+            });
+        }
 
-            if ((threadPairs.length == 0) && self.running)
-                self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
-            else
-                self.pullMessages({ "$or": threadPairs }, threadCallbacks);
-        });
+        if ((threadPairs.length == 0) && self.running)
+            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
+        else
+            self.pullMessages({ "$or": threadPairs });
     }
 
     private pullHelper(pipeline: { [key: string]: any }[], callback: (stmts: XApiStatement[]) => void): void {
         let self = this;
-        let request = new XMLHttpRequest();
-        request.onreadystatechange = function() {
-            if (request.readyState == 4) {
-                if (request.status == 200) {
-                    let result = JSON.parse(request.responseText);
-                    for (let i = 0; i < result.length; i++) {
-                        let rec = result[i]
-                        if (!rec.voided)
-                            result[i] = rec.statement;
-                        else
-                            result[i] = self.toVoidRecord(rec.statement);
-                    }
-                    if (callback != null) {
-                        callback(result);
-                    }
-                }
+        let xhr = new XMLHttpRequest();
+
+
+        xhr.addEventListener("load", function() {
+            let result = JSON.parse(xhr.responseText);
+            for (let i = 0; i < result.length; i++) {
+                let rec = result[i]
+                if (!rec.voided)
+                    result[i] = rec.statement;
+                else
+                    result[i] = self.toVoidRecord(rec.statement);
             }
-        };
+            if (callback != null) {
+                callback(result);
+            }
+        });
 
-        request.open("GET", self.endpoint.url + "api/statements/aggregate?pipeline=" + encodeURIComponent(JSON.stringify(pipeline)), true);
+        xhr.addEventListener("error", function() {
+            callback([]);
+        });
 
-        request.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
-        request.setRequestHeader("Content-Type", "application/json");
+        xhr.open("GET", self.endpoint.url + "api/statements/aggregate?pipeline=" + encodeURIComponent(JSON.stringify(pipeline)), true);
 
-        request.send();
+        xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.send();
     }
 
-    private pullMessages(params: { [key: string]: any }, callbacks: { [thread: string]: (stmts: XApiStatement[]) => void }): void {
+    private pullMessages(params: { [key: string]: any }): void {
         let pipeline: { [key: string]: any }[] = [
             {
                 "$sort": {
@@ -152,13 +154,13 @@ export class LLSyncAction implements SyncProcess {
         let self = this;
         this.pullHelper(pipeline,
             function(stmts: XApiStatement[]): void {
-                let buckets: { [thread: string]: { [id: string]: XApiStatement } } = {};
+                let buckets: { [thread: string]: { [id: string]: (Message | Reference) } } = {};
                 let deleteIds: Voided[] = [];
 
                 for (let i = 0; i < stmts.length; i++) {
                     let xapi = stmts[i];
                     let thread: (string | null) = null;
-                    let tsd: (XApiStatement | null) = null;
+                    let tsd: (Message | Reference | null) = null;
 
                     if (Message.is(xapi)) {
                         let m = new Message(xapi);
@@ -166,7 +168,7 @@ export class LLSyncAction implements SyncProcess {
                         tsd = m;
                     } else if (Reference.is(xapi)) {
                         let r = new Reference(xapi);
-                        self.pebl.messager.queueReference(r);
+                        self.pebl.network.queueReference(r);
                         tsd = r;
                         thread = r.thread;
                     } else if (Voided.is(xapi)) {
@@ -207,30 +209,162 @@ export class LLSyncAction implements SyncProcess {
 
                         for (let thread of Object.keys(buckets)) {
                             let bucket = buckets[thread];
-                            let cleanMessages = [];
-                            let cleanXAPIMessages = [];
+                            let cleanMessages: Message[] = [];
 
                             for (let messageId of Object.keys(bucket)) {
-                                cleanMessages.push(bucket[messageId]);
-                                cleanXAPIMessages.push(bucket[messageId]);
+                                let rec: (Message | Reference) = bucket[messageId];
+                                if (rec instanceof Message)
+                                    cleanMessages.push(rec);
                             }
                             cleanMessages.sort();
-                            self.pebl.storage.saveMessages(userProfile, <Message[]>cleanXAPIMessages);
-                            let callback = callbacks[thread];
-                            if (callback != null)
-                                callback(cleanMessages);
+                            self.pebl.storage.saveMessages(userProfile, cleanMessages);
+                            self.pebl.emitEvent(thread, cleanMessages);
                         }
 
                         self.pebl.storage.saveUserProfile(userProfile);
                         if (self.running)
-                            self.threadPoll = setTimeout(self.threadPollingCallback, 2000);
+                            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
                     }
                 });
             });
     }
 
     private pullBook(lastSynced: Date, book: string): void {
+        let teacherPack: { [key: string]: any } = {
+            "statement.object.id": "pebl://" + book,
+            "statement.stored": {
+                "$gt": lastSynced.toISOString()
+            }
+        };
 
+        let self = this;
+
+        let pipeline: { [key: string]: any }[] = [
+            {
+                "$sort": {
+                    "stored": -1,
+                    "_id": 1
+                }
+            },
+            {
+                "$match": {
+                    "$or": [
+                        teacherPack,
+                        {
+                            "statement.object.id": "pebl://" + book,
+                            "statement.stored": {
+                                "$gt": lastSynced.toISOString()
+                            },
+                            "statement.verb.id": "http://adlnet.gov/expapi/verbs/shared"
+                        }
+                    ]
+                }
+            },
+            {
+                "$limit": 1500
+            },
+            {
+                "$project": {
+                    "statement": 1,
+                    "_id": 0,
+                    "voided": 1
+                }
+            }
+        ];
+
+        this.pebl.user.getUser(function(userProfile) {
+
+            if (userProfile) {
+
+                if (!self.pebl.teacher)
+                    teacherPack["agents"] = userProfile.homePage + "|" + userProfile.identity;
+
+                self.pullHelper(pipeline,
+                    function(stmts) {
+                        let annotations: { [key: string]: Annotation } = {};
+                        let sharedAnnotations: { [key: string]: SharedAnnotation } = {};
+                        let events: { [key: string]: any } = {};
+                        let deleted = [];
+
+                        for (let i = 0; i < stmts.length; i++) {
+                            let xapi = stmts[i];
+
+                            if (Annotation.is(xapi)) {
+                                let a = new Annotation(xapi);
+                                annotations[a.id] = a;
+                            } else if (Reference.is(xapi)) {
+                                let a = new SharedAnnotation(xapi);
+                                sharedAnnotations[a.id] = a;
+                            } else if (Voided.is(xapi)) {
+                                let v = new Voided(xapi);
+                                deleted.push(v);
+                            } else if (Session.is(xapi)) {
+                                let s = new Session(xapi);
+                                events[s.id] = s;
+                            } else if (Action.is(xapi)) {
+                                let a = new Action(xapi);
+                                events[a.id] = a;
+                            } else if (Navigation.is(xapi)) {
+                                let a = new Navigation(xapi);
+                                events[a.id] = a;
+                            } else if (Quiz.is(xapi)) {
+                                let q = new Quiz(xapi);
+                                events[q.id] = q;
+                            } else if (Question.is(xapi)) {
+                                let q = new Question(xapi);
+                                events[q.id] = q;
+                            } else {
+                                new Error("Unknown Statement type");
+                            }
+
+
+                            let temp = new Date(xapi.stored);
+                            let lastSyncedDate = self.endpoint.lastSyncedBooksMine[book];
+                            if (lastSyncedDate.getTime() < temp.getTime())
+                                self.endpoint.lastSyncedBooksMine[book] = temp;
+                        }
+
+                        for (let i = 0; i < deleted.length; i++) {
+                            let v = deleted[i];
+
+                            delete annotations[v.target];
+                            delete sharedAnnotations[v.target];
+                            // delete events[v.target];
+
+                            self.pebl.storage.removeAnnotation(userProfile, v.target);
+                            self.pebl.storage.removeSharedAnnotation(userProfile, v.target);
+                            // self.pebl.storage.removeEvent(userProfile, v.target);
+                        }
+
+                        let cleanAnnotations = [];
+                        for (let id of Object.keys(annotations))
+                            cleanAnnotations.push(annotations[id]);
+
+                        cleanAnnotations.sort();
+                        self.pebl.storage.saveAnnotations(userProfile, cleanAnnotations);
+                        self.pebl.emitEvent(self.pebl.events.incomingAnnotations, cleanAnnotations);
+
+                        let cleanSharedAnnotations = [];
+                        for (let id of Object.keys(sharedAnnotations))
+                            cleanSharedAnnotations.push(annotations[id]);
+
+                        cleanSharedAnnotations.sort();
+                        self.pebl.storage.saveSharedAnnotations(userProfile, cleanSharedAnnotations);
+                        self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, cleanSharedAnnotations);
+
+                        let cleanEvents = [];
+                        for (let id of Object.keys(events))
+                            cleanEvents.push(events[id]);
+                        cleanEvents.sort();
+                        self.pebl.storage.saveEvent(userProfile, cleanEvents);
+                        self.pebl.emitEvent(self.pebl.events.incomingEvents, cleanEvents);
+
+                        self.pebl.storage.saveUserProfile(userProfile);
+                        if (self.running)
+                            self.threadPoll = setTimeout(self.bookPollingCallback.bind(self), 5000);
+                    });
+            }
+        });
     }
 
     pull(): void {
@@ -243,7 +377,26 @@ export class LLSyncAction implements SyncProcess {
     }
 
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void {
-        throw new Error("Method not implemented.");
+        let xhr = new XMLHttpRequest();
+
+        xhr.addEventListener("load", function() {
+            callback(true);
+        });
+
+        xhr.addEventListener("error", function() {
+            callback(false);
+        });
+
+        xhr.open("POST", this.endpoint.url + "data/xapi/statements");
+        xhr.setRequestHeader("Authorization", "Basic " + this.endpoint.token);
+        xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        outgoing.forEach(function(rec) {
+            delete rec.identity;
+        })
+
+        xhr.send(JSON.stringify(outgoing));
     }
 
     terminate(): void {

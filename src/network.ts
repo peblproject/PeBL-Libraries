@@ -2,38 +2,107 @@ import { PEBL } from "./pebl";
 import { LLSyncAction } from "./syncing";
 import { NetworkAdapter, SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
+import { Reference } from "./xapi";
 
-let pebl: PEBL;
-let syncingProcess: SyncProcess[];
 
 export class Network implements NetworkAdapter {
 
     private running: boolean;
     private pushTimeout?: number = undefined;
 
-    constructor(incomingPebl: PEBL) {
-        pebl = incomingPebl;
+    private pullAssetTimeout?: number = undefined;
+
+    private pebl: PEBL;
+    private syncingProcess: SyncProcess[];
+
+    constructor(pebl: PEBL) {
+        this.pebl = pebl;
         this.running = false;
+        this.syncingProcess = [];
     }
 
     activate(): void {
         let self = this;
 
-        pebl.user.getUser(function(userProfile) {
+        self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 let endpoints: Endpoint[] = userProfile.endpoints;
 
                 if (!self.running) {
-                    syncingProcess = [];
+                    self.syncingProcess = [];
                     for (let e of endpoints)
-                        syncingProcess.push(new LLSyncAction(pebl, e));
+                        self.syncingProcess.push(new LLSyncAction(self.pebl, e));
 
 
                     self.push();
+                    self.pullAsset();
                     self.running = true;
                 }
             }
         })
+    }
+
+    queueReference(ref: Reference): void {
+        let self = this;
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile)
+                self.pebl.storage.saveQueuedReference(userProfile, ref);
+        });
+    }
+
+    private pullAsset(): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+
+            if (userProfile && userProfile.registryEndpoint) {
+                self.pebl.storage.getQueuedReference(userProfile, function(ref) {
+
+                    if (ref) {
+                        let xhr = new XMLHttpRequest();
+
+                        xhr.addEventListener("load", function() {
+                            self.pebl.storage.saveNotification(userProfile, ref);
+                            let tocEntry: { [key: string]: any } = {
+                                "url": ref.url,
+                                "documentName": ref.name,
+                                "section": ref.location,
+                                "pageKey": ref.id,
+                                "docType": ref.docType,
+                                "card": ref.card,
+                                "externalURL": ref.externalURL
+                            };
+
+                            self.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
+
+                            self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+
+                            self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+
+                            if (self.running)
+                                self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                        });
+
+                        xhr.addEventListener("error", function() {
+                            self.pebl.storage.saveNotification(userProfile, ref);
+
+                            self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+
+                            self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+
+                            if (self.running)
+                                self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                        });
+
+                        let url = userProfile.registryEndpoint && userProfile.registryEndpoint.url;
+
+                        if (url) {
+                            xhr.open("GET", url + ref.url);
+                            xhr.send();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     disable(): void {
@@ -42,29 +111,33 @@ export class Network implements NetworkAdapter {
         if (this.pushTimeout)
             clearTimeout(this.pushTimeout);
         this.pushTimeout = undefined;
+
+        if (this.pullAssetTimeout)
+            clearTimeout(this.pullAssetTimeout);
+        this.pullAssetTimeout = undefined;
     }
 
     push(finished?: (() => void)): void {
         let self = this;
-        pebl.user.getUser(function(userProfile) {
+        this.pebl.user.getUser(function(userProfile) {
             if (userProfile)
-                pebl.storage.getOutgoing(userProfile,
+                self.pebl.storage.getOutgoing(userProfile,
                     function(stmts): void {
-                        if (syncingProcess.length == 1) {
+                        if (self.syncingProcess.length == 1) {
                             if (stmts.length > 0) {
-                                syncingProcess[0].push(stmts,
+                                self.syncingProcess[0].push(stmts,
                                     function(success) {
                                         if (success)
-                                            pebl.storage.removeOutgoing(userProfile, stmts);
+                                            self.pebl.storage.removeOutgoing(userProfile, stmts);
                                         if (self.running)
-                                            self.pushTimeout = setTimeout(self.push, 5000);
+                                            self.pushTimeout = setTimeout(self.push.bind(self), 5000);
 
                                         if (finished)
                                             finished();
                                     });
                             } else {
                                 if (self.running)
-                                    self.pushTimeout = setTimeout(self.push, 5000);
+                                    self.pushTimeout = setTimeout(self.push.bind(self), 5000);
 
                                 if (finished)
                                     finished();
@@ -73,7 +146,7 @@ export class Network implements NetworkAdapter {
                     });
             else {
                 if (self.running)
-                    self.pushTimeout = setTimeout(self.push, 5000);
+                    self.pushTimeout = setTimeout(self.push.bind(self), 5000);
 
                 if (finished)
                     finished();

@@ -132,7 +132,7 @@ export class XApiGenerator {
     addActorAccount(stmt: { [key: string]: any }, userProfile: UserProfile): { [key: string]: any } {
         if (!stmt.actor)
             stmt.actor = {};
-        stmt.actor.objectType = "agent";
+        stmt.actor.objectType = "Agent";
         stmt.actor.name = userProfile.name || userProfile.identity;
         stmt.actor.account = {
             homePage: userProfile.homePage,
@@ -144,7 +144,7 @@ export class XApiGenerator {
     addActorMBox(stmt: { [key: string]: any }, userProfile: UserProfile): { [key: string]: any } {
         if (!stmt.actor)
             stmt.actor = {};
-        stmt.actor.objectType = "agent";
+        stmt.actor.objectType = "Agent";
         stmt.actor.name = userProfile.name;
         stmt.actor.mbox = userProfile.identity;
         return stmt;

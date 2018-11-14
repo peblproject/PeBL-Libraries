@@ -17,20 +17,20 @@ export interface ActivityAdapter {
 
 // -------------------------------
 
-export interface MessageAdapter {
+// export interface MessageAdapter {
 
 
-    setDirectMessageHandler(callback: (messages: XApiStatement[]) => void): void;
+//     setDirectMessageHandler(callback: (messages: XApiStatement[]) => void): void;
 
-    getThreads(callback: (threads: { [key: string]: ((stmts: XApiStatement[]) => void) }) => void): void;
+//     getThreads(callback: (threads: { [key: string]: ((stmts: XApiStatement[]) => void) }) => void): void;
 
-    unsubscribeAll(): void;
-    subscribe(thread: string, callback: (stmts: XApiStatement[]) => void): void;
+//     unsubscribeAll(): void;
+//     subscribe(thread: string, callback: (stmts: XApiStatement[]) => void): void;
 
-    setAssetNotificationHandler(callback: (stmt: XApiStatement) => void): void;
+//     setAssetNotificationHandler(callback: (stmt: XApiStatement) => void): void;
 
-    queueReference(ref: Reference): void;
-}
+//     queueReference(ref: Reference): void;
+// }
 
 // -------------------------------
 
@@ -68,6 +68,8 @@ export interface NetworkAdapter {
     activate(): void;
     disable(): void;
 
+    queueReference(ref: Reference): void;
+
     push(finished: (() => void)): void;
 }
 
@@ -79,13 +81,13 @@ export interface StorageAdapter {
 
     saveAnnotations(userProfile: UserProfile, stmts: (Annotation | Annotation[]), callback?: (() => void)): void;
 
-    saveGeneralAnnotations(userProfile: UserProfile, stmts: (SharedAnnotation | SharedAnnotation[]), callback?: (() => void)): void;
+    saveSharedAnnotations(userProfile: UserProfile, stmts: (SharedAnnotation | SharedAnnotation[]), callback?: (() => void)): void;
 
-    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void;
+    getSharedAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void;
 
     removeAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void;
 
-    removeGeneralAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void;
+    removeSharedAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void;
 
 
     saveCurrentUser(userProfile: UserProfile, callback?: (() => void)): void;
@@ -114,6 +116,7 @@ export interface StorageAdapter {
     saveEvent(userProfile: UserProfile, event: (XApiStatement | XApiStatement[]), callback?: (() => void)): void;
 
     getEvents(userProfile: UserProfile, book: string, callback: (stmts: XApiStatement[]) => void): void;
+
 
     getCompetencies(userProfile: UserProfile, callback: (competencies: { [key: string]: any }) => void): void;
 
@@ -144,6 +147,13 @@ export interface StorageAdapter {
     getQueuedReference(userProfile: UserProfile, callback: (ref?: Reference) => void): void;
 
     removeQueuedReference(userProfile: UserProfile, refId: string, callback?: (() => void)): void;
+
+
+    saveNotification(userProfile: UserProfile, notification: XApiStatement, callback?: (() => void)): void;
+
+    getNotifications(userProfile: UserProfile, callback: ((stmts: XApiStatement[]) => void)): void;
+
+    removeNotification(userProfile: UserProfile, notificationId: string, callback?: (() => void)): void;
 
 
     saveToc(userProfile: UserProfile, book: string, data: { [key: string]: any }, callback?: (() => void)): void;

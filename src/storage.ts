@@ -13,7 +13,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 10);
+        let request = window.indexedDB.open("pebl", 11);
         let self: IndexedDBStorageAdapter = this;
 
         request.onupgradeneeded = function() {
@@ -26,7 +26,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let eventStore = db.createObjectStore("events", { keyPath: ["identity", "id"] });
             let annotationStore = db.createObjectStore("annotations", { keyPath: ["identity", "id"] });
             let competencyStore = db.createObjectStore("competencies", { keyPath: ["url", "identity"] });
-            let generalAnnotationStore = db.createObjectStore("generalAnnotations", { keyPath: ["identity", "id"] });
+            let generalAnnotationStore = db.createObjectStore("sharedAnnotations", { keyPath: ["identity", "id"] });
             let outgoingStore = db.createObjectStore("outgoing", { keyPath: ["identity", "id"] });
             let messageStore = db.createObjectStore("messages", { keyPath: ["identity", "id"] });
             db.createObjectStore("user", { keyPath: "identity" });
@@ -115,12 +115,12 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveGeneralAnnotations(userProfile: UserProfile, stmts: (SharedAnnotation | SharedAnnotation[]), callback?: (() => void)): void {
+    saveSharedAnnotations(userProfile: UserProfile, stmts: (SharedAnnotation | SharedAnnotation[]), callback?: (() => void)): void {
         if (this.db) {
             if (stmts instanceof SharedAnnotation) {
                 let ga = stmts;
                 ga.identity = userProfile.identity;
-                let request = this.db.transaction(["generalAnnotations"], "readwrite").objectStore("generalAnnotations").put(ga);
+                let request = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations").put(ga);
                 request.onerror = function(e) {
                     console.log(e)
                 };
@@ -129,7 +129,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                         callback();
                 };
             } else {
-                let objectStore = this.db.transaction(["generalAnnotations"], "readwrite").objectStore("generalAnnotations");
+                let objectStore = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations");
                 let stmtsCopy: SharedAnnotation[] = stmts.slice(0);
                 let processCallback = function() {
                     let record: (SharedAnnotation | undefined) = stmtsCopy.pop();
@@ -149,14 +149,14 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.saveGeneralAnnotations(userProfile, stmts, callback);
+                self.saveSharedAnnotations(userProfile, stmts, callback);
             });
         }
     }
 
-    getGeneralAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void {
+    getSharedAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void {
         if (this.db) {
-            let index = this.db.transaction(["generalAnnotations"], "readonly").objectStore("generalAnnotations").index(MASTER_INDEX);
+            let index = this.db.transaction(["sharedAnnotations"], "readonly").objectStore("sharedAnnotations").index(MASTER_INDEX);
             let param = [userProfile.identity, book];
             this.getAll(index,
                 IDBKeyRange.only(param),
@@ -164,14 +164,14 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.getGeneralAnnotations(userProfile, book, callback);
+                self.getSharedAnnotations(userProfile, book, callback);
             });
         }
     }
 
-    removeGeneralAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void {
+    removeSharedAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void {
         if (this.db) {
-            let request = this.db.transaction(["generalAnnotations"], "readwrite").objectStore("generalAnnotations").delete(IDBKeyRange.only([userProfile.identity, id]));
+            let request = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations").delete(IDBKeyRange.only([userProfile.identity, id]));
             request.onerror = function(e) {
                 console.log(e);
             };
@@ -182,7 +182,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.removeGeneralAnnotation(userProfile, id, callback);
+                self.removeSharedAnnotation(userProfile, id, callback);
             });
         }
     }
@@ -900,4 +900,67 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     }
 
     // -------------------------------
+
+    saveNotification(userProfile: UserProfile, notification: XApiStatement, callback?: (() => void)): void {
+        if (this.db) {
+            notification.identity = userProfile.identity;
+            let request = this.db.transaction(["notifications"], "readwrite").objectStore("notifications").put(this.cleanRecord(notification));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveNotification(userProfile, notification, callback);
+            });
+        }
+    }
+
+    getNotifications(userProfile: UserProfile, callback: ((stmts: XApiStatement[]) => void)): void {
+        if (this.db) {
+            let os = this.db.transaction(["notifications"], "readonly").objectStore("notifications");
+            let index = os.index(MASTER_INDEX);
+            let param = userProfile.identity;
+            let self = this;
+            this.getAll(index,
+                IDBKeyRange.only(param),
+                function(arr) {
+                    if (arr.length == 0)
+                        self.getAll(index,
+                            IDBKeyRange.only([param]),
+                            callback);
+                    else
+                        callback(arr);
+                });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getNotifications(userProfile, callback);
+            });
+        }
+    }
+
+    removeNotification(userProfile: UserProfile, notificationId: string, callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["notifications"], "readwrite").objectStore("notifications").delete(IDBKeyRange.only([userProfile.identity, notificationId]));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeNotification(userProfile, notificationId, callback);
+            });
+        }
+    }
+
+    // -------------------------------    
 }

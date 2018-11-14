@@ -60,13 +60,14 @@ export class Reference extends XApiStatement {
 
         let extensions = this["object"].extensions;
 
+        this.name = this.object.name["en-US"];
+
         this.book = extensions[PREFIX_PEBL_EXTENSION + "book"];
         this.docType = extensions[PREFIX_PEBL_EXTENSION + "docType"];
         this.location = extensions[PREFIX_PEBL_EXTENSION + "location"];
         this.card = extensions[PREFIX_PEBL_EXTENSION + "card"];
         this.url = extensions[PREFIX_PEBL_EXTENSION + "url"];
         this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
-        this.name = extensions[PREFIX_PEBL_EXTENSION + "name"];
         this.externalURL = extensions[PREFIX_PEBL_EXTENSION + "externalURL"];
     }
 
@@ -81,7 +82,7 @@ export class Reference extends XApiStatement {
 export class Annotation extends XApiStatement {
     readonly book: string;
     readonly annId: string;
-    readonly ["type"]: string;
+    readonly type: string;
     readonly cfi: string;
     readonly idRef: string;
     readonly title: string;
@@ -92,17 +93,20 @@ export class Annotation extends XApiStatement {
     constructor(raw: { [key: string]: any }) {
         super(raw);
 
-        let extensions = this["object"].extensions;
+        this.title = this.object && this.object.name["en-US"];
+        this.text = this.object && this.object.description["en-US"];
 
-        this.book = extensions[PREFIX_PEBL_EXTENSION + "book"];
+        this.book = this.object.id;
+
+        this.owner = this.getActorId();
+
+        let extensions = this.object.extensions;
+
         this.annId = extensions[PREFIX_PEBL_EXTENSION + "annId"];
-        this["type"] = extensions[PREFIX_PEBL_EXTENSION + "type"];
+        this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
         this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
         this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
-        this.title = extensions[PREFIX_PEBL_EXTENSION + "title"];
         this.style = extensions[PREFIX_PEBL_EXTENSION + "style"];
-        this.text = extensions[PREFIX_PEBL_EXTENSION + "text"];
-        this.owner = extensions[PREFIX_PEBL_EXTENSION + "owner"];
     }
 
     static is(x: XApiStatement): boolean {
@@ -128,19 +132,22 @@ export class SharedAnnotation extends Annotation {
 
 export class Action extends XApiStatement {
     readonly activityId: string;
-    readonly target: string;
-    readonly ["type"]: string;
+    readonly target?: string;
+    readonly type?: string;
     readonly action: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
         this.activityId = this.object.id;
 
+        this.action = this.verb.display["en-US"];
+
         let extensions = this.object.extensions;
 
-        this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
-        this["type"] = extensions[PREFIX_PEBL_EXTENSION + "type"];
-        this.action = extensions[PREFIX_PEBL_EXTENSION + "action"];
+        if (extensions) {
+            this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
+            this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
@@ -160,6 +167,12 @@ export class Navigation extends XApiStatement {
         super(raw);
         this.type = this.verb.display["en-US"];
         this.activityId = this.object.id;
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "paged-next") || (verb == "paged-prev") || (verb == "paged-jump") || (verb == "interacted") ||
+            (verb == "completed");
     }
 }
 
@@ -323,5 +336,7 @@ export class Session extends XApiStatement {
         return (verb == "entered") || (verb == "exited") || (verb == "logged-in") ||
             (verb == "logged-out") || (verb == "terminated") || (verb == "initialized");
     }
-
 }
+
+// -------------------------------
+
