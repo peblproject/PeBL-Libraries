@@ -1,19 +1,19 @@
 import { IndexedDBStorageAdapter } from "./storage";
-import { Activity } from "./activity";
+// import { Activity } from "./activity";
 import { User } from "./user";
 import { Network } from "./network";
 // import { Messenger } from "./messenger";
 import { EventSet } from "./eventSet";
-import { StorageAdapter, UserAdapter, ActivityAdapter, NetworkAdapter, PEBLHandler } from "./adapters";
+import { StorageAdapter, UserAdapter, NetworkAdapter, PEBLHandler } from "./adapters";
 import { PEBLEventHandlers } from "./eventHandlers"
 
 export class PEBL {
 
     private firedEvents: Event[] = [];
 
-    readonly subscribedEventHandlers: { [eventName: string]: PEBLHandler[] } = {};
+    readonly subscribedEventHandlers: { [eventName: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
-    readonly subscribedThreadHandlers: { [thread: string]: PEBLHandler[] } = {};
+    readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
@@ -24,7 +24,7 @@ export class PEBL {
     readonly eventHandlers: PEBLEventHandlers;
     readonly storage: StorageAdapter;
     readonly user: UserAdapter;
-    readonly activity: ActivityAdapter;
+    // readonly activity: ActivityAdapter;
     readonly network: NetworkAdapter;
     // readonly launcher: LauncherAdapter;
 
@@ -43,7 +43,7 @@ export class PEBL {
         this.eventHandlers = new PEBLEventHandlers(this);
         this.events = new EventSet();
         this.user = new User(this);
-        this.activity = new Activity(this);
+        // this.activity = new Activity(this);
         this.network = new Network(this);
 
         let self = this;
@@ -98,56 +98,100 @@ export class PEBL {
 
     unsubscribeAllEvents(): void {
         for (let key of Object.keys(this.subscribedEventHandlers)) {
-            for (let handler of this.subscribedEventHandlers[key])
-                document.removeEventListener(key, handler);
+            for (let pack of this.subscribedEventHandlers[key])
+                document.removeEventListener(key, pack.modifiedFn);
             delete this.subscribedEventHandlers[key];
         }
     }
 
     unsubscribeAllThreads(): void {
         for (let key of Object.keys(this.subscribedEventHandlers)) {
-            for (let handler of this.subscribedEventHandlers[key])
-                document.removeEventListener(key, handler);
+            for (let pack of this.subscribedEventHandlers[key])
+                document.removeEventListener(key, pack.modifiedFn);
             delete this.subscribedEventHandlers[key];
         }
     }
 
-    unsubscribeEvent(eventName: string, once: boolean, callback: EventListener): void {
-        new Error("Method not implemented");
+    unsubscribeEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
+        let i = 0;
+        for (let pack of this.subscribedEventHandlers[eventName]) {
+            if ((pack.once == once) && (pack.fn == callback)) {
+                document.removeEventListener(eventName, pack.modifiedFn);
+                this.subscribedEventHandlers[eventName].splice(i, 1);
+                return;
+            }
+            i++;
+        }
     }
 
-    unsubscribeThread(thread: string, once: boolean, callback: EventListener): void {
-        new Error("Method not implemented");
+    unsubscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
+        let i = 0;
+        for (let pack of this.subscribedThreadHandlers[thread]) {
+            if ((pack.once == once) && (pack.fn == callback)) {
+                document.removeEventListener(thread, pack.modifiedFn);
+                this.subscribedThreadHandlers[thread].splice(i, 1);
+                return;
+            }
+            i++;
+        }
     }
 
     subscribeEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
         if (!this.subscribedEventHandlers[eventName])
             this.subscribedEventHandlers[eventName] = [];
-        this.subscribedEventHandlers[eventName].push(callback);
 
+        let self = this;
+        //fix once for return of annotations
         if (once) {
-            let self = this;
-            document.addEventListener(eventName,
-                function(e) {
-                    self.subscribedEventHandlers[eventName] = self.subscribedEventHandlers[eventName].filter(function(x) {
-                        return (x != callback);
-                    });
-                    callback(e);
-                },
-                <any>{ once: once });
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) {
+                self.unsubscribeEvent(eventName, once, callback);
+                callback(e.detail);
+            }
+            document.addEventListener(eventName, modifiedHandler, <any>{ once: once });
+            this.subscribedEventHandlers[eventName].push({ once: once, fn: callback, modifiedFn: modifiedHandler });
         } else {
-            document.addEventListener(eventName, callback);
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) { callback(e.detail); };
+            document.addEventListener(eventName, modifiedHandler);
+            this.subscribedEventHandlers[eventName].push({ once: once, fn: callback, modifiedFn: modifiedHandler });
         }
-    }
 
-    subscribeThread(thread: string, callback: PEBLHandler): void {
+        this.user.getUser(function(userProfile) {
+            self.storage.getCurrentBook(function(book) {
+
+                if (userProfile && book) {
+                    if (eventName == self.events.incomingAnnotations) {
+                        self.storage.getAnnotations(userProfile, book, function(annotations) {
+                            callback(annotations);
+                        });
+                    } else if (eventName == self.events.incomingSharedAnnotations) {
+                        self.storage.getSharedAnnotations(userProfile, book, function(annotations) {
+                            callback(annotations);
+                        });
+                    }
+                }
+            });
+        });
+    }
+    //fix once for return of getMessages
+    subscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
         let threadCallbacks = this.subscribedThreadHandlers[thread];
         if (threadCallbacks) {
             threadCallbacks = [];
             this.subscribedThreadHandlers[thread] = threadCallbacks;
         }
 
-        threadCallbacks.push(callback);
+        if (once) {
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) {
+                self.unsubscribeEvent(thread, once, callback);
+                callback(e.detail);
+            }
+            document.addEventListener(thread, modifiedHandler, <any>{ once: once });
+            threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
+        } else {
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) { callback(e.detail); };
+            document.addEventListener(thread, modifiedHandler);
+            threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
+        }
 
         let self = this;
         this.user.getUser(function(userProfile) {

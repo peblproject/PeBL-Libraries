@@ -21,7 +21,7 @@ export class Network implements NetworkAdapter {
         this.syncingProcess = [];
     }
 
-    activate(): void {
+    activate(callback?: (() => void)): void {
         let self = this;
 
         self.pebl.user.getUser(function(userProfile) {
@@ -38,6 +38,8 @@ export class Network implements NetworkAdapter {
                     self.pullAsset();
                     self.running = true;
                 }
+                if (callback)
+                    callback();
             }
         })
     }
@@ -105,7 +107,7 @@ export class Network implements NetworkAdapter {
         });
     }
 
-    disable(): void {
+    disable(callback?: (() => void)): void {
         this.running = false;
 
         if (this.pushTimeout)
@@ -115,6 +117,9 @@ export class Network implements NetworkAdapter {
         if (this.pullAssetTimeout)
             clearTimeout(this.pullAssetTimeout);
         this.pullAssetTimeout = undefined;
+
+        if (callback)
+            callback();
     }
 
     push(finished?: (() => void)): void {

@@ -61,7 +61,7 @@ export class LLSyncAction implements SyncProcess {
 
     private bookPollingCallback(): void {
         let self = this;
-        this.pebl.activity.getBook(function(book) {
+        this.pebl.storage.getCurrentBook(function(book) {
             if (book) {
                 let lastSynced = self.endpoint.lastSyncedBooksMine[book];
                 if (lastSynced == null) {
@@ -216,9 +216,12 @@ export class LLSyncAction implements SyncProcess {
                                 if (rec instanceof Message)
                                     cleanMessages.push(rec);
                             }
-                            cleanMessages.sort();
-                            self.pebl.storage.saveMessages(userProfile, cleanMessages);
-                            self.pebl.emitEvent(thread, cleanMessages);
+                            if (cleanMessages.length > 0) {
+                                cleanMessages.sort();
+                                self.pebl.storage.saveMessages(userProfile, cleanMessages);
+
+                                self.pebl.emitEvent(thread, cleanMessages);
+                            }
                         }
 
                         self.pebl.storage.saveUserProfile(userProfile);
@@ -340,24 +343,31 @@ export class LLSyncAction implements SyncProcess {
                         for (let id of Object.keys(annotations))
                             cleanAnnotations.push(annotations[id]);
 
-                        cleanAnnotations.sort();
-                        self.pebl.storage.saveAnnotations(userProfile, cleanAnnotations);
-                        self.pebl.emitEvent(self.pebl.events.incomingAnnotations, cleanAnnotations);
+                        if (cleanAnnotations.length > 0) {
+                            cleanAnnotations.sort();
+                            self.pebl.storage.saveAnnotations(userProfile, cleanAnnotations);
+                            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, cleanAnnotations);
+                        }
 
                         let cleanSharedAnnotations = [];
                         for (let id of Object.keys(sharedAnnotations))
                             cleanSharedAnnotations.push(annotations[id]);
 
-                        cleanSharedAnnotations.sort();
-                        self.pebl.storage.saveSharedAnnotations(userProfile, cleanSharedAnnotations);
-                        self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, cleanSharedAnnotations);
+                        if (cleanAnnotations.length > 0) {
+                            cleanSharedAnnotations.sort();
+                            self.pebl.storage.saveSharedAnnotations(userProfile, cleanSharedAnnotations);
+                            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, cleanSharedAnnotations);
+                        }
 
                         let cleanEvents = [];
                         for (let id of Object.keys(events))
                             cleanEvents.push(events[id]);
-                        cleanEvents.sort();
-                        self.pebl.storage.saveEvent(userProfile, cleanEvents);
-                        self.pebl.emitEvent(self.pebl.events.incomingEvents, cleanEvents);
+
+                        if (cleanEvents.length > 0) {
+                            cleanEvents.sort();
+                            self.pebl.storage.saveEvent(userProfile, cleanEvents);
+                            self.pebl.emitEvent(self.pebl.events.incomingEvents, cleanEvents);
+                        }
 
                         self.pebl.storage.saveUserProfile(userProfile);
                         if (self.running)

@@ -1,37 +1,6 @@
 import { XApiStatement, Reference, Message, Annotation, SharedAnnotation } from "./xapi";
 import { UserProfile } from "./models";
 
-
-export interface ActivityAdapter {
-    getBook(callback: (book?: string) => void): void;
-
-    openBook(book: string, callback: (sameBook: boolean) => void): void;
-
-    initializeToc(toc: { [key: string]: any }): void;
-    getToc(callback: { [key: string]: any }): void;
-
-    clearParentActivity(): void;
-    getParentActivity(callback: (parentActivity: string) => void): void;
-    startParentActivity(activity: string): void;
-}
-
-// -------------------------------
-
-// export interface MessageAdapter {
-
-
-//     setDirectMessageHandler(callback: (messages: XApiStatement[]) => void): void;
-
-//     getThreads(callback: (threads: { [key: string]: ((stmts: XApiStatement[]) => void) }) => void): void;
-
-//     unsubscribeAll(): void;
-//     subscribe(thread: string, callback: (stmts: XApiStatement[]) => void): void;
-
-//     setAssetNotificationHandler(callback: (stmt: XApiStatement) => void): void;
-
-//     queueReference(ref: Reference): void;
-// }
-
 // -------------------------------
 
 export interface LauncherAdapter {
@@ -65,8 +34,8 @@ export interface SyncProcess {
 // -------------------------------
 
 export interface NetworkAdapter {
-    activate(): void;
-    disable(): void;
+    activate(callback?: (() => void)): void;
+    disable(callback?: (() => void)): void;
 
     queueReference(ref: Reference): void;
 
@@ -168,3 +137,5 @@ export interface StorageAdapter {
 export interface PEBLHandler extends EventListener {
     (stmts: XApiStatement[]): void;
 }
+
+// -------------------------------

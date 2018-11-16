@@ -1,5 +1,6 @@
 const NAMESPACE_USER_MESSAGES = "user-";
 const PREFIX_PEBL_THREAD = "peblThread://";
+const PREFIX_PEBL = "pebl://";
 const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
 
 // -------------------------------
@@ -87,20 +88,24 @@ export class Annotation extends XApiStatement {
     readonly idRef: string;
     readonly title: string;
     readonly style: string;
-    readonly text: string;
+    readonly text?: string;
     readonly owner: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
 
-        this.title = this.object && this.object.name["en-US"];
-        this.text = this.object && this.object.description["en-US"];
+        this.title = this.object.definition.name && this.object.definition.name["en-US"];
+        this.text = this.object.definition.description && this.object.definition.description["en-US"];
 
         this.book = this.object.id;
+        if (this.book.indexOf(PREFIX_PEBL) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL) + PREFIX_PEBL.length);
+        else if (this.book.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         this.owner = this.getActorId();
 
-        let extensions = this.object.extensions;
+        let extensions = this.object.definition.extensions;
 
         this.annId = extensions[PREFIX_PEBL_EXTENSION + "annId"];
         this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
@@ -160,6 +165,8 @@ export class Action extends XApiStatement {
 
 export class Navigation extends XApiStatement {
     readonly activityId: string;
+    readonly firstCfi?: string;
+    readonly lastCfi?: string;
 
     readonly type: string;
 
@@ -167,6 +174,13 @@ export class Navigation extends XApiStatement {
         super(raw);
         this.type = this.verb.display["en-US"];
         this.activityId = this.object.id;
+
+        let extensions = this.object.extensions;
+
+        if (extensions) {
+            this.firstCfi = extensions[PREFIX_PEBL_EXTENSION + "firstCfi"];
+            this.lastCfi = extensions[PREFIX_PEBL_EXTENSION + "lastCfi"];
+        }
     }
 
     static is(x: XApiStatement): boolean {

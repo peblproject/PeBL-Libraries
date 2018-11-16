@@ -6,7 +6,6 @@ export class EventSet {
     incomingNotifications = "incomingNotifications";
     incomingAssets = "incomingAssets";
     incomingEvents = "incomingEvents";
-    incomingMessages = "incomingMessages";
 
     newBook = "newBook";
     newMessage = "newMessage";
@@ -38,6 +37,4 @@ export class EventSet {
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
-    // eventPulled = "eventPulled";
-    // eventPushed = "eventPushed";
 }
