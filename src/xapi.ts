@@ -82,7 +82,6 @@ export class Reference extends XApiStatement {
 
 export class Annotation extends XApiStatement {
     readonly book: string;
-    readonly annId: string;
     readonly type: string;
     readonly cfi: string;
     readonly idRef: string;
@@ -107,7 +106,6 @@ export class Annotation extends XApiStatement {
 
         let extensions = this.object.definition.extensions;
 
-        this.annId = extensions[PREFIX_PEBL_EXTENSION + "annId"];
         this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
         this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
         this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];

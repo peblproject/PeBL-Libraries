@@ -35,13 +35,13 @@ export class PEBLEventHandlers {
                 self.pebl.emitEvent(self.pebl.events.eventInteracted, {
                     activity: book
                 });
+
+                self.pebl.unsubscribeAllEvents();
+                self.pebl.unsubscribeAllThreads();
+                self.pebl.storage.saveCurrentBook(book);
             } else {
                 self.pebl.emitEvent(self.pebl.events.eventJumpPage, null);
             }
-
-            self.pebl.unsubscribeAllEvents();
-            self.pebl.unsubscribeAllThreads();
-            self.pebl.storage.saveCurrentBook(book);
         });
     }
 
