@@ -92,7 +92,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     private cleanRecord(r: ({ [key: string]: any } | [])): ({ [key: string]: any } | []) {
         let recordType: string = typeof (r);
-        if (recordType == "object") {
+        if (r && (recordType == "object")) {
             let rec: { [key: string]: any } = r;
             for (let p of Object.keys(r)) {
                 let v = rec[p];
@@ -688,7 +688,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     let record: (Message | undefined) = stmtsCopy.pop();
                     if (record) {
                         let clone = record;
-                        clone.identity = record.identity;
+                        clone.identity = userProfile.identity;
                         let request = objectStore.put(self.cleanRecord(clone));
                         request.onerror = processCallback;
                         request.onsuccess = processCallback;

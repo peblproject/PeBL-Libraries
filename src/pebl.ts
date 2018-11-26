@@ -4,6 +4,7 @@ import { User } from "./user";
 import { Network } from "./network";
 // import { Messenger } from "./messenger";
 import { EventSet } from "./eventSet";
+import { Utils } from "./utils";
 import { StorageAdapter, UserAdapter, NetworkAdapter, PEBLHandler } from "./adapters";
 import { PEBLEventHandlers } from "./eventHandlers"
 
@@ -26,6 +27,7 @@ export class PEBL {
     readonly user: UserAdapter;
     // readonly activity: ActivityAdapter;
     readonly network: NetworkAdapter;
+    readonly utils: Utils;
     // readonly launcher: LauncherAdapter;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
@@ -40,37 +42,37 @@ export class PEBL {
             this.useIndexedDB = true;
         }
 
+        this.utils = new Utils(this);
         this.eventHandlers = new PEBLEventHandlers(this);
         this.events = new EventSet();
         this.user = new User(this);
-        // this.activity = new Activity(this);
         this.network = new Network(this);
 
         let self = this;
-        if (this.useIndexedDB) {
-            this.storage = new IndexedDBStorageAdapter(function() {
-                self.loaded = true;
-                self.addSystemEventListeners();
-                if (callback)
-                    callback(self);
-                self.processQueuedEvents();
-            });
-        } else {
-            this.storage = new IndexedDBStorageAdapter(function() { });
-            // if (localStorage != null) {
-            //     this.storage;
-            // } else if (sessionStorage != null) {
-            //     this.storage;
-            // } else {
-            //     this.storage;
-            // }
-
-            this.loaded = true;
-            this.addSystemEventListeners();
+        // if (this.useIndexedDB) {
+        this.storage = new IndexedDBStorageAdapter(function() {
+            self.loaded = true;
+            self.addSystemEventListeners();
             if (callback)
-                callback(this);
+                callback(self);
             self.processQueuedEvents();
-        }
+        });
+        // } else {
+        //     this.storage = new IndexedDBStorageAdapter(function() { });
+        //     // if (localStorage != null) {
+        //     //     this.storage;
+        //     // } else if (sessionStorage != null) {
+        //     //     this.storage;
+        //     // } else {
+        //     //     this.storage;
+        //     // }
+
+        //     this.loaded = true;
+        //     this.addSystemEventListeners();
+        //     if (callback)
+        //         callback(this);
+        //     self.processQueuedEvents();
+        // }
     }
 
     private addListener(event: string, callback: (event: Event) => void): void {
@@ -175,7 +177,7 @@ export class PEBL {
     //fix once for return of getMessages
     subscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
         let threadCallbacks = this.subscribedThreadHandlers[thread];
-        if (threadCallbacks) {
+        if (!threadCallbacks) {
             threadCallbacks = [];
             this.subscribedThreadHandlers[thread] = threadCallbacks;
         }

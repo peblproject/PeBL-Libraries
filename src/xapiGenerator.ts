@@ -19,7 +19,7 @@ export class XApiGenerator {
         if (!stmt.result)
             stmt.result = {};
         stmt.result.success = success;
-        stmt.result.complete = complete;
+        stmt.result.completion = complete;
         stmt.result.response = answered;
 
         if (!stmt.result.score)
@@ -73,6 +73,21 @@ export class XApiGenerator {
         return stmt;
     }
 
+    private memberToIndex(x: string, arr: string[]): number {
+        for (let i = 0; i < arr.length; i++)
+            if (x == arr[i])
+                return i;
+        return -1;
+    }
+
+    private arrayToIndexes(arr: string[], indexArr: string[]): string[] {
+        let clone: string[] = arr.slice(0);
+        for (let i = 0; i < arr.length; i++) {
+            clone[i] = this.memberToIndex(arr[i], indexArr).toString();
+        }
+        return clone;
+    }
+
     addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][]): { [key: string]: any } {
         if (!stmt.object)
             stmt.object = {};
@@ -90,9 +105,10 @@ export class XApiGenerator {
         stmt.object.definition.interactionType = interaction;
 
         let answerArr = [];
-        for (let answers of correctAnswers)
-            answerArr.push(answers.join("[,]"));
-        stmt.object.definition.correctResponsePattern = answerArr;
+        for (let corrrectAnswer of correctAnswers)
+            answerArr.push(this.arrayToIndexes(corrrectAnswer, answers).join("[,]"));
+
+        stmt.object.definition.correctResponsesPattern = answerArr;
 
         if (interaction == "choice") {
             stmt.object.definition.choices = [];
@@ -100,7 +116,7 @@ export class XApiGenerator {
             let i = 0;
             for (let answer of answers) {
                 stmt.object.definition.choices.push({
-                    id: i,
+                    id: i.toString(),
                     description: {
                         "en-US": answer
                     }

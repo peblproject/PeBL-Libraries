@@ -46,18 +46,19 @@ export class PEBLEventHandlers {
     }
 
     newActivity(event: CustomEvent) {
-        let activity = event.detail;
+        let payload = event.detail;
         let self = this;
         this.pebl.storage.getCurrentActivity(function(currentActivity) {
-            if (activity != currentActivity) {
+            if (payload.activity != currentActivity) {
                 if (currentActivity)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, currentActivity);
                 self.pebl.emitEvent(self.pebl.events.eventInitialized, {
-                    activity: activity
+                    name: payload.name,
+                    description: payload.description
                 });
             }
 
-            self.pebl.storage.saveCurrentActivity(activity);
+            self.pebl.storage.saveCurrentActivity(payload.activity);
         });
     }
 
@@ -116,7 +117,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/responded", "responded");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.to, payload.prompt, payload.text);
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text);
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);
@@ -139,7 +140,6 @@ export class PEBLEventHandlers {
             if (userProfile) {
 
                 let exts = {
-                    annId: payload.annId,
                     type: payload.type,
                     cfi: payload.cfi,
                     idRef: payload.idRef,
@@ -176,7 +176,6 @@ export class PEBLEventHandlers {
             if (userProfile) {
 
                 let exts = {
-                    annId: payload.annId,
                     type: payload.type,
                     cfi: payload.cfi,
                     idRef: payload.idRef,
@@ -376,19 +375,21 @@ export class PEBLEventHandlers {
         let xapi = {};
         let self = this;
 
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
-                self.xapiGen.addId(xapi);
-                self.xapiGen.addTimestamp(xapi);
-                self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + payload.activity, payload.name, payload.description);
-                self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/initialized", "initialized");
-                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
+        this.pebl.storage.getCurrentBook(function(book) {
+            self.pebl.user.getUser(function(userProfile) {
+                if (userProfile) {
+                    self.xapiGen.addId(xapi);
+                    self.xapiGen.addTimestamp(xapi);
+                    self.xapiGen.addActorAccount(xapi, userProfile);
+                    self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                    self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/initialized", "initialized");
+                    self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
 
-                let s = new Session(xapi);
-                self.pebl.storage.saveOutgoing(userProfile, s);
-                self.pebl.storage.saveEvent(userProfile, s);
-            }
+                    let s = new Session(xapi);
+                    self.pebl.storage.saveOutgoing(userProfile, s);
+                    self.pebl.storage.saveEvent(userProfile, s);
+                }
+            });
         });
     }
 
@@ -536,20 +537,23 @@ export class PEBLEventHandlers {
             target: payload.target,
             type: payload.type
         }
+        this.pebl.storage.getCurrentActivity(function(activity) {
+            self.pebl.storage.getCurrentActivity(function(book) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/preferred", "preferred");
+                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
-                self.xapiGen.addId(xapi);
-                self.xapiGen.addTimestamp(xapi);
-                self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + payload.activity, payload.name, payload.description, self.xapiGen.addExtensions(exts));
-                self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/preferred", "preferred");
-                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
-
-                let s = new Action(xapi);
-                self.pebl.storage.saveOutgoing(userProfile, s);
-                self.pebl.storage.saveEvent(userProfile, s);
-            }
+                        let s = new Action(xapi);
+                        self.pebl.storage.saveOutgoing(userProfile, s);
+                        self.pebl.storage.saveEvent(userProfile, s);
+                    }
+                });
+            });
         });
     }
 

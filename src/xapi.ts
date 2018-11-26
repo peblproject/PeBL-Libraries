@@ -61,7 +61,7 @@ export class Reference extends XApiStatement {
 
         let extensions = this["object"].extensions;
 
-        this.name = this.object.name["en-US"];
+        this.name = this.object.definition.name["en-US"];
 
         this.book = extensions[PREFIX_PEBL_EXTENSION + "book"];
         this.docType = extensions[PREFIX_PEBL_EXTENSION + "docType"];
@@ -137,6 +137,8 @@ export class Action extends XApiStatement {
     readonly activityId: string;
     readonly target?: string;
     readonly type?: string;
+    readonly name?: string;
+    readonly description?: string;
     readonly action: string;
 
     constructor(raw: { [key: string]: any }) {
@@ -145,7 +147,10 @@ export class Action extends XApiStatement {
 
         this.action = this.verb.display["en-US"];
 
-        let extensions = this.object.extensions;
+        this.name = this.object.definition.name && this.object.definition.name["en-US"];
+        this.description = this.object.definition.description && this.object.definition.description["en-US"];
+
+        let extensions = this.object.definition.extensions;
 
         if (extensions) {
             this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
@@ -173,7 +178,7 @@ export class Navigation extends XApiStatement {
         this.type = this.verb.display["en-US"];
         this.activityId = this.object.id;
 
-        let extensions = this.object.extensions;
+        let extensions = this.object.definition.extensions;
 
         if (extensions) {
             this.firstCfi = extensions[PREFIX_PEBL_EXTENSION + "firstCfi"];
@@ -204,10 +209,10 @@ export class Message extends XApiStatement {
         if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
             this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
-        this.prompt = this.object.name["en-US"];
+        this.prompt = this.object.definition.name["en-US"];
         this.name = this.actor.name;
         this.direct = this.thread == (NAMESPACE_USER_MESSAGES + this.getActorId());
-        this.text = this.object.description["en-US"];
+        this.text = this.object.definition.description["en-US"];
     }
 
     static is(x: XApiStatement): boolean {
@@ -337,8 +342,8 @@ export class Session extends XApiStatement {
     constructor(raw: { [key: string]: any }) {
         super(raw);
         this.activityId = this.object.id;
-        this.activityName = this.object.name && this.object.name["en-US"];
-        this.activityDescription = this.object.description && this.object.description["en-US"];
+        this.activityName = this.object.definition.name && this.object.definition.name["en-US"];
+        this.activityDescription = this.object.definition.description && this.object.definition.description["en-US"];
 
         this.type = this.verb.display["en-US"];
     }
