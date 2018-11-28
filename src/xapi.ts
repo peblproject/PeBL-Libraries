@@ -147,14 +147,16 @@ export class Action extends XApiStatement {
 
         this.action = this.verb.display["en-US"];
 
-        this.name = this.object.definition.name && this.object.definition.name["en-US"];
-        this.description = this.object.definition.description && this.object.definition.description["en-US"];
+        if (this.object.definition) {
+            this.name = this.object.definition.name && this.object.definition.name["en-US"];
+            this.description = this.object.definition.description && this.object.definition.description["en-US"];
 
-        let extensions = this.object.definition.extensions;
+            let extensions = this.object.definition.extensions;
 
-        if (extensions) {
-            this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
-            this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+            if (extensions) {
+                this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
+                this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+            }
         }
     }
 
@@ -334,16 +336,18 @@ export class Quiz extends XApiStatement {
 export class Session extends XApiStatement {
 
     readonly activityId: string;
-    readonly activityName: string;
-    readonly activityDescription: string;
+    readonly activityName?: string;
+    readonly activityDescription?: string;
 
     readonly type: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
         this.activityId = this.object.id;
-        this.activityName = this.object.definition.name && this.object.definition.name["en-US"];
-        this.activityDescription = this.object.definition.description && this.object.definition.description["en-US"];
+        if (this.object.definition) {
+            this.activityName = this.object.definition.name && this.object.definition.name["en-US"];
+            this.activityDescription = this.object.definition.description && this.object.definition.description["en-US"];
+        }
 
         this.type = this.verb.display["en-US"];
     }
