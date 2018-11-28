@@ -19,18 +19,20 @@ export class PEBL {
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
     readonly useIndexedDB: boolean;
+
+    readonly extension: { [key: string]: any };
     private loaded: boolean = false;
 
     readonly events: EventSet;
     readonly eventHandlers: PEBLEventHandlers;
     readonly storage: StorageAdapter;
     readonly user: UserAdapter;
-    // readonly activity: ActivityAdapter;
     readonly network: NetworkAdapter;
     readonly utils: Utils;
     // readonly launcher: LauncherAdapter;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
+        this.extension = {};
 
         if (config) {
             this.teacher = config.teacher;
