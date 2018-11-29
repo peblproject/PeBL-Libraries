@@ -13,7 +13,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 11);
+        let request = window.indexedDB.open("pebl", 12);
         let self: IndexedDBStorageAdapter = this;
 
         request.onupgradeneeded = function() {
@@ -40,7 +40,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             annotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             competencyStore.createIndex(MASTER_INDEX, "identity");
-            generalAnnotationStore.createIndex(MASTER_INDEX, "book");
+            generalAnnotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             outgoingStore.createIndex(MASTER_INDEX, "identity");
             messageStore.createIndex(MASTER_INDEX, ["identity", "thread"]);
             queuedReferences.createIndex(MASTER_INDEX, "identity");
