@@ -159,22 +159,15 @@ export class PEBL {
             this.subscribedEventHandlers[eventName].push({ once: once, fn: callback, modifiedFn: modifiedHandler });
         }
 
-        this.user.getUser(function(userProfile) {
-            self.storage.getCurrentBook(function(book) {
-
-                if (userProfile && book) {
-                    if (eventName == self.events.incomingAnnotations) {
-                        self.storage.getAnnotations(userProfile, book, function(annotations) {
-                            callback(annotations);
-                        });
-                    } else if (eventName == self.events.incomingSharedAnnotations) {
-                        self.storage.getSharedAnnotations(userProfile, book, function(annotations) {
-                            callback(annotations);
-                        });
-                    }
-                }
+        if (eventName == self.events.incomingAnnotations) {
+            self.utils.getAnnotations(function(annotations) {
+                callback(annotations);
             });
-        });
+        } else if (eventName == self.events.incomingSharedAnnotations) {
+            self.utils.getSharedAnnotations(function(annotations) {
+                callback(annotations);
+            });
+        }
     }
     //fix once for return of getMessages
     subscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {

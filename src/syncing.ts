@@ -295,7 +295,7 @@ export class LLSyncAction implements SyncProcess {
                             if (Annotation.is(xapi)) {
                                 let a = new Annotation(xapi);
                                 annotations[a.id] = a;
-                            } else if (Reference.is(xapi)) {
+                            } else if (SharedAnnotation.is(xapi)) {
                                 let a = new SharedAnnotation(xapi);
                                 sharedAnnotations[a.id] = a;
                             } else if (Voided.is(xapi)) {
@@ -316,6 +316,10 @@ export class LLSyncAction implements SyncProcess {
                             } else if (Question.is(xapi)) {
                                 let q = new Question(xapi);
                                 events[q.id] = q;
+                            } else if (Reference.is(xapi)) {
+                                let r = new Reference(xapi);
+                                events[r.id] = r;
+                                self.pebl.network.queueReference(r);
                             } else {
                                 new Error("Unknown Statement type");
                             }
@@ -351,7 +355,7 @@ export class LLSyncAction implements SyncProcess {
 
                         let cleanSharedAnnotations = [];
                         for (let id of Object.keys(sharedAnnotations))
-                            cleanSharedAnnotations.push(annotations[id]);
+                            cleanSharedAnnotations.push(sharedAnnotations[id]);
 
                         if (cleanAnnotations.length > 0) {
                             cleanSharedAnnotations.sort();
