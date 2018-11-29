@@ -256,7 +256,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let annotation = new Voided(xapi);
-                        self.pebl.storage.removeAnnotation(userProfile, xId);
+                        self.pebl.storage.removeSharedAnnotation(userProfile, xId);
                         self.pebl.storage.saveOutgoing(userProfile, annotation);
                         self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
 
