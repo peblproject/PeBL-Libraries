@@ -861,7 +861,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getToc(userProfile: UserProfile, book: string, callback: (data: { [key: string]: any }) => void): void {
+    getToc(userProfile: UserProfile, book: string, callback: (data: { [key: string]: any }[]) => void): void {
+        //TODO Remove me
         if (book == null) {
             callback([]);
             return;

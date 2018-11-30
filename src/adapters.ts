@@ -125,9 +125,9 @@ export interface StorageAdapter {
     removeNotification(userProfile: UserProfile, notificationId: string, callback?: (() => void)): void;
 
 
-    saveToc(userProfile: UserProfile, book: string, data: { [key: string]: any }, callback?: (() => void)): void;
+    saveToc(userProfile: UserProfile, book: string, tocEntry: { [key: string]: any }, callback?: (() => void)): void;
 
-    getToc(userProfile: UserProfile, book: string, callback: (data: { [key: string]: any }) => void): void;
+    getToc(userProfile: UserProfile, book: string, callback: (tocEntries: { [key: string]: any }[]) => void): void;
 
     removeToc(userProfile: UserProfile, book: string, section: string, id: string, callback?: (() => void)): void;
 }
