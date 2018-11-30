@@ -109,4 +109,16 @@ export class Utils {
                 callback({});
         });
     }
+
+    removeToc(id: string, section: string): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile)
+                self.pebl.storage.getCurrentBook(function(book) {
+                    if (book)
+                        self.pebl.storage.removeToc(userProfile, book, section, id);
+                });
+        })
+    }
 }
