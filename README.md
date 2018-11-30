@@ -76,7 +76,7 @@ module.exports = {
 
 ## Once per dev env
 
-Install typescript, the npx node script executor, the typescript webpack loader, webpack, and webpack commandline interface
+Install typescript, the typescript webpack loader, webpack, and webpack commandline interface
 
 ```npm install --save-dev typescript ts-loader webpack webpack-cli```
 
