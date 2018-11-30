@@ -13,7 +13,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 12);
+        let request = window.indexedDB.open("pebl", 13);
         let self: IndexedDBStorageAdapter = this;
 
         request.onupgradeneeded = function() {
@@ -34,7 +34,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             db.createObjectStore("assets", { keyPath: ["identity", "id"] });
             let queuedReferences = db.createObjectStore("queuedReferences", { keyPath: ["identity", "id"] });
             let notificationStore = db.createObjectStore("notifications", { keyPath: ["identity", "id"] });
-            let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "containerPath", "section", "pageKey"] });
+            let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "book", "section", "pageKey"] });
             db.createObjectStore("lrsAuth", { keyPath: "id" });
 
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
@@ -45,7 +45,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             messageStore.createIndex(MASTER_INDEX, ["identity", "thread"]);
             queuedReferences.createIndex(MASTER_INDEX, "identity");
             notificationStore.createIndex(MASTER_INDEX, "identity");
-            tocStore.createIndex(MASTER_INDEX, ["identity", "containerPath"]);
+            tocStore.createIndex(MASTER_INDEX, ["identity", "book"]);
 
         };
 

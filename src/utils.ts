@@ -60,8 +60,8 @@ export class Utils {
                                                     self.pebl.storage.saveToc(userProfile, book, documentMetadata);
                                                 }
                                             } else {
-                                                pageMetadata.$put("pageKey", pageKey);
-                                                pageMetadata.$put("section", section);
+                                                pageMetadata["pageKey"] = pageKey;
+                                                pageMetadata["section"] = section;
                                                 self.pebl.storage.saveToc(userProfile, book, pageMetadata);
                                             }
                                         }
