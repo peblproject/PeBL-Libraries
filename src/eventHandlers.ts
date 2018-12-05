@@ -85,7 +85,8 @@ export class PEBLEventHandlers {
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
                         self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.target, payload.name, payload.description, self.xapiGen.addExtensions(exts));
-                        if (userProfile.identity == payload.target)
+                        var pulled = userProfile.identity == payload.target;
+                        if (pulled)
                             self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#pulled", "pulled");
                         else
                             self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#pushed", "pushed");
@@ -95,7 +96,8 @@ export class PEBLEventHandlers {
                         let s = new Reference(xapi);
                         self.pebl.storage.saveOutgoing(userProfile, s);
                         self.pebl.storage.saveEvent(userProfile, s);
-                        // self.pebl.emitEvent(self.pebl.events.in)
+                        if (pulled)
+                            self.pebl.emitEvent(PEBL_THREAD_PREFIX + payload.target, [s]);
                     }
                 });
             });

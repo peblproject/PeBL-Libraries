@@ -59,9 +59,9 @@ export class Reference extends XApiStatement {
         if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
             this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
-        let extensions = this["object"].extensions;
-
         this.name = this.object.definition.name["en-US"];
+
+        let extensions = this["object"].definition.extensions;
 
         this.book = extensions[PREFIX_PEBL_EXTENSION + "book"];
         this.docType = extensions[PREFIX_PEBL_EXTENSION + "docType"];
