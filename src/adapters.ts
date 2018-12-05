@@ -16,9 +16,9 @@ export interface UserAdapter {
 
     isLoggedIn(callback: (loggedIn: boolean) => void): void;
 
-    login(userProfile: UserProfile, callback?: (() => void)): void;
+    // login(userProfile: UserProfile, callback?: (() => void)): void;
 
-    logout(callback?: (() => void)): void;
+    // logout(callback?: (() => void)): void;
 }
 
 // -------------------------------

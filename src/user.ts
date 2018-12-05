@@ -31,19 +31,19 @@ export class User implements UserAdapter {
         });
     }
 
-    login(userProfile: UserProfile, callback: () => void): void {
-        let self = this;
-        this.pebl.storage.saveUserProfile(userProfile,
-            function() {
-                self.pebl.storage.saveCurrentUser(userProfile,
-                    callback);
-            });
-    }
+    // login(userProfile: UserProfile, callback: () => void): void {
+    //     let self = this;
+    //     this.pebl.storage.saveUserProfile(userProfile,
+    //         function() {
+    //             self.pebl.storage.saveCurrentUser(userProfile,
+    //                 callback);
+    //         });
+    // }
 
-    logout(callback?: (() => void)): void {
-        if (callback != null)
-            this.pebl.storage.removeCurrentUser(callback);
-        else
-            this.pebl.storage.removeCurrentUser();
-    }
+    // logout(callback?: (() => void)): void {
+    //     if (callback != null)
+    //         this.pebl.storage.removeCurrentUser(callback);
+    //     else
+    //         this.pebl.storage.removeCurrentUser();
+    // }
 }

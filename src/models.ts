@@ -13,8 +13,8 @@ export class UserProfile {
         this.name = raw.name;
         this.homePage = raw.homePage;
         this.preferredName = raw.preferredName;
-        if (raw.registryEndPoint)
-            this.registryEndpoint = new Endpoint(raw.registryEndPoint);
+        if (raw.registryEndpoint)
+            this.registryEndpoint = new Endpoint(raw.registryEndpoint);
 
         this.endpoints = [];
 

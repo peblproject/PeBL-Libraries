@@ -100,10 +100,15 @@ export class Network implements NetworkAdapter {
                         if (url) {
                             xhr.open("GET", url + ref.url);
                             xhr.send();
-                        }
+                        } else if (self.running)
+                            self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                    } else {
+                        if (self.running)
+                            self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
                     }
                 });
-            }
+            } else if (self.running)
+                self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
         });
     }
 

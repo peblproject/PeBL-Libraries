@@ -1,3 +1,7 @@
+const USER_PREFIX = "user-";
+const PEBL_THREAD_PREFIX = "peblThread://";
+const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
+
 import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
@@ -86,14 +90,30 @@ export class LLSyncAction implements SyncProcess {
                 "statement.stored": {
                     "$gt": timestamp.toISOString()
                 },
-                "statement.object.id": "peblThread://" + thread
+                "statement.object.id": PEBL_THREAD_PREFIX + thread
             });
         }
 
-        if ((threadPairs.length == 0) && self.running)
-            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
-        else
-            self.pullMessages({ "$or": threadPairs });
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile && self.pebl.enableDirectMessages) {
+                let directThread = PEBL_THREAD_USER_PREFIX + userProfile.identity;
+                let timeStr = self.endpoint.lastSyncedThreads[directThread];
+                let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
+                self.endpoint.lastSyncedThreads[USER_PREFIX + userProfile.identity] = timestamp;
+
+                threadPairs.push({
+                    "statement.stored": {
+                        "$gt": timestamp.toISOString()
+                    },
+                    "statement.object.id": directThread
+                });
+            }
+
+            if ((threadPairs.length == 0) && self.running)
+                self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
+            else
+                self.pullMessages({ "$or": threadPairs });
+        });
     }
 
     private pullHelper(pipeline: { [key: string]: any }[], callback: (stmts: XApiStatement[]) => void): void {

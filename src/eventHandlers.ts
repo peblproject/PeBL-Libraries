@@ -1,6 +1,6 @@
 const PEBL_PREFIX = "pebl://";
 const PEBL_THREAD_PREFIX = "peblThread://";
-// const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
+const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
@@ -84,7 +84,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.target, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + payload.target, payload.name, payload.description, self.xapiGen.addExtensions(exts));
                         var pulled = userProfile.identity == payload.target;
                         if (pulled)
                             self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#pulled", "pulled");
@@ -97,7 +97,7 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveOutgoing(userProfile, s);
                         self.pebl.storage.saveEvent(userProfile, s);
                         if (pulled)
-                            self.pebl.emitEvent(PEBL_THREAD_PREFIX + payload.target, [s]);
+                            self.pebl.emitEvent(PEBL_THREAD_USER_PREFIX + payload.target, [s]);
                     }
                 });
             });
