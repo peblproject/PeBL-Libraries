@@ -1,4 +1,4 @@
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
 import { UserProfile } from "./models";
 
 // -------------------------------
@@ -130,6 +130,13 @@ export interface StorageAdapter {
     getToc(userProfile: UserProfile, book: string, callback: (tocEntries: { [key: string]: any }[]) => void): void;
 
     removeToc(userProfile: UserProfile, book: string, section: string, id: string, callback?: (() => void)): void;
+
+
+    saveGroupMembership(userProfile: UserProfile, groupMembership: Membership, callback?: (() => void)): void;
+
+    getGroupMembership(userProfile: UserProfile, callback: (groups: Membership[]) => void): void;
+
+    removeGroupMembership(userProfile: UserProfile, groupId: string, callback?: (() => void)): void;
 }
 
 // -------------------------------

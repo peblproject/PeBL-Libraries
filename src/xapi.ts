@@ -361,3 +361,30 @@ export class Session extends XApiStatement {
 
 // -------------------------------
 
+export class Membership extends XApiStatement {
+
+    readonly groupId: string;
+    readonly groupName?: string;
+    readonly groupDescription?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+        this.groupId = this.object.id;
+
+        this.groupId = this.object.id;
+        if (this.groupId.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.groupId = this.groupId.substring(PREFIX_PEBL_THREAD.length);
+
+        if (this.object.definition) {
+            this.groupName = this.object.definition.name && this.object.definition.name["en-US"];
+            this.groupDescription = this.object.definition.description && this.object.definition.description["en-US"];
+        }
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "joined");
+    }
+}
+
+// -------------------------------

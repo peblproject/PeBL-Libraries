@@ -1,5 +1,5 @@
 import { StorageAdapter } from "./adapters";
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
 import { UserProfile } from "./models";
 
 const MASTER_INDEX = "master";
@@ -29,6 +29,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let generalAnnotationStore = db.createObjectStore("sharedAnnotations", { keyPath: ["identity", "id"] });
             let outgoingStore = db.createObjectStore("outgoing", { keyPath: ["identity", "id"] });
             let messageStore = db.createObjectStore("messages", { keyPath: ["identity", "id"] });
+            let groupStore = db.createObjectStore("groups", { keyPath: ["identity", "id"] });
             db.createObjectStore("user", { keyPath: "identity" });
             db.createObjectStore("state", { keyPath: "id" });
             db.createObjectStore("assets", { keyPath: ["identity", "id"] });
@@ -42,11 +43,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             competencyStore.createIndex(MASTER_INDEX, "identity");
             generalAnnotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             outgoingStore.createIndex(MASTER_INDEX, "identity");
+            groupStore.createIndex(MASTER_INDEX, "identity");
             messageStore.createIndex(MASTER_INDEX, ["identity", "thread"]);
             queuedReferences.createIndex(MASTER_INDEX, "identity");
             notificationStore.createIndex(MASTER_INDEX, "identity");
             tocStore.createIndex(MASTER_INDEX, ["identity", "book"]);
-
         };
 
         request.onsuccess = function() {
@@ -959,6 +960,69 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let self = this;
             this.invocationQueue.push(function() {
                 self.removeNotification(userProfile, notificationId, callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    saveGroupMembership(userProfile: UserProfile, groupMembership: Membership, callback?: (() => void)): void {
+        if (this.db) {
+            groupMembership.identity = userProfile.identity;
+            let request = this.db.transaction(["groups"], "readwrite").objectStore("groups").put(this.cleanRecord(groupMembership));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveGroupMembership(userProfile, groupMembership, callback);
+            });
+        }
+    }
+
+    getGroupMembership(userProfile: UserProfile, callback: (groups: Membership[]) => void): void {
+        if (this.db) {
+            let os = this.db.transaction(["groups"], "readonly").objectStore("groups");
+            let index = os.index(MASTER_INDEX);
+            let param = userProfile.identity;
+            let self = this;
+            this.getAll(index,
+                IDBKeyRange.only(param),
+                function(arr) {
+                    if (arr.length == 0)
+                        self.getAll(index,
+                            IDBKeyRange.only([param]),
+                            callback);
+                    else
+                        callback(arr);
+                });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getGroupMembership(userProfile, callback);
+            });
+        }
+    }
+
+    removeGroupMembership(userProfile: UserProfile, groupId: string, callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["groups"], "readwrite").objectStore("groups").delete(IDBKeyRange.only([userProfile.identity, groupId]));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeGroupMembership(userProfile, groupId, callback);
             });
         }
     }

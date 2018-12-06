@@ -1,5 +1,5 @@
 import { PEBL } from "./pebl";
-import { XApiStatement } from "./xapi";
+import { XApiStatement, Membership } from "./xapi";
 
 export class Utils {
 
@@ -120,5 +120,16 @@ export class Utils {
                         self.pebl.storage.removeToc(userProfile, book, section, id);
                 });
         })
+    }
+
+    getGroupMemberships(callback: (memberships: Membership[]) => void): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getGroupMembership(userProfile, callback);
+            } else
+                callback([]);
+        });
     }
 }

@@ -1,8 +1,10 @@
 const USER_PREFIX = "user-";
+const GROUP_PREFIX = "group-";
 const PEBL_THREAD_PREFIX = "peblThread://";
 const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
+const PEBL_THREAD_GROUP_PREFIX = "peblThread://" + GROUP_PREFIX;
 
-import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action } from "./xapi";
+import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
 import { PEBL } from "./pebl";
@@ -94,26 +96,45 @@ export class LLSyncAction implements SyncProcess {
             });
         }
 
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile && self.pebl.enableDirectMessages) {
-                let fullDirectThread = PEBL_THREAD_USER_PREFIX + userProfile.identity;
-                let thread = USER_PREFIX + userProfile.identity;
-                let timeStr = self.endpoint.lastSyncedThreads[thread];
-                let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
-                self.endpoint.lastSyncedThreads[thread] = timestamp;
+        this.pebl.utils.getGroupMemberships(function(memberships) {
+            if (memberships) {
+                for (let membership of memberships) {
+                    let fullDirectThread = PEBL_THREAD_GROUP_PREFIX + membership.groupId;
+                    let thread = GROUP_PREFIX + membership.groupId;
+                    let timeStr = self.endpoint.lastSyncedThreads[thread];
+                    let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
+                    self.endpoint.lastSyncedThreads[thread] = timestamp;
 
-                threadPairs.push({
-                    "statement.stored": {
-                        "$gt": timestamp.toISOString()
-                    },
-                    "statement.object.id": fullDirectThread
-                });
+                    threadPairs.push({
+                        "statement.stored": {
+                            "$gt": timestamp.toISOString()
+                        },
+                        "statement.object.id": fullDirectThread
+                    });
+                }
             }
 
-            if ((threadPairs.length == 0) && self.running)
-                self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
-            else
-                self.pullMessages({ "$or": threadPairs });
+            self.pebl.user.getUser(function(userProfile) {
+                if (userProfile && self.pebl.enableDirectMessages) {
+                    let fullDirectThread = PEBL_THREAD_USER_PREFIX + userProfile.identity;
+                    let thread = USER_PREFIX + userProfile.identity;
+                    let timeStr = self.endpoint.lastSyncedThreads[thread];
+                    let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
+                    self.endpoint.lastSyncedThreads[thread] = timestamp;
+
+                    threadPairs.push({
+                        "statement.stored": {
+                            "$gt": timestamp.toISOString()
+                        },
+                        "statement.object.id": fullDirectThread
+                    });
+                }
+
+                if ((threadPairs.length == 0) && self.running)
+                    self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
+                else
+                    self.pullMessages({ "$or": threadPairs });
+            });
         });
     }
 
@@ -196,7 +217,11 @@ export class LLSyncAction implements SyncProcess {
                         let v = new Voided(xapi);
                         deleteIds.push(v);
                         thread = v.thread;
+                    } else if (Membership.is(xapi)) {
+                        // let m = new Membership(xapi);
+
                     }
+
                     if (thread != null) {
                         if (tsd != null) {
                             let stmts = buckets[thread];
