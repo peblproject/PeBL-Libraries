@@ -96,16 +96,17 @@ export class LLSyncAction implements SyncProcess {
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile && self.pebl.enableDirectMessages) {
-                let directThread = PEBL_THREAD_USER_PREFIX + userProfile.identity;
-                let timeStr = self.endpoint.lastSyncedThreads[directThread];
+                let fullDirectThread = PEBL_THREAD_USER_PREFIX + userProfile.identity;
+                let thread = USER_PREFIX + userProfile.identity;
+                let timeStr = self.endpoint.lastSyncedThreads[thread];
                 let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
-                self.endpoint.lastSyncedThreads[USER_PREFIX + userProfile.identity] = timestamp;
+                self.endpoint.lastSyncedThreads[thread] = timestamp;
 
                 threadPairs.push({
                     "statement.stored": {
                         "$gt": timestamp.toISOString()
                     },
-                    "statement.object.id": directThread
+                    "statement.object.id": fullDirectThread
                 });
             }
 
