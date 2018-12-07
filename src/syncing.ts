@@ -1,8 +1,12 @@
 const USER_PREFIX = "user-";
 const GROUP_PREFIX = "group-";
 const PEBL_THREAD_PREFIX = "peblThread://";
+const PEBL_THREAD_REGISTRY = "peblThread://registry";
 const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
 const PEBL_THREAD_GROUP_PREFIX = "peblThread://" + GROUP_PREFIX;
+const THREAD_POLL_INTERVAL = 4000;
+const BOOK_POLL_INTERVAL = 6000;
+const PRESENCE_POLL_INTERVAL = 120000;
 
 import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership } from "./xapi";
 import { SyncProcess } from "./adapters";
@@ -13,6 +17,7 @@ export class LLSyncAction implements SyncProcess {
 
     private bookPoll: (number | null) = null;
     private threadPoll: (number | null) = null;
+    private presencePoll: (number | null) = null;
 
     private running: boolean = false;
     private endpoint: Endpoint;
@@ -34,6 +39,10 @@ export class LLSyncAction implements SyncProcess {
         if (this.threadPoll)
             clearTimeout(this.threadPoll);
         this.threadPoll = null;
+
+        if (this.presencePoll)
+            clearTimeout(this.presencePoll)
+        this.presencePoll = null;
     }
 
     private toVoidRecord(rec: XApiStatement): XApiStatement {
@@ -65,6 +74,81 @@ export class LLSyncAction implements SyncProcess {
         return new Voided(o);
     }
 
+    private registerPresence(): void {
+        let self = this;
+        let xhr = new XMLHttpRequest();
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                xhr.addEventListener("load", function() {
+                    let presence = new XMLHttpRequest();
+
+                    xhr.addEventListener("load", function() {
+                        self.pebl.emitEvent(self.pebl.events.monitorPresence, JSON.parse(xhr.responseText));
+
+                        if (self.running)
+                            self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+                    });
+
+                    xhr.addEventListener("error", function() {
+                        if (self.running)
+                            self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+                    });
+
+                    presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+                    presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
+                    presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+
+                    presence.send();
+                });
+
+                xhr.addEventListener("error", function() {
+                    if (self.running)
+                        self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+                });
+
+                xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+
+                xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+                xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                let obj: { [key: string]: any } = {};
+
+                obj[userProfile.identity] = true;
+
+                xhr.send(JSON.stringify(obj));
+            } else if (self.running)
+                self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+        });
+    }
+
+    private unregisterPresence(): void {
+        let self = this;
+        let xhr = new XMLHttpRequest();
+
+        this.pebl.user.getUser(function(userProfile) {
+
+            if (userProfile) {
+                // xhr.addEventListener("load", function() { });
+
+                // xhr.addEventListener("error", function() { });
+
+                xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+
+                xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+                xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                let obj: { [key: string]: any } = {};
+
+                obj[userProfile.identity] = false;
+
+                xhr.send(JSON.stringify(obj));
+            }
+        });
+    }
+
     private bookPollingCallback(): void {
         let self = this;
         this.pebl.storage.getCurrentBook(function(book) {
@@ -76,7 +160,7 @@ export class LLSyncAction implements SyncProcess {
                 }
                 self.pullBook(lastSynced, book);
             } else if (self.running)
-                self.bookPoll = setTimeout(self.bookPollingCallback.bind(self), 5000);
+                self.bookPoll = setTimeout(self.bookPollingCallback.bind(self), BOOK_POLL_INTERVAL);
         });
     }
 
@@ -131,7 +215,7 @@ export class LLSyncAction implements SyncProcess {
                 }
 
                 if ((threadPairs.length == 0) && self.running)
-                    self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
+                    self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
                 else
                     self.pullMessages({ "$or": threadPairs });
             });
@@ -172,13 +256,13 @@ export class LLSyncAction implements SyncProcess {
     private pullMessages(params: { [key: string]: any }): void {
         let pipeline: { [key: string]: any }[] = [
             {
+                "$match": params
+            },
+            {
                 "$sort": {
                     "stored": -1,
                     "_id": 1
                 }
-            },
-            {
-                "$match": params
             },
             {
                 "$limit": 1500
@@ -272,7 +356,7 @@ export class LLSyncAction implements SyncProcess {
 
                         self.pebl.storage.saveUserProfile(userProfile);
                         if (self.running)
-                            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), 2000);
+                            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
                     }
                 });
             });
@@ -290,12 +374,6 @@ export class LLSyncAction implements SyncProcess {
 
         let pipeline: { [key: string]: any }[] = [
             {
-                "$sort": {
-                    "stored": -1,
-                    "_id": 1
-                }
-            },
-            {
                 "$match": {
                     "$or": [
                         teacherPack,
@@ -307,6 +385,12 @@ export class LLSyncAction implements SyncProcess {
                             "statement.verb.id": "http://adlnet.gov/expapi/verbs/shared"
                         }
                     ]
+                }
+            },
+            {
+                "$sort": {
+                    "stored": -1,
+                    "_id": 1
                 }
             },
             {
@@ -421,7 +505,7 @@ export class LLSyncAction implements SyncProcess {
 
                         self.pebl.storage.saveUserProfile(userProfile);
                         if (self.running)
-                            self.threadPoll = setTimeout(self.bookPollingCallback.bind(self), 5000);
+                            self.bookPoll = setTimeout(self.bookPollingCallback.bind(self), BOOK_POLL_INTERVAL);
                     });
             }
         });
@@ -434,6 +518,8 @@ export class LLSyncAction implements SyncProcess {
 
         this.bookPollingCallback();
         this.threadPollingCallback();
+
+        this.registerPresence();
     }
 
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void {
@@ -461,6 +547,8 @@ export class LLSyncAction implements SyncProcess {
 
     terminate(): void {
         this.running = false;
+
+        this.unregisterPresence();
 
         this.clearTimeouts();
     }

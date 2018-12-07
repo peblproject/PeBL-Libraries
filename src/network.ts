@@ -33,7 +33,6 @@ export class Network implements NetworkAdapter {
                     for (let e of endpoints)
                         self.syncingProcess.push(new LLSyncAction(self.pebl, e));
 
-
                     self.push();
                     self.pullAsset();
                     self.running = true;
@@ -51,10 +50,6 @@ export class Network implements NetworkAdapter {
                 self.pebl.storage.saveQueuedReference(userProfile, ref);
         });
     }
-
-    // private registerPresence(): void {
-
-    // }
 
     private pullAsset(): void {
         let self = this;

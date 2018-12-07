@@ -7,6 +7,8 @@ export class EventSet {
     incomingAssets = "incomingAssets";
     incomingEvents = "incomingEvents";
 
+    monitorPresence = "monitorPresence";
+
     newBook = "newBook";
     newMessage = "newMessage";
     newActivity = "newActivity";
