@@ -74,6 +74,29 @@ export class LLSyncAction implements SyncProcess {
         return new Voided(o);
     }
 
+    retrievePresence(): void {
+        let self = this;
+        let presence = new XMLHttpRequest();
+
+        presence.addEventListener("load", function() {
+            self.pebl.emitEvent(self.pebl.events.incomingPresence, JSON.parse(presence.responseText));
+
+            if (self.running)
+                self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+        });
+
+        presence.addEventListener("error", function() {
+            if (self.running)
+                self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+        });
+
+        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+        presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
+        presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+
+        presence.send();
+    }
+
     private registerPresence(): void {
         let self = this;
         let xhr = new XMLHttpRequest();
@@ -81,25 +104,7 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 xhr.addEventListener("load", function() {
-                    let presence = new XMLHttpRequest();
-
-                    xhr.addEventListener("load", function() {
-                        self.pebl.emitEvent(self.pebl.events.incomingPresence, JSON.parse(xhr.responseText));
-
-                        if (self.running)
-                            self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
-                    });
-
-                    xhr.addEventListener("error", function() {
-                        if (self.running)
-                            self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
-                    });
-
-                    presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
-                    presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
-                    presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
-
-                    presence.send();
+                    self.retrievePresence();
                 });
 
                 xhr.addEventListener("error", function() {

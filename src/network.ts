@@ -51,6 +51,11 @@ export class Network implements NetworkAdapter {
         });
     }
 
+    retrievePresence(): void {
+        for (let sync of this.syncingProcess)
+            sync.retrievePresence();
+    }
+
     private pullAsset(): void {
         let self = this;
         self.pebl.user.getUser(function(userProfile) {

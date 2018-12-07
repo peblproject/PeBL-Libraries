@@ -167,8 +167,11 @@ export class PEBL {
             self.utils.getSharedAnnotations(function(annotations) {
                 callback(annotations);
             });
+        } else if (eventName == self.events.incomingPresence) {
+            self.network.retrievePresence();
         }
     }
+
     //fix once for return of getMessages
     subscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
         let threadCallbacks = this.subscribedThreadHandlers[thread];

@@ -28,6 +28,8 @@ export interface SyncProcess {
 
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void;
 
+    retrievePresence(): void;
+
     terminate(): void;
 }
 
@@ -38,6 +40,8 @@ export interface NetworkAdapter {
     disable(callback?: (() => void)): void;
 
     queueReference(ref: Reference): void;
+
+    retrievePresence(): void;
 
     push(finished: (() => void)): void;
 }
