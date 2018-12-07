@@ -260,6 +260,13 @@ export class LLSyncAction implements SyncProcess {
                 "$match": params
             },
             {
+                "$project": {
+                    "statement": 1,
+                    "_id": 0,
+                    "voided": 1
+                }
+            },
+            {
                 "$sort": {
                     "stored": -1,
                     "_id": 1
@@ -267,13 +274,6 @@ export class LLSyncAction implements SyncProcess {
             },
             {
                 "$limit": 1500
-            },
-            {
-                "$project": {
-                    "statement": 1,
-                    "_id": 0,
-                    "voided": 1
-                }
             }
         ];
 
@@ -409,6 +409,13 @@ export class LLSyncAction implements SyncProcess {
                 }
             },
             {
+                "$project": {
+                    "statement": 1,
+                    "_id": 0,
+                    "voided": 1
+                }
+            },
+            {
                 "$sort": {
                     "stored": -1,
                     "_id": 1
@@ -416,13 +423,6 @@ export class LLSyncAction implements SyncProcess {
             },
             {
                 "$limit": 1500
-            },
-            {
-                "$project": {
-                    "statement": 1,
-                    "_id": 0,
-                    "voided": 1
-                }
             }
         ];
 
