@@ -6,8 +6,7 @@ export class EventSet {
     incomingNotifications = "incomingNotifications";
     incomingAssets = "incomingAssets";
     incomingEvents = "incomingEvents";
-
-    monitorPresence = "monitorPresence";
+    incomingPresence = "incomingPresence";
 
     newBook = "newBook";
     newMessage = "newMessage";

@@ -84,7 +84,7 @@ export class LLSyncAction implements SyncProcess {
                     let presence = new XMLHttpRequest();
 
                     xhr.addEventListener("load", function() {
-                        self.pebl.emitEvent(self.pebl.events.monitorPresence, JSON.parse(xhr.responseText));
+                        self.pebl.emitEvent(self.pebl.events.incomingPresence, JSON.parse(xhr.responseText));
 
                         if (self.running)
                             self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
@@ -130,10 +130,6 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.user.getUser(function(userProfile) {
 
             if (userProfile) {
-                // xhr.addEventListener("load", function() { });
-
-                // xhr.addEventListener("error", function() { });
-
                 xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
 
                 xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
@@ -281,12 +277,13 @@ export class LLSyncAction implements SyncProcess {
         this.pullHelper(pipeline,
             function(stmts: XApiStatement[]): void {
                 let buckets: { [thread: string]: { [id: string]: (Message | Reference) } } = {};
+                let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
                 let deleteIds: Voided[] = [];
 
                 for (let i = 0; i < stmts.length; i++) {
                     let xapi = stmts[i];
                     let thread: (string | null) = null;
-                    let tsd: (Message | Reference | null) = null;
+                    let tsd: (Message | Reference | Membership | null) = null;
 
                     if (Message.is(xapi)) {
                         let m = new Message(xapi);
@@ -302,16 +299,18 @@ export class LLSyncAction implements SyncProcess {
                         deleteIds.push(v);
                         thread = v.thread;
                     } else if (Membership.is(xapi)) {
-                        // let m = new Membership(xapi);
-
+                        let m = new Membership(xapi);
+                        thread = m.groupId;
+                        tsd = m;
                     }
 
                     if (thread != null) {
                         if (tsd != null) {
-                            let stmts = buckets[thread];
+                            let container = tsd instanceof Membership ? memberships : buckets;
+                            let stmts = container[thread];
                             if (stmts == null) {
                                 stmts = {};
-                                buckets[thread] = stmts;
+                                container[thread] = stmts;
                             }
                             stmts[tsd.id] = tsd;
                         }
@@ -335,6 +334,23 @@ export class LLSyncAction implements SyncProcess {
                             }
 
                             self.pebl.storage.removeMessage(userProfile, v.target);
+                            self.pebl.storage.removeGroupMembership(userProfile, v.target);
+                        }
+
+                        for (let thread of Object.keys(memberships)) {
+                            let membership = memberships[thread];
+                            let cleanMemberships: Membership[] = [];
+
+                            for (let messageId of Object.keys(membership)) {
+                                let rec = membership[messageId];
+                                cleanMemberships.push(rec);
+                            }
+                            if (cleanMemberships.length > 0) {
+                                cleanMemberships.sort();
+                                self.pebl.storage.saveGroupMembership(userProfile, cleanMemberships);
+
+                                self.pebl.emitEvent(thread, cleanMemberships);
+                            }
                         }
 
                         for (let thread of Object.keys(buckets)) {

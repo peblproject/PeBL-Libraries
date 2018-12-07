@@ -132,7 +132,7 @@ export interface StorageAdapter {
     removeToc(userProfile: UserProfile, book: string, section: string, id: string, callback?: (() => void)): void;
 
 
-    saveGroupMembership(userProfile: UserProfile, groupMembership: Membership, callback?: (() => void)): void;
+    saveGroupMembership(userProfile: UserProfile, stmts: (Membership | Membership[]), callback?: (() => void)): void;
 
     getGroupMembership(userProfile: UserProfile, callback: (groups: Membership[]) => void): void;
 

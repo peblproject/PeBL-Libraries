@@ -966,21 +966,42 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveGroupMembership(userProfile: UserProfile, groupMembership: Membership, callback?: (() => void)): void {
+    saveGroupMembership(userProfile: UserProfile, stmts: (Membership | Membership[]), callback?: (() => void)): void {
         if (this.db) {
-            groupMembership.identity = userProfile.identity;
-            let request = this.db.transaction(["groups"], "readwrite").objectStore("groups").put(this.cleanRecord(groupMembership));
-            request.onerror = function(e) {
-                console.log(e);
-            };
-            request.onsuccess = function() {
-                if (callback)
-                    callback();
-            };
+            if (stmts instanceof Membership) {
+                let ga = stmts;
+                ga.identity = userProfile.identity;
+                let request = this.db.transaction(["groups"], "readwrite").objectStore("groups").put(ga);
+                request.onerror = function(e) {
+                    console.log(e);
+                };
+                request.onsuccess = function() {
+                    if (callback)
+                        callback();
+                };
+            } else {
+                let objectStore = this.db.transaction(["groups"], "readwrite").objectStore("groups");
+                let stmtsCopy: Membership[] = stmts.slice(0);
+                let self: IndexedDBStorageAdapter = this;
+                let processCallback = function() {
+                    let record: (Membership | undefined) = stmtsCopy.pop();
+                    if (record) {
+                        let clone = record;
+                        clone.identity = userProfile.identity;
+                        let request = objectStore.put(self.cleanRecord(clone));
+                        request.onerror = processCallback;
+                        request.onsuccess = processCallback;
+                    } else {
+                        if (callback)
+                            callback();
+                    }
+                };
+                processCallback();
+            }
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.saveGroupMembership(userProfile, groupMembership, callback);
+                self.saveGroupMembership(userProfile, stmts, callback);
             });
         }
     }
@@ -1009,9 +1030,9 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeGroupMembership(userProfile: UserProfile, groupId: string, callback?: (() => void)): void {
+    removeGroupMembership(userProfile: UserProfile, xId: string, callback?: (() => void)): void {
         if (this.db) {
-            let request = this.db.transaction(["groups"], "readwrite").objectStore("groups").delete(IDBKeyRange.only([userProfile.identity, groupId]));
+            let request = this.db.transaction(["groups"], "readwrite").objectStore("groups").delete(IDBKeyRange.only([userProfile.identity, xId]));
             request.onerror = function(e) {
                 console.log(e);
             };
@@ -1022,7 +1043,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.removeGroupMembership(userProfile, groupId, callback);
+                self.removeGroupMembership(userProfile, xId, callback);
             });
         }
     }
