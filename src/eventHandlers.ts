@@ -4,7 +4,7 @@ const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership } from "./xapi";
 import { UserProfile } from "./models";
 
 export class PEBLEventHandlers {
@@ -126,6 +126,33 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveMessages(userProfile, message);
                         self.pebl.storage.saveOutgoing(userProfile, message);
                         self.pebl.emitEvent(message.thread, [message]);
+                    });
+                });
+            }
+        });
+    }
+
+    newMembership(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + payload.thread, payload.groupId, payload.groupName, payload.groupDescription);
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#joined", "joined");
+                        if (book || activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
+
+                        let m = new Membership(xapi);
+                        self.pebl.storage.saveOutgoing(userProfile, m);
+                        self.pebl.storage.saveEvent(userProfile, m);
                     });
                 });
             }
