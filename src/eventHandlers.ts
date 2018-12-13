@@ -145,7 +145,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + payload.thread, payload.groupId, payload.groupName, payload.groupDescription);
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + payload.thread, payload.groupId, payload.groupDescription);
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#joined", "joined");
                         if (book || activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
