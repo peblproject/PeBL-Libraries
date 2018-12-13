@@ -15,6 +15,7 @@ export class EventSet {
     newReference = "newReference";
     newMembership = "newMembership";
     newSharedAnnotation = "newSharedAnnotation";
+    newMembership = "newMembership";
 
     removedAnnotation = "removedAnnotation";
     removedSharedAnnotation = "removedSharedAnnotation";
