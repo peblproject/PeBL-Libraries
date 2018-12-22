@@ -1,6 +1,7 @@
 import { StorageAdapter } from "./adapters";
 import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
 import { UserProfile } from "./models";
+import { Activity } from "./activity";
 
 const MASTER_INDEX = "master";
 const CURRENT_BOOK = "peblCurrentBook";
@@ -13,7 +14,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 14);
+        let request = window.indexedDB.open("pebl", 15);
         let self: IndexedDBStorageAdapter = this;
 
         request.onupgradeneeded = function() {
@@ -27,7 +28,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let annotationStore = db.createObjectStore("annotations", { keyPath: ["identity", "id"] });
             let competencyStore = db.createObjectStore("competencies", { keyPath: ["url", "identity"] });
             let generalAnnotationStore = db.createObjectStore("sharedAnnotations", { keyPath: ["identity", "id"] });
-            let outgoingStore = db.createObjectStore("outgoing", { keyPath: ["identity", "id"] });
+            let outgoingXApiStore = db.createObjectStore("outgoingXApi", { keyPath: ["identity", "id"] });
+            let outgoingActivityStore = db.createObjectStore("outgoingActivity", { keyPath: ["identity", "id"] });
             let messageStore = db.createObjectStore("messages", { keyPath: ["identity", "id"] });
             let groupStore = db.createObjectStore("groups", { keyPath: ["identity", "id"] });
             db.createObjectStore("user", { keyPath: "identity" });
@@ -38,11 +40,18 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "book", "section", "pageKey"] });
             db.createObjectStore("lrsAuth", { keyPath: "id" });
 
+            let activityStore = db.createObjectStore("activity", { keyPath: ["identity", "type", "id"] });
+
+            activityStore.createIndex(MASTER_INDEX, ["identity", "type"]);
+
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             annotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             competencyStore.createIndex(MASTER_INDEX, "identity");
             generalAnnotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
-            outgoingStore.createIndex(MASTER_INDEX, "identity");
+
+            outgoingActivityStore.createIndex(MASTER_INDEX, "identity");
+            outgoingXApiStore.createIndex(MASTER_INDEX, "identity");
+
             groupStore.createIndex(MASTER_INDEX, "identity");
             messageStore.createIndex(MASTER_INDEX, ["identity", "thread"]);
             queuedReferences.createIndex(MASTER_INDEX, "identity");
@@ -596,11 +605,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveOutgoing(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void {
+    saveOutgoingXApi(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void {
         if (this.db) {
             let clone = stmt.toXAPI();
             clone.identity = userProfile.identity;
-            let request = this.db.transaction(["outgoing"], "readwrite").objectStore("outgoing").put(this.cleanRecord(clone));
+            let request = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi").put(this.cleanRecord(clone));
             request.onerror = function(e) {
                 console.log(e);
             };
@@ -611,14 +620,14 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.saveOutgoing(userProfile, stmt, callback);
+                self.saveOutgoingXApi(userProfile, stmt, callback);
             });
         }
     }
 
-    getOutgoing(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void {
+    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void {
         if (this.db) {
-            let os = this.db.transaction(["outgoing"], "readonly").objectStore("outgoing");
+            let os = this.db.transaction(["outgoingXApi"], "readonly").objectStore("outgoingXApi");
             let index = os.index(MASTER_INDEX);
             let param = userProfile.identity;
             let self = this;
@@ -635,14 +644,14 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.getOutgoing(userProfile, callback);
+                self.getOutgoingXApi(userProfile, callback);
             });
         }
     }
 
-    removeOutgoing(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void {
+    removeOutgoingXApi(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void {
         if (this.db) {
-            let objectStore = this.db.transaction(["outgoing"], "readwrite").objectStore("outgoing");
+            let objectStore = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi");
             let toClearCopy = toClear.slice(0);
             let processCallback = function() {
                 if (toClear.length > 0) {
@@ -661,7 +670,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.removeOutgoing(userProfile, toClear, callback);
+                self.removeOutgoingXApi(userProfile, toClear, callback);
             });
         }
     }
@@ -1048,5 +1057,143 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
+    // -------------------------------
+
+    saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void {
+        if (this.db) {
+            if (stmts instanceof Activity) {
+                let ga = stmts;
+                ga.identity = userProfile.identity;
+                let request = this.db.transaction(["activity"], "readwrite").objectStore("activity").put(ga);
+                request.onerror = function(e) {
+                    console.log(e);
+                };
+                request.onsuccess = function() {
+                    if (callback)
+                        callback();
+                };
+            } else {
+                let objectStore = this.db.transaction(["activity"], "readwrite").objectStore("activity");
+                let stmtsCopy: Activity[] = stmts.slice(0);
+                let self: IndexedDBStorageAdapter = this;
+                let processCallback = function() {
+                    let record: (Activity | undefined) = stmtsCopy.pop();
+                    if (record) {
+                        let clone = record;
+                        clone.identity = userProfile.identity;
+                        let request = objectStore.put(self.cleanRecord(clone));
+                        request.onerror = processCallback;
+                        request.onsuccess = processCallback;
+                    } else {
+                        if (callback)
+                            callback();
+                    }
+                };
+                processCallback();
+            }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveActivity(userProfile, stmts, callback);
+            });
+        }
+    }
+
+    getActivities(userProfile: UserProfile, activityType: string, callback: (activities: Activity[]) => void): void {
+        if (this.db) {
+            let os = this.db.transaction(["activity"], "readonly").objectStore("activity");
+            let index = os.index(MASTER_INDEX);
+            let param = [userProfile.identity, activityType]
+            let self = this;
+            self.getAll(index, IDBKeyRange.only(param), callback);
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getActivities(userProfile, activityType, callback);
+            });
+        }
+    }
+
+    removeActivity(userProfile: UserProfile, xId: string, activityType: string, callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["activity"], "readwrite").objectStore("activity").delete(IDBKeyRange.only([userProfile.identity, activityType, xId]));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeActivity(userProfile, xId, activityType, callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    saveOutgoingActivity(userProfile: UserProfile, stmt: Activity, callback?: (() => void)): void {
+        if (this.db) {
+            let clone = stmt;
+            clone.identity = userProfile.identity;
+            let request = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity").put(this.cleanRecord(clone));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveOutgoingActivity(userProfile, stmt, callback);
+            });
+        }
+    }
+
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: Activity[]) => void): void {
+        if (this.db) {
+            let os = this.db.transaction(["outgoingActivity"], "readonly").objectStore("outgoingActivity");
+            let index = os.index(MASTER_INDEX);
+            let param = userProfile.identity;
+            let self = this;
+            this.getAll(index,
+                IDBKeyRange.only(param),
+                function(arr) {
+                    if (arr.length == 0)
+                        self.getAll(index,
+                            IDBKeyRange.only([param]),
+                            callback);
+                    else
+                        callback(arr);
+                });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getOutgoingActivity(userProfile, callback);
+            });
+        }
+    }
+
+    removeOutgoingActivity(userProfile: UserProfile, toClear: Activity, callback?: (() => void)): void {
+        if (this.db) {
+            let objectStore = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity");
+            let request = objectStore.delete(IDBKeyRange.only([userProfile.identity, toClear.id]));
+            if (callback) {
+                request.onerror = callback;
+                request.onsuccess = callback;
+            }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeOutgoingActivity(userProfile, toClear, callback);
+            });
+        }
+    }
+
     // -------------------------------    
 }
+

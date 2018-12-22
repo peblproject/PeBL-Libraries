@@ -343,6 +343,7 @@ export class Session extends XApiStatement {
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
+
         this.activityId = this.object.id;
         if (this.object.definition) {
             this.activityName = this.object.definition.name && this.object.definition.name["en-US"];
@@ -363,27 +364,59 @@ export class Session extends XApiStatement {
 
 export class Membership extends XApiStatement {
 
-    readonly groupId: string;
-    readonly groupName?: string;
-    readonly groupDescription?: string;
+    readonly thread: string;
+    readonly membershipId: string;
+    readonly description?: string;
+    readonly role: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
-        this.groupId = this.object.id;
 
-        this.groupId = this.object.id;
-        if (this.groupId.indexOf(PREFIX_PEBL_THREAD) != -1)
-            this.groupId = this.groupId.substring(PREFIX_PEBL_THREAD.length);
+        this.thread = this.object.id;
+        if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
-        if (this.object.definition) {
-            this.groupName = this.object.definition.name && this.object.definition.name["en-US"];
-            this.groupDescription = this.object.definition.description && this.object.definition.description["en-US"];
-        }
+        this.membershipId = this.object.definition.name["en-US"];
+        this.description = this.object.definition.description && this.object.definition.description["en-US"];
+
+        let extensions = this.object.definition.extensions;
+
+        this.role = extensions[PREFIX_PEBL_EXTENSION + "role"];
     }
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "joined");
+    }
+}
+
+// -------------------------------
+
+export class Artifact extends XApiStatement {
+
+    readonly thread: string;
+    readonly artifactId: string;
+    readonly artifactDescription?: string;
+    readonly body: any;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        this.thread = this.object.id;
+        if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
+
+        this.artifactId = this.object.definition.name["en-US"];
+        this.artifactDescription = this.object.definition.description && this.object.definition.description["en-US"];
+
+        let extensions = this.object.definition.extensions;
+
+        this.body = extensions[PREFIX_PEBL_EXTENSION + "body"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "artifactCreated");
     }
 }
 

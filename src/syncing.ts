@@ -12,6 +12,7 @@ import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation
 import { SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
 import { PEBL } from "./pebl";
+import { Activity } from "./activity";
 
 export class LLSyncAction implements SyncProcess {
 
@@ -93,6 +94,7 @@ export class LLSyncAction implements SyncProcess {
         presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
         presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
         presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+        //TODO fix if-match for post merging
 
         presence.send();
     }
@@ -184,8 +186,8 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.utils.getGroupMemberships(function(memberships) {
             if (memberships) {
                 for (let membership of memberships) {
-                    let fullDirectThread = PEBL_THREAD_GROUP_PREFIX + membership.groupId;
-                    let thread = GROUP_PREFIX + membership.groupId;
+                    let fullDirectThread = PEBL_THREAD_GROUP_PREFIX + membership.thread;
+                    let thread = GROUP_PREFIX + membership.thread;
                     let timeStr = self.endpoint.lastSyncedThreads[thread];
                     let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
                     self.endpoint.lastSyncedThreads[thread] = timestamp;
@@ -305,7 +307,7 @@ export class LLSyncAction implements SyncProcess {
                         thread = v.thread;
                     } else if (Membership.is(xapi)) {
                         let m = new Membership(xapi);
-                        thread = m.groupId;
+                        thread = m.thread;
                         tsd = m;
                     }
 
@@ -565,6 +567,53 @@ export class LLSyncAction implements SyncProcess {
 
         xhr.send(JSON.stringify(outgoing));
     }
+
+    pushActivity(outgoing: Activity[], callback: () => void): void {
+        let self = this;
+        let xhr = new XMLHttpRequest();
+
+        this.pebl.user.getUser(function(userProfile) {
+            let activity: (Activity | undefined) = outgoing.pop();
+            if (userProfile && activity) {
+                xhr.addEventListener("load", function() {
+                    if (outgoing.length == 0)
+                        callback();
+                    else {
+                        if (activity) //typechecker
+                            self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+                        self.pushActivity(outgoing, callback);
+                    }
+                });
+
+                xhr.addEventListener("error", function() {
+                    if (outgoing.length == 0)
+                        callback();
+                    else {
+                        self.pebl.emitEvent(self.pebl.events.incomingErrors, {
+                            error: xhr.status,
+                            obj: activity
+                        });
+                        if (activity) //typechecker
+                            self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+                        self.pushActivity(outgoing, callback);
+                    }
+                });
+
+                xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
+
+                xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+                xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                let obj: { [key: string]: any } = {};
+
+                obj[userProfile.identity] = false;
+
+                xhr.send(JSON.stringify(obj));
+            }
+        });
+    }
+
 
     terminate(): void {
         this.running = false;

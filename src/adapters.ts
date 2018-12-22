@@ -1,5 +1,6 @@
 import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
 import { UserProfile } from "./models";
+import { Activity } from "./activity";
 
 // -------------------------------
 
@@ -27,6 +28,8 @@ export interface SyncProcess {
     pull(): void;
 
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void;
+
+    pushActivity(outgoing: Activity[], callback: () => void): void;
 
     retrievePresence(): void;
 
@@ -96,11 +99,18 @@ export interface StorageAdapter {
     saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoing(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void;
+    saveOutgoingActivity(userProfile: UserProfile, stmt: Activity, callback?: (() => void)): void;
 
-    getOutgoing(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void;
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: Activity[]) => void): void;
 
-    removeOutgoing(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void;
+    removeOutgoingActivity(userProfile: UserProfile, toClear: Activity, callback?: (() => void)): void;
+
+
+    saveOutgoingXApi(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void;
+
+    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void;
+
+    removeOutgoingXApi(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void;
 
 
     saveMessages(userProfile: UserProfile, stmts: (Message | Message[]), callback?: (() => void)): void;

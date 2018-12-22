@@ -3,12 +3,14 @@ import { LLSyncAction } from "./syncing";
 import { NetworkAdapter, SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
 import { Reference } from "./xapi";
+// import { Activity } from "./activity";
 
 
 export class Network implements NetworkAdapter {
 
     private running: boolean;
     private pushTimeout?: number = undefined;
+    private pushActivityTimeout?: number = undefined;
 
     private pullAssetTimeout?: number = undefined;
 
@@ -131,18 +133,62 @@ export class Network implements NetworkAdapter {
             callback();
     }
 
+    pushActivity(finished?: (() => void)): void {
+        let self = this;
+        if (self.pushActivityTimeout) {
+            clearTimeout(self.pushActivityTimeout);
+            self.pushActivityTimeout = undefined;
+        }
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getOutgoingActivity(userProfile,
+                    function(stmts): void {
+                        if (self.syncingProcess.length == 1) {
+                            if (stmts.length > 0) {
+                                // HACK this assumes a single sync process by deleting outgoing activities on success
+                                // to fix pass an object with the results to selectively delete outside the sync process for
+                                // a single endpoing
+                                self.syncingProcess[0].pushActivity(stmts,
+                                    function() {
+                                        // if (success)
+                                        //     self.pebl.storage.removeOutgoingActivity(userProfile, stmts);
+                                        if (self.running)
+                                            self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
+
+                                        if (finished)
+                                            finished();
+                                    });
+                            } else {
+                                if (self.running)
+                                    self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
+
+                                if (finished)
+                                    finished();
+                            }
+                        }
+                    });
+            }
+        });
+    }
+
     push(finished?: (() => void)): void {
         let self = this;
+        if (self.pushTimeout) {
+            clearTimeout(self.pushTimeout);
+            self.pushTimeout = undefined;
+        }
+
         this.pebl.user.getUser(function(userProfile) {
-            if (userProfile)
-                self.pebl.storage.getOutgoing(userProfile,
+            if (userProfile) {
+                self.pebl.storage.getOutgoingXApi(userProfile,
                     function(stmts): void {
                         if (self.syncingProcess.length == 1) {
                             if (stmts.length > 0) {
                                 self.syncingProcess[0].push(stmts,
                                     function(success) {
                                         if (success)
-                                            self.pebl.storage.removeOutgoing(userProfile, stmts);
+                                            self.pebl.storage.removeOutgoingXApi(userProfile, stmts);
                                         if (self.running)
                                             self.pushTimeout = setTimeout(self.push.bind(self), 5000);
 
@@ -158,7 +204,7 @@ export class Network implements NetworkAdapter {
                             }
                         }
                     });
-            else {
+            } else {
                 if (self.running)
                     self.pushTimeout = setTimeout(self.push.bind(self), 5000);
 

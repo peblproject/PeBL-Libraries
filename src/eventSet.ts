@@ -7,7 +7,14 @@ export class EventSet {
     incomingAssets = "incomingAssets";
     incomingEvents = "incomingEvents";
     incomingPresence = "incomingPresence";
+    incomingLearnlet = "incomingLearnlet";
+    incomingProgram = "incomingProgram";
+    incomingArtifact = "incomingArtifact";
 
+    incomingErrors = "incomingErrors";
+
+    newProgram = "newProgram";
+    newLearnlet = "newLearnlet";
     newBook = "newBook";
     newMessage = "newMessage";
     newActivity = "newActivity";
@@ -15,7 +22,9 @@ export class EventSet {
     newReference = "newReference";
     newMembership = "newMembership";
     newSharedAnnotation = "newSharedAnnotation";
+    newArtifact = "newArtifact";
 
+    removedMembership = "removedMembership";
     removedAnnotation = "removedAnnotation";
     removedSharedAnnotation = "removedSharedAnnotation";
 

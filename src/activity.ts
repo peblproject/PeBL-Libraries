@@ -1,57 +1,66 @@
-// import { ActivityAdapter } from "./adapters";
 // import { PEBL } from "./pebl";
+import { Membership } from "./xapi";
 
-// export class Activity implements ActivityAdapter {
-//     private pebl: PEBL;
+export class Activity {
 
-//     constructor(pebl: PEBL) {
-//         this.pebl = pebl;
-//     }
+    readonly id: string;
+    readonly type: string;
+    etag?: string;
+    identity?: string;
 
-//     // -------------------------------
+    constructor(raw: { [key: string]: any }) {
+        if (!raw.id) {
+            /*!
+              Excerpt from: Math.uuid.js (v1.4)
+              http://www.broofa.com
+              mailto:robert@broofa.com
+              Copyright (c) 2010 Robert Kieffer
+              Dual licensed under the MIT and GPL licenses.
+            */
+            this.id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        } else
+            this.id = raw.id;
+        this.etag = raw.etag;
+        this.type = raw.type;
+    }
+}
 
-//     getBook(callback: (book?: string) => void): void {
-//         this.pebl.storage.getCurrentBook(callback);
-//     }
+export class Learnlet extends Activity {
+    readonly name: string;
+    readonly description: string;
+    readonly level: number;
+    readonly cfi: string;
 
-//     openBook(book: string, callback: (sameBook: boolean) => void): void {
-//         let self = this;
-//         this.pebl.storage.getCurrentBook(function(currentBook) {
-//             if (currentBook) {
-//                 self.pebl.storage.saveCurrentBook(book, function() {
-//                     callback(currentBook == book);
-//                 });
-//             } else {
-//                 self.pebl.storage.saveCurrentBook(book, function() {
-//                     callback(false);
-//                 });
-//             }
-//         });
+    constructor(raw: { [key: string]: any }) {
+        raw.type = "learnlet";
+        super(raw);
 
-//     }
+        this.cfi = raw.cfi;
+        this.level = raw.level;
+        this.name = raw.name;
+        this.description = raw.description;
+    }
+}
 
-//     // -------------------------------
+// -------------------------------
 
-//     initializeToc(toc: object): void {
-//         throw new Error("Method not implemented.");
-//     }
+export class Program extends Activity {
+    readonly name: string;
+    readonly description: string;
+    readonly members: Membership[];
 
-//     getToc(callback: object): void {
-//         throw new Error("Method not implemented.");
-//     }
+    constructor(raw: { [key: string]: any }) {
+        raw.type = "program";
+        super(raw);
 
-//     // -------------------------------
+        this.name = raw.name;
+        this.description = raw.description;
+        this.members = raw.members;
+    }
+}
 
-//     clearParentActivity(): void {
-//         throw new Error("Method not implemented.");
-//     }
+// -------------------------------
 
-//     getParentActivity(callback: (parentActivity: string) => void): void {
-//         throw new Error("Method not implemented.");
-//     }
-
-//     startParentActivity(activity: string): void {
-//         throw new Error("Method not implemented.");
-//     }
-
-// }
