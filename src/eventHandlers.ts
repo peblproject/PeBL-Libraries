@@ -40,7 +40,7 @@ export class PEBLEventHandlers {
                 self.pebl.unsubscribeAllThreads();
                 self.pebl.storage.saveCurrentBook(book);
             } else {
-                self.pebl.emitEvent(self.pebl.events.eventJumpPage, null);
+                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
             }
         });
     }
@@ -449,25 +449,29 @@ export class PEBLEventHandlers {
         });
     }
 
-    eventJumpedPage(event: CustomEvent) {
+    eventJumpPage(event: CustomEvent) {
         let payload = event.detail;
 
         let xapi = {};
         let self = this;
+        this.pebl.storage.getCurrentBook(function(book) {
+            self.pebl.storage.getCurrentActivity(function(activity) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#paged-jump", "paged-jump");
+                        if (activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
-                self.xapiGen.addId(xapi);
-                self.xapiGen.addTimestamp(xapi);
-                self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + payload.activity, payload.name, payload.description);
-                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#paged-jump", "paged-jump");
-                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
-
-                let s = new Navigation(xapi);
-                self.pebl.storage.saveOutgoing(userProfile, s);
-                self.pebl.storage.saveEvent(userProfile, s);
-            }
+                        let s = new Navigation(xapi);
+                        self.pebl.storage.saveOutgoing(userProfile, s);
+                        self.pebl.storage.saveEvent(userProfile, s);
+                    }
+                });
+            });
         });
     }
 
@@ -714,6 +718,33 @@ export class PEBLEventHandlers {
 
     eventChecklisted(event: CustomEvent) {
 
+    }
+
+    eventHelped(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        this.pebl.storage.getCurrentBook(function(book) {
+            self.pebl.storage.getCurrentActivity(function(activity) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#helped", "helped");
+                        if (activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+
+                        let s = new Navigation(xapi);
+                        self.pebl.storage.saveOutgoing(userProfile, s);
+                        self.pebl.storage.saveEvent(userProfile, s);
+                    }
+                });
+            });
+        });
     }
 
     // -------------------------------
