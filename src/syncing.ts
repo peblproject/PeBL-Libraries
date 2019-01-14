@@ -1,24 +1,26 @@
 const USER_PREFIX = "user-";
 const GROUP_PREFIX = "group-";
 const PEBL_THREAD_PREFIX = "peblThread://";
-const PEBL_THREAD_REGISTRY = "peblThread://registry";
+// const PEBL_THREAD_REGISTRY = "peblThread://registry";
 const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
 const PEBL_THREAD_GROUP_PREFIX = "peblThread://" + GROUP_PREFIX;
 const THREAD_POLL_INTERVAL = 4000;
 const BOOK_POLL_INTERVAL = 6000;
 const PRESENCE_POLL_INTERVAL = 120000;
+const LEARNLET_POLL_INTERVAL = 60000;
+const PROGRAM_POLL_INTERVAL = 60000;
 
 import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint } from "./models";
 import { PEBL } from "./pebl";
-import { Activity } from "./activity";
+import { Activity, Program, Learnlet, Presence } from "./activity";
 
 export class LLSyncAction implements SyncProcess {
 
     private bookPoll: (number | null) = null;
     private threadPoll: (number | null) = null;
-    private presencePoll: (number | null) = null;
+    private activityPolls: { [key: string]: number } = {};
 
     private running: boolean = false;
     private endpoint: Endpoint;
@@ -41,9 +43,9 @@ export class LLSyncAction implements SyncProcess {
             clearTimeout(this.threadPoll);
         this.threadPoll = null;
 
-        if (this.presencePoll)
-            clearTimeout(this.presencePoll)
-        this.presencePoll = null;
+        for (let key in this.activityPolls)
+            clearTimeout(this.activityPolls[key]);
+        this.activityPolls = {};
     }
 
     private toVoidRecord(rec: XApiStatement): XApiStatement {
@@ -75,23 +77,73 @@ export class LLSyncAction implements SyncProcess {
         return new Voided(o);
     }
 
-    retrievePresence(): void {
+    // private retrieveActivityListing(activity: string, since: Date): void {
+    //     let self = this;
+    //     let presence = new XMLHttpRequest();
+
+    //     presence.addEventListener("load", function() {
+    //         // self.pebl.emitEvent(self.pebl.events.incomingPresence, JSON.parse(presence.responseText));
+
+    //         // if (self.running)
+    //         //     self.activityPoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+    //     });
+
+    //     presence.addEventListener("error", function() {
+    //         // if (self.running)
+    //         //     self.activityPoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+    //     });
+
+    //     presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + "&since=" + since.toISOString(), true);
+    //     presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
+    //     presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+    //     //TODO fix if-match for post merging
+
+    //     presence.send();
+    // }
+
+    private pullActivity(activity: string, profileId: string, callback?: (() => void)): void {
         let self = this;
         let presence = new XMLHttpRequest();
 
         presence.addEventListener("load", function() {
-            self.pebl.emitEvent(self.pebl.events.incomingPresence, JSON.parse(presence.responseText));
+            if ((presence.status >= 200) && (presence.status <= 209)) {
+                let activityEvent;
+                let activityObj;
+                let jsonObj = JSON.parse(presence.responseText);
+                if (activity == "program" && Program.is(jsonObj)) {
+                    activityEvent = self.pebl.events.incomingProgram;
+                    activityObj = new Program(jsonObj);
+                } else if (activity == "learnlet" && Learnlet.is(jsonObj)) {
+                    activityEvent = self.pebl.events.incomingLearnlet;
+                    activityObj = new Learnlet(jsonObj);
+                } else if (activity == "presence" && Presence.is(jsonObj)) {
+                    activityEvent = self.pebl.events.incomingPresence;
+                    activityObj = new Presence(jsonObj);
+                } else {
+                    console.log(jsonObj);
+                    new Error("Missing activity type dispatch or invalid response");
+                }
 
-            if (self.running)
-                self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+                if (activityEvent) {
+                    self.pebl.emitEvent(activityEvent, activityObj);
+                }
+
+                if (callback)
+                    callback();
+            } else {
+                console.log("Failed to pull", activity);
+                if (callback)
+                    callback();
+            }
         });
 
         presence.addEventListener("error", function() {
-            if (self.running)
-                self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+            console.log("Failed to pull", activity);
+            if (callback)
+                callback();
         });
 
-        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + "&profileId=" + encodeURIComponent(profileId), true);
         presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
         presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
         //TODO fix if-match for post merging
@@ -99,58 +151,90 @@ export class LLSyncAction implements SyncProcess {
         presence.send();
     }
 
-    private registerPresence(): void {
-        let self = this;
+    private postActivity(activity: Activity, callback: ((success: boolean) => void)) {
         let xhr = new XMLHttpRequest();
+        let self = this;
 
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
-                xhr.addEventListener("load", function() {
-                    self.retrievePresence();
-                });
+        let jsObj: (string | null) = null;
+        if (Program.is(activity)) {
+            activity = new Program(activity);
+            jsObj = JSON.stringify(activity.toTransportFormat());
+        } else if (Learnlet.is(activity)) {
+            activity = new Learnlet(activity);
+            jsObj = JSON.stringify(new Learnlet(activity).toTransportFormat());
+        } else
+            new Error("Unknown activity format");
 
-                xhr.addEventListener("error", function() {
-                    if (self.running)
-                        self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
-                });
-
-                xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
-
-                xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
-                xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
-                xhr.setRequestHeader("Content-Type", "application/json");
-
-                let obj: { [key: string]: any } = {};
-
-                obj[userProfile.identity] = true;
-
-                xhr.send(JSON.stringify(obj));
-            } else if (self.running)
-                self.presencePoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+        xhr.addEventListener("load", function() {
+            activity.clearDirtyEdits();
+            callback(true);
         });
+
+        xhr.addEventListener("error", function() {
+            callback(false);
+        });
+
+        xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
+
+        xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+        xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.send(jsObj);
     }
 
-    private unregisterPresence(): void {
-        let self = this;
-        let xhr = new XMLHttpRequest();
+    // private registerPresence(): void {
+    //     let self = this;
+    //     let xhr = new XMLHttpRequest();
 
-        this.pebl.user.getUser(function(userProfile) {
+    //     this.pebl.user.getUser(function(userProfile) {
+    //         if (userProfile) {
+    //             xhr.addEventListener("load", function() {
+    //                 self.retrievePresence();
+    //             });
 
-            if (userProfile) {
-                xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+    //             xhr.addEventListener("error", function() {
+    //                 if (self.running)
+    //                     self.activityPoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+    //             });
 
-                xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
-                xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
-                xhr.setRequestHeader("Content-Type", "application/json");
+    //             xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
 
-                let obj: { [key: string]: any } = {};
+    //             xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+    //             xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+    //             xhr.setRequestHeader("Content-Type", "application/json");
 
-                obj[userProfile.identity] = false;
+    //             let obj: { [key: string]: any } = {};
 
-                xhr.send(JSON.stringify(obj));
-            }
-        });
-    }
+    //             obj[userProfile.identity] = true;
+
+    //             xhr.send(JSON.stringify(obj));
+    //         } else if (self.running)
+    //             self.activityPoll = setTimeout(self.registerPresence.bind(self), PRESENCE_POLL_INTERVAL);
+    //     });
+    // }
+
+    // private unregisterPresence(): void {
+    //     let self = this;
+    //     let xhr = new XMLHttpRequest();
+
+    //     this.pebl.user.getUser(function(userProfile) {
+
+    //         if (userProfile) {
+    //             xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_REGISTRY) + "&profileId=Registration", true);
+
+    //             xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+    //             xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+    //             xhr.setRequestHeader("Content-Type", "application/json");
+
+    //             let obj: { [key: string]: any } = {};
+
+    //             obj[userProfile.identity] = false;
+
+    //             xhr.send(JSON.stringify(obj));
+    //         }
+    //     });
+    // }
 
     private bookPollingCallback(): void {
         let self = this;
@@ -185,19 +269,23 @@ export class LLSyncAction implements SyncProcess {
 
         this.pebl.utils.getGroupMemberships(function(memberships) {
             if (memberships) {
+                let addedMemberships: { [key: string]: boolean } = {};
                 for (let membership of memberships) {
-                    let fullDirectThread = PEBL_THREAD_GROUP_PREFIX + membership.thread;
-                    let thread = GROUP_PREFIX + membership.thread;
-                    let timeStr = self.endpoint.lastSyncedThreads[thread];
-                    let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
-                    self.endpoint.lastSyncedThreads[thread] = timestamp;
+                    let fullDirectThread = PEBL_THREAD_GROUP_PREFIX + membership.membershipId;
+                    if (!addedMemberships[fullDirectThread]) {
+                        addedMemberships[fullDirectThread] = true;
+                        let thread = GROUP_PREFIX + membership.thread;
+                        let timeStr = self.endpoint.lastSyncedThreads[thread];
+                        let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
+                        self.endpoint.lastSyncedThreads[thread] = timestamp;
 
-                    threadPairs.push({
-                        "statement.stored": {
-                            "$gt": timestamp.toISOString()
-                        },
-                        "statement.object.id": fullDirectThread
-                    });
+                        threadPairs.push({
+                            "statement.stored": {
+                                "$gt": timestamp.toISOString()
+                            },
+                            "statement.object.id": fullDirectThread
+                        });
+                    }
                 }
             }
 
@@ -542,7 +630,37 @@ export class LLSyncAction implements SyncProcess {
         this.bookPollingCallback();
         this.threadPollingCallback();
 
-        this.registerPresence();
+        this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
+        this.startActivityPull("program", PROGRAM_POLL_INTERVAL);
+        this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
+    }
+
+    private startActivityPull(activityType: string, interval: number): void {
+        let self = this;
+
+        this.pebl.utils.getGroupMemberships(function(memberships) {
+            let queuedMembership: Membership[] = [];
+            if (memberships) {
+                for (let membership of memberships) {
+                    if (membership.activityType == activityType)
+                        queuedMembership.push(membership);
+                }
+            }
+
+            let callbackProcessor = function(): void {
+                if (queuedMembership.length == 0) {
+                    if (self.running)
+                        self.activityPolls[activityType] = setTimeout(callbackProcessor.bind(self), interval);
+                } else {
+                    let member = queuedMembership.pop();
+                    if (member) {
+                        self.pullActivity(activityType, member.membershipId, callbackProcessor);
+                    }
+                }
+            };
+
+            callbackProcessor();
+        })
     }
 
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void {
@@ -575,42 +693,34 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.user.getUser(function(userProfile) {
             let activity: (Activity | undefined) = outgoing.pop();
             if (userProfile && activity) {
-                xhr.addEventListener("load", function() {
-                    if (outgoing.length == 0)
-                        callback();
-                    else {
-                        if (activity) //typechecker
-                            self.pebl.storage.removeOutgoingActivity(userProfile, activity);
-                        self.pushActivity(outgoing, callback);
-                    }
-                });
+                self.postActivity(activity,
+                    function(success: boolean): void {
+                        if (success) {
+                            if (activity) //typechecker
+                                self.pebl.storage.removeOutgoingActivity(userProfile, activity);
 
-                xhr.addEventListener("error", function() {
-                    if (outgoing.length == 0)
-                        callback();
-                    else {
-                        self.pebl.emitEvent(self.pebl.events.incomingErrors, {
-                            error: xhr.status,
-                            obj: activity
-                        });
-                        if (activity) //typechecker
-                            self.pebl.storage.removeOutgoingActivity(userProfile, activity);
-                        self.pushActivity(outgoing, callback);
-                    }
-                });
+                            if (outgoing.length == 0)
+                                callback();
+                            else {
+                                self.pushActivity(outgoing, callback);
+                            }
+                        } else {
+                            if (activity) //typechecker
+                                self.pebl.storage.removeOutgoingActivity(userProfile, activity);
 
-                xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
-
-                xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
-                xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
-                xhr.setRequestHeader("Content-Type", "application/json");
-
-                let obj: { [key: string]: any } = {};
-
-                obj[userProfile.identity] = false;
-
-                xhr.send(JSON.stringify(obj));
-            }
+                            if (outgoing.length == 0)
+                                callback();
+                            else {
+                                self.pebl.emitEvent(self.pebl.events.incomingErrors, {
+                                    error: xhr.status,
+                                    obj: activity
+                                });
+                                self.pushActivity(outgoing, callback);
+                            }
+                        }
+                    });
+            } else
+                callback();
         });
     }
 
@@ -618,7 +728,8 @@ export class LLSyncAction implements SyncProcess {
     terminate(): void {
         this.running = false;
 
-        this.unregisterPresence();
+        //FIXME presence
+        // this.unregisterPresence();
 
         this.clearTimeouts();
     }

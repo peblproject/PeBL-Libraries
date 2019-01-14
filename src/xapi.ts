@@ -366,6 +366,7 @@ export class Membership extends XApiStatement {
 
     readonly thread: string;
     readonly membershipId: string;
+    readonly activityType: string;
     readonly description?: string;
     readonly role: string;
 
@@ -382,6 +383,7 @@ export class Membership extends XApiStatement {
         let extensions = this.object.definition.extensions;
 
         this.role = extensions[PREFIX_PEBL_EXTENSION + "role"];
+        this.activityType = extensions[PREFIX_PEBL_EXTENSION + "activityType"];
     }
 
     static is(x: XApiStatement): boolean {

@@ -10,6 +10,7 @@ export class EventSet {
     incomingLearnlet = "incomingLearnlet";
     incomingProgram = "incomingProgram";
     incomingArtifact = "incomingArtifact";
+    incomingMembership = "incomingMembership";
 
     incomingErrors = "incomingErrors";
 
@@ -20,13 +21,19 @@ export class EventSet {
     newActivity = "newActivity";
     newAnnotation = "newAnnotation";
     newReference = "newReference";
+    newPresence = "newPresence";
     newMembership = "newMembership";
     newSharedAnnotation = "newSharedAnnotation";
     newArtifact = "newArtifact";
 
+    saveProgram = "save-program";
+
+    removedPresence = "removedPresence";
     removedMembership = "removedMembership";
     removedAnnotation = "removedAnnotation";
     removedSharedAnnotation = "removedSharedAnnotation";
+    removedLearnlet = "removedLearnlet";
+    removedProgram = "removedProgram";
 
     eventLoggedIn = "eventLoggedIn";
     eventLoggedOut = "eventLoggedOut";

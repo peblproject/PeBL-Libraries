@@ -36,6 +36,7 @@ export class Network implements NetworkAdapter {
                         self.syncingProcess.push(new LLSyncAction(self.pebl, e));
 
                     self.push();
+                    self.pushActivity();
                     self.pullAsset();
                     self.running = true;
                 }
@@ -54,8 +55,8 @@ export class Network implements NetworkAdapter {
     }
 
     retrievePresence(): void {
-        for (let sync of this.syncingProcess)
-            sync.retrievePresence();
+        // for (let sync of this.syncingProcess)
+        //     sync.retrievePresence();
     }
 
     private pullAsset(): void {
@@ -168,7 +169,8 @@ export class Network implements NetworkAdapter {
                             }
                         }
                     });
-            }
+            } else if (self.running)
+                self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
         });
     }
 

@@ -3,5 +3,6 @@
     "tabSize": 4,
     "insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
     "placeOpenBraceOnNewLineForFunctions": false,
+    "convertTabsToSpaces": true,
     "placeOpenBraceOnNewLineForControlBlocks": false
 }

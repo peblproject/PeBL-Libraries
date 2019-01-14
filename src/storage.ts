@@ -1099,7 +1099,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getActivities(userProfile: UserProfile, activityType: string, callback: (activities: Activity[]) => void): void {
+    getActivity(userProfile: UserProfile, activityType: string, callback: (activities: Activity[]) => void): void {
         if (this.db) {
             let os = this.db.transaction(["activity"], "readonly").objectStore("activity");
             let index = os.index(MASTER_INDEX);
@@ -1109,7 +1109,29 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.getActivities(userProfile, activityType, callback);
+                self.getActivity(userProfile, activityType, callback);
+            });
+        }
+    }
+
+    getActivityById(userProfile: UserProfile, activityType: string, activityId: string, callback: (activity?: Activity) => void): void {
+        if (this.db) {
+            let param = [userProfile.identity, activityType, activityId];
+            let request = this.db.transaction(["activity"], "readonly").objectStore("activity").get(param);
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                let r = request.result;
+                if (r != null)
+                    callback(r.value);
+                else
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getActivityById(userProfile, activityType, activityId, callback);
             });
         }
     }

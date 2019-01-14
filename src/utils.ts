@@ -1,5 +1,6 @@
 import { PEBL } from "./pebl";
 import { XApiStatement, Membership } from "./xapi";
+import { Program, Activity } from "./activity";
 
 export class Utils {
 
@@ -122,12 +123,43 @@ export class Utils {
         })
     }
 
+    getProgram(programId: string, callback: (program?: Program) => void): void {
+        let self = this;
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getActivityById(userProfile, "program", programId, function(activity?: Activity) {
+                    if (activity)
+                        callback(<Program>activity);
+                    else
+                        callback();
+                });
+            }
+        });
+    }
+
+    newEmptyProgram(callback: (program?: Program) => void): void {
+        callback(new Program({}));
+    }
+
     getGroupMemberships(callback: (memberships: Membership[]) => void): void {
         let self = this;
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.getGroupMembership(userProfile, callback);
+            } else
+                callback([]);
+        });
+    }
+
+    getPrograms(callback: (programs: Program[]) => void): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getActivity(userProfile, "program", function(activities) {
+                    callback(<Program[]>activities);
+                });
             } else
                 callback([]);
         });

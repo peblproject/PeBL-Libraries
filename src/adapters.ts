@@ -16,10 +16,6 @@ export interface UserAdapter {
     getUser(callback: (userProfile?: UserProfile) => void): void;
 
     isLoggedIn(callback: (loggedIn: boolean) => void): void;
-
-    // login(userProfile: UserProfile, callback?: (() => void)): void;
-
-    // logout(callback?: (() => void)): void;
 }
 
 // -------------------------------
@@ -30,8 +26,6 @@ export interface SyncProcess {
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void;
 
     pushActivity(outgoing: Activity[], callback: () => void): void;
-
-    retrievePresence(): void;
 
     terminate(): void;
 }
@@ -151,12 +145,20 @@ export interface StorageAdapter {
     getGroupMembership(userProfile: UserProfile, callback: (groups: Membership[]) => void): void;
 
     removeGroupMembership(userProfile: UserProfile, groupId: string, callback?: (() => void)): void;
-}
 
+
+    saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;
+
+    getActivity(userProfile: UserProfile, activityType: string, callback: (groups: Activity[]) => void): void;
+
+    removeActivity(userProfile: UserProfile, xId: string, activityType: string, callback?: (() => void)): void;
+
+    getActivityById(userProfile: UserProfile, activityType: string, activityId: string, callback: (activity?: Activity) => void): void;
+}
 // -------------------------------
 
 export interface PEBLHandler extends EventListener {
-    (stmts: XApiStatement[]): void;
+    (stmts: (XApiStatement[] | Activity[])): void;
 }
 
 // -------------------------------

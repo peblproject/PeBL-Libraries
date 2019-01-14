@@ -169,6 +169,10 @@ export class PEBL {
             });
         } else if (eventName == self.events.incomingPresence) {
             self.network.retrievePresence();
+        } else if (eventName == self.events.incomingProgram) {
+            self.utils.getPrograms(function(programs) {
+                callback(programs);
+            });
         }
     }
 
