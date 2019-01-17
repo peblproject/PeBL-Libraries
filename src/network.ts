@@ -47,7 +47,7 @@ export class Network implements NetworkAdapter {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile)
-                self.pebl.storage.saveQueuedReference(userProfile, ref);
+                self.pebl.storage.saveQueuedReference(userProfile, ref, self.pullAsset.bind(self));
         });
     }
 
@@ -59,53 +59,59 @@ export class Network implements NetworkAdapter {
     private pullAsset(): void {
         let self = this;
         self.pebl.user.getUser(function(userProfile) {
-
             if (userProfile && userProfile.registryEndpoint) {
                 self.pebl.storage.getQueuedReference(userProfile, function(ref) {
-
                     if (ref) {
-                        let xhr = new XMLHttpRequest();
+                        self.pebl.storage.getToc(userProfile, ref.book, function(toc) {
+                            //Wait to add resources until the static TOC has been initialized, otherwise it never gets intialized
+                            if (toc.length > 0) {
+                                let xhr = new XMLHttpRequest();
 
-                        xhr.addEventListener("load", function() {
-                            self.pebl.storage.saveNotification(userProfile, ref);
-                            let tocEntry: { [key: string]: any } = {
-                                "url": ref.url,
-                                "documentName": ref.name,
-                                "section": ref.location,
-                                "pageKey": ref.id,
-                                "docType": ref.docType,
-                                "card": ref.card,
-                                "externalURL": ref.externalURL
-                            };
+                                xhr.addEventListener("load", function() {
+                                    self.pebl.storage.saveNotification(userProfile, ref);
+                                    let tocEntry: { [key: string]: any } = {
+                                        "url": ref.url,
+                                        "documentName": ref.name,
+                                        "section": ref.location,
+                                        "pageKey": ref.id,
+                                        "docType": ref.docType,
+                                        "card": ref.card,
+                                        "externalURL": ref.externalURL
+                                    };
 
-                            self.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
+                                    self.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
 
-                            self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+                                    self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
 
-                            self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+                                    self.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
-                            if (self.running)
+                                    if (self.running)
+                                        self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                });
+
+                                xhr.addEventListener("error", function() {
+                                    self.pebl.storage.saveNotification(userProfile, ref);
+
+                                    self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+
+                                    self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+
+                                    if (self.running)
+                                        self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                });
+
+                                let url = userProfile.registryEndpoint && userProfile.registryEndpoint.url;
+
+                                if (url) {
+                                    xhr.open("GET", url + ref.url);
+                                    xhr.send();
+                                } else if (self.running)
+                                    self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                            } else {
                                 self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                            }
                         });
-
-                        xhr.addEventListener("error", function() {
-                            self.pebl.storage.saveNotification(userProfile, ref);
-
-                            self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
-
-                            self.pebl.storage.removeQueuedReference(userProfile, ref.id);
-
-                            if (self.running)
-                                self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
-                        });
-
-                        let url = userProfile.registryEndpoint && userProfile.registryEndpoint.url;
-
-                        if (url) {
-                            xhr.open("GET", url + ref.url);
-                            xhr.send();
-                        } else if (self.running)
-                            self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                        
                     } else {
                         if (self.running)
                             self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
