@@ -1,7 +1,7 @@
 import { StorageAdapter } from "./adapters";
 import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
 import { UserProfile } from "./models";
-import { Activity } from "./activity";
+import { Activity, toActivity } from "./activity";
 
 const MASTER_INDEX = "master";
 const CURRENT_BOOK = "peblCurrentBook";
@@ -1061,17 +1061,19 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void {
         if (this.db) {
-            if (stmts instanceof Activity) {
-                let ga = stmts;
-                ga.identity = userProfile.identity;
-                let request = this.db.transaction(["activity"], "readwrite").objectStore("activity").put(ga);
-                request.onerror = function(e) {
-                    console.log(e);
-                };
-                request.onsuccess = function() {
-                    if (callback)
-                        callback();
-                };
+            if ((stmts instanceof Activity) || Activity.is(stmts)) {
+                let ga: (Activity | null) = (stmts instanceof Activity) ? stmts : toActivity(stmts);
+                if (ga) {
+                    ga.identity = userProfile.identity;
+                    let request = this.db.transaction(["activity"], "readwrite").objectStore("activity").put(ga);
+                    request.onerror = function(e) {
+                        console.log(e);
+                    };
+                    request.onsuccess = function() {
+                        if (callback)
+                            callback();
+                    };
+                }
             } else {
                 let objectStore = this.db.transaction(["activity"], "readwrite").objectStore("activity");
                 let stmtsCopy: Activity[] = stmts.slice(0);
@@ -1124,7 +1126,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             request.onsuccess = function() {
                 let r = request.result;
                 if (r != null)
-                    callback(r.value);
+                    callback(r);
                 else
                     callback();
             };

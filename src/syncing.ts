@@ -107,46 +107,77 @@ export class LLSyncAction implements SyncProcess {
 
         presence.addEventListener("load", function() {
             if ((presence.status >= 200) && (presence.status <= 209)) {
-                let activityEvent;
-                let activityObj;
+                let activityEvent: (string | undefined);
+                let activityObj: Activity[];
                 let jsonObj = JSON.parse(presence.responseText);
                 if (activity == "program" && Program.is(jsonObj)) {
                     activityEvent = self.pebl.events.incomingProgram;
-                    activityObj = new Program(jsonObj);
+                    let p = new Program(jsonObj);
+                    let s: string | null = presence.getResponseHeader("etag");
+                    if (s) {
+                        p.etag = s;
+                    }
+                    activityObj = [p];
                 } else if (activity == "learnlet" && Learnlet.is(jsonObj)) {
                     activityEvent = self.pebl.events.incomingLearnlet;
-                    activityObj = new Learnlet(jsonObj);
+                    let l = new Learnlet(jsonObj);
+                    activityObj = [l];
+                    let s: string | null = presence.getResponseHeader("etag");
+                    if (s) {
+                        l.etag = s;
+                    }
                 } else if (activity == "presence" && Presence.is(jsonObj)) {
                     activityEvent = self.pebl.events.incomingPresence;
-                    activityObj = new Presence(jsonObj);
+                    let p = new Presence(jsonObj);
+                    activityObj = [p];
+                    let s: string | null = presence.getResponseHeader("etag");
+                    if (s) {
+                        p.etag = s;
+                    }
                 } else {
                     console.log(jsonObj);
                     new Error("Missing activity type dispatch or invalid response");
                 }
 
                 if (activityEvent) {
-                    self.pebl.emitEvent(activityEvent, activityObj);
+                    self.pebl.user.getUser(function(userProfile) {
+                        if (userProfile) {
+                            if (activity == "program") {
+                                self.pebl.storage.saveActivity(userProfile, activityObj[0])
+                            } else if (activity == "learnlet") {
+
+                            } else if (activity == "presense") {
+
+                            }
+
+                            if (activityEvent) {
+                                self.pebl.emitEvent(activityEvent, activityObj);
+                            }
+                        }
+                    })
                 }
 
-                if (callback)
+                if (callback) {
                     callback();
+                }
             } else {
                 console.log("Failed to pull", activity);
-                if (callback)
+                if (callback) {
                     callback();
+                }
             }
         });
 
         presence.addEventListener("error", function() {
             console.log("Failed to pull", activity);
-            if (callback)
+            if (callback) {
                 callback();
+            }
         });
 
         presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + "&profileId=" + encodeURIComponent(profileId), true);
         presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
         presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
-        //TODO fix if-match for post merging
 
         presence.send();
     }
@@ -167,7 +198,9 @@ export class LLSyncAction implements SyncProcess {
 
         xhr.addEventListener("load", function() {
             activity.clearDirtyEdits();
-            callback(true);
+            self.pullActivity(activity.type, activity.id, function() {
+                callback(true);
+            });
         });
 
         xhr.addEventListener("error", function() {
@@ -176,6 +209,9 @@ export class LLSyncAction implements SyncProcess {
 
         xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
 
+        if (activity.etag) {
+            xhr.setRequestHeader("If-Match", activity.etag);
+        }
         xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
         xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
         xhr.setRequestHeader("Content-Type", "application/json");

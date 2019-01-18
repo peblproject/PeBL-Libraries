@@ -14,7 +14,8 @@ export class EventSet {
 
     incomingErrors = "incomingErrors";
 
-    newProgram = "newProgram";
+    saveProgram = "saveProgram";
+
     newLearnlet = "newLearnlet";
     newBook = "newBook";
     newMessage = "newMessage";
@@ -25,8 +26,6 @@ export class EventSet {
     newMembership = "newMembership";
     newSharedAnnotation = "newSharedAnnotation";
     newArtifact = "newArtifact";
-
-    saveProgram = "save-program";
 
     removedPresence = "removedPresence";
     removedMembership = "removedMembership";

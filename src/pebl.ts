@@ -173,6 +173,10 @@ export class PEBL {
             self.utils.getPrograms(function(programs) {
                 callback(programs);
             });
+        } else if (eventName == self.events.incomingMembership) {
+            self.utils.getGroupMemberships(function(groups) {
+                callback(groups);
+            })
         }
     }
 
