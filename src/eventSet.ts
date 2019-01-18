@@ -54,4 +54,5 @@ export class EventSet {
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
+    eventHelped = "eventHelped";
 }
