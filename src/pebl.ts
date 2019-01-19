@@ -33,6 +33,7 @@ export class PEBL {
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
         this.extension = {};
+        // this.extension.shared = {};
 
         if (config) {
             this.teacher = config.teacher;

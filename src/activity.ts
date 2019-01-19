@@ -127,6 +127,8 @@ export class Program extends Activity {
     programIssues: string[];
     programCommunities: string[];
     programInstitutions: string[];
+    programLevels: { [key: string]: any }[];
+    programLevelStepsComplete: number;
     members: Membership[];
     programAvatar?: string;
 
@@ -134,11 +136,13 @@ export class Program extends Activity {
         raw.type = "program";
         super(raw);
 
+        this.programLevelStepsComplete = raw.programLevelStepsComplete || 0;
+        this.programLevels = raw.programLevels || [];
         this.programTitle = raw.programTitle || "Program Name";
         this.programShortDescription = raw.programShortDescription || "Program Short Description";
         this.programLongDescription = raw.programLongDescription || "Program Long Description";
         this.programLevel = raw.programLevel || 0;
-        this.programIssues = raw.issues ? raw.programIssues : [];
+        this.programIssues = raw.programIssues ? raw.programIssues : [];
         this.programCommunities = raw.programCommunities ? raw.programCommunities : [];
         this.programInstitutions = raw.programInstitutions ? raw.programInstitutions : [];
         this.programAvatar = raw.programAvatar;
@@ -152,6 +156,8 @@ export class Program extends Activity {
     toTransportFormat(): { [key: string]: any } {
         let obj = super.toTransportFormat();
 
+        obj.programLevelStepsComplete = this.programLevelStepsComplete;
+        obj.programLevels = this.programLevels;
         obj.programTitle = this.programTitle;
         obj.programShortDescription = this.programShortDescription;
         obj.programLongDescription = this.programLongDescription;

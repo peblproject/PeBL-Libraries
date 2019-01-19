@@ -175,7 +175,7 @@ export class LLSyncAction implements SyncProcess {
             }
         });
 
-        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + "&profileId=" + encodeURIComponent(profileId), true);
+        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + "&profileId=" + encodeURIComponent(profileId) + "&t=" + Date.now(), true);
         presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
         presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
 
@@ -204,11 +204,14 @@ export class LLSyncAction implements SyncProcess {
         });
 
         xhr.addEventListener("error", function() {
-            callback(false);
+            self.pullActivity(activity.type, activity.id, function() {
+                callback(false);
+            });
         });
 
         xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
 
+        debugger;
         if (activity.etag) {
             xhr.setRequestHeader("If-Match", activity.etag);
         }
