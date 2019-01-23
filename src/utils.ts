@@ -152,6 +152,24 @@ export class Utils {
         });
     }
 
+    getSpecificGroupMembership(groupId: string, callback: (membership: Membership | null) => void): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getGroupMembership(userProfile, function(memberships) {
+                    let result = null;
+                    for (let membership of memberships) {
+                        if (membership.membershipId === groupId)
+                            result = membership
+                    }
+                    callback(result);
+                });
+            } else
+                callback(null);
+        });
+    }
+
     getPrograms(callback: (programs: Program[]) => void): void {
         let self = this;
 
