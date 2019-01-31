@@ -222,6 +222,34 @@ export class LLSyncAction implements SyncProcess {
         xhr.send(jsObj);
     }
 
+    private deleteActivity(activity: Activity, callback: ((success: boolean) => void)) {
+        let xhr = new XMLHttpRequest();
+        let self = this;
+
+        if (!Program.is(activity) && !Learnlet.is(activity)) {
+            new Error("Unknown activity format");
+        }
+
+        xhr.addEventListener("load", function() {
+            callback(true);
+        });
+
+        xhr.addEventListener("error", function() {
+            callback(false);
+        });
+
+        xhr.open("DELETE", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
+    
+        debugger;
+        if (activity.etag) {
+            xhr.setRequestHeader("If-Match", activity.etag);
+        }
+        xhr.setRequestHeader("X-Experience-API-Version", "1.0.3");
+        xhr.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
+
+        xhr.send();
+    }
+
     // private registerPresence(): void {
     //     let self = this;
     //     let xhr = new XMLHttpRequest();
@@ -732,7 +760,46 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.user.getUser(function(userProfile) {
             let activity: (Activity | undefined) = outgoing.pop();
             if (userProfile && activity) {
-                self.postActivity(activity,
+                if (activity.delete && activity.delete === true) {
+                    console.log('got to the delete part');
+                    self.deleteActivity(activity,
+                        function(success: boolean): void {
+                            if (success) {
+                                if (activity) {
+                                    self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+                                    self.pebl.storage.removeActivity(userProfile, activity.id, activity.type);
+                                    //TODO: This probably won't remove other user's memberships to this program..
+                                    if (Program.is(activity)) {
+                                        let program = new Program(activity);
+                                        for (let membership of program.members) {
+                                            self.pebl.emitEvent(self.pebl.events.removedMembership, membership.id);
+                                        }
+                                    }
+                                } //typechecker
+                                    
+
+                                if (outgoing.length == 0)
+                                    callback();
+                                else {
+                                    self.pushActivity(outgoing, callback);
+                                }
+                            } else {
+                                if (activity) //typechecker
+                                    self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+
+                                if (outgoing.length == 0)
+                                    callback();
+                                else {
+                                    self.pebl.emitEvent(self.pebl.events.incomingErrors, {
+                                        error: xhr.status,
+                                        obj: activity
+                                    });
+                                    self.pushActivity(outgoing, callback);
+                                }
+                            }
+                        });
+                } else {
+                    self.postActivity(activity,
                     function(success: boolean): void {
                         if (success) {
                             if (activity) //typechecker
@@ -758,6 +825,7 @@ export class LLSyncAction implements SyncProcess {
                             }
                         }
                     });
+                }
             } else
                 callback();
         });

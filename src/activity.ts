@@ -10,6 +10,7 @@ export class Activity {
     identity?: string;
     readonly isNew: boolean = false;
     dirtyEdits: { [key: string]: boolean };
+    delete?: boolean;
 
     constructor(raw: { [key: string]: any }) {
         this.dirtyEdits = {};
@@ -33,6 +34,7 @@ export class Activity {
         this.timestamp = (typeof (raw.timestamp) === "string") ? new Date(Date.parse(raw.timestamp)) : new Date();
         this.etag = raw.etag;
         this.type = raw.type;
+        this.delete = raw.delete;
     }
 
     static is(raw: { [key: string]: any }): boolean {
