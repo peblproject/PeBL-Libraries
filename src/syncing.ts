@@ -761,7 +761,6 @@ export class LLSyncAction implements SyncProcess {
             let activity: (Activity | undefined) = outgoing.pop();
             if (userProfile && activity) {
                 if (activity.delete && activity.delete === true) {
-                    console.log('got to the delete part');
                     self.deleteActivity(activity,
                         function(success: boolean): void {
                             if (success) {
