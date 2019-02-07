@@ -412,132 +412,154 @@ export class LLSyncAction implements SyncProcess {
     }
 
     private pullMessages(params: { [key: string]: any }): void {
-        let pipeline: { [key: string]: any }[] = [
-            {
-                "$match": params
-            },
-            {
-                "$project": {
-                    "statement": 1,
-                    "_id": 0,
-                    "voided": 1
-                }
-            },
-            {
-                "$sort": {
-                    "stored": -1,
-                    "_id": 1
-                }
-            },
-            {
-                "$limit": 1500
-            }
-        ];
+        //TODO: Assumes only $or in the object
+        let stringifiedParams = JSON.stringify(params["$or"]);
+        let arrayChunks = [params["$or"]];
 
+        //If the character count exceeds 4000, keep dividing the arrays in half until they are under 4000 characters
+        while (stringifiedParams.length > 4000) {
+            let newArrayChunks = [];
+            for (let array of arrayChunks) {
+                let newHalf = array.splice(0, Math.ceil(array.length / 2));
+                newArrayChunks.push(array);
+                newArrayChunks.push(newHalf);
+            }
+            //Deep copy
+            arrayChunks = JSON.parse(JSON.stringify(newArrayChunks));
+            stringifiedParams = JSON.stringify(newArrayChunks[0]);
+        }
 
         let self = this;
-        this.pullHelper(pipeline,
-            function(stmts: XApiStatement[]): void {
-                let buckets: { [thread: string]: { [id: string]: (Message | Reference) } } = {};
-                let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
-                let deleteIds: Voided[] = [];
 
-                for (let i = 0; i < stmts.length; i++) {
-                    let xapi = stmts[i];
-                    let thread: (string | null) = null;
-                    let tsd: (Message | Reference | Membership | null) = null;
-
-                    if (Message.is(xapi)) {
-                        let m = new Message(xapi);
-                        thread = m.thread;
-                        tsd = m;
-                    } else if (Reference.is(xapi)) {
-                        let r = new Reference(xapi);
-                        self.pebl.network.queueReference(r);
-                        tsd = r;
-                        thread = r.thread;
-                    } else if (Voided.is(xapi)) {
-                        let v = new Voided(xapi);
-                        deleteIds.push(v);
-                        thread = v.thread;
-                    } else if (Membership.is(xapi)) {
-                        let m = new Membership(xapi);
-                        thread = m.thread;
-                        tsd = m;
+        //Iterate over the divided arrays, create aggregate statement for each
+        for (let array of arrayChunks) {
+            (function(array) {
+                let pipeline: { [key: string]: any }[] = [
+                    {
+                        "$match": { "$or": array }
+                    },
+                    {
+                        "$project": {
+                            "statement": 1,
+                            "_id": 0,
+                            "voided": 1
+                        }
+                    },
+                    {
+                        "$sort": {
+                            "stored": -1,
+                            "_id": 1
+                        }
+                    },
+                    {
+                        "$limit": 1500
                     }
+                ];
 
-                    if (thread != null) {
-                        if (tsd != null) {
-                            let container = tsd instanceof Membership ? memberships : buckets;
-                            let stmts = container[thread];
-                            if (stmts == null) {
-                                stmts = {};
-                                container[thread] = stmts;
+                self.pullHelper(pipeline,
+                    function(stmts: XApiStatement[]): void {
+                        let buckets: { [thread: string]: { [id: string]: (Message | Reference) } } = {};
+                        let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
+                        let deleteIds: Voided[] = [];
+
+                        for (let i = 0; i < stmts.length; i++) {
+                            let xapi = stmts[i];
+                            let thread: (string | null) = null;
+                            let tsd: (Message | Reference | Membership | null) = null;
+
+                            if (Message.is(xapi)) {
+                                let m = new Message(xapi);
+                                thread = m.thread;
+                                tsd = m;
+                            } else if (Reference.is(xapi)) {
+                                let r = new Reference(xapi);
+                                self.pebl.network.queueReference(r);
+                                tsd = r;
+                                thread = r.thread;
+                            } else if (Voided.is(xapi)) {
+                                let v = new Voided(xapi);
+                                deleteIds.push(v);
+                                thread = v.thread;
+                            } else if (Membership.is(xapi)) {
+                                let m = new Membership(xapi);
+                                thread = m.thread;
+                                tsd = m;
                             }
-                            stmts[tsd.id] = tsd;
-                        }
 
-                        let temp = new Date(xapi.stored);
-                        let lastSyncedDate = self.endpoint.lastSyncedThreads[thread];
-                        if (lastSyncedDate.getTime() < temp.getTime())
-                            self.endpoint.lastSyncedThreads[thread] = temp;
-                    }
-                }
+                            if (thread != null) {
+                                if (tsd != null) {
+                                    let container = tsd instanceof Membership ? memberships : buckets;
+                                    let stmts = container[thread];
+                                    if (stmts == null) {
+                                        stmts = {};
+                                        container[thread] = stmts;
+                                    }
+                                    stmts[tsd.id] = tsd;
+                                }
 
-                self.pebl.user.getUser(function(userProfile) {
-
-                    if (userProfile) {
-                        for (let i = 0; i < deleteIds.length; i++) {
-                            let v = deleteIds[i];
-                            let thread = v.thread;
-                            let bucket = buckets[thread];
-                            if (bucket != null) {
-                                delete bucket[v.target];
-                            }
-
-                            self.pebl.storage.removeMessage(userProfile, v.target);
-                            self.pebl.storage.removeGroupMembership(userProfile, v.target);
-                        }
-
-                        for (let thread of Object.keys(memberships)) {
-                            let membership = memberships[thread];
-                            let cleanMemberships: Membership[] = [];
-
-                            for (let messageId of Object.keys(membership)) {
-                                let rec = membership[messageId];
-                                cleanMemberships.push(rec);
-                            }
-                            if (cleanMemberships.length > 0) {
-                                cleanMemberships.sort();
-                                self.pebl.storage.saveGroupMembership(userProfile, cleanMemberships);
-
-                                self.pebl.emitEvent(thread, cleanMemberships);
-                            }
-                        }
-
-                        for (let thread of Object.keys(buckets)) {
-                            let bucket = buckets[thread];
-                            let cleanMessages: Message[] = [];
-
-                            for (let messageId of Object.keys(bucket)) {
-                                let rec: (Message | Reference) = bucket[messageId];
-                                if (rec instanceof Message)
-                                    cleanMessages.push(rec);
-                            }
-                            if (cleanMessages.length > 0) {
-                                cleanMessages.sort();
-                                self.pebl.storage.saveMessages(userProfile, cleanMessages);
-
-                                self.pebl.emitEvent(thread, cleanMessages);
+                                let temp = new Date(xapi.stored);
+                                let lastSyncedDate = self.endpoint.lastSyncedThreads[thread];
+                                if (lastSyncedDate.getTime() < temp.getTime())
+                                    self.endpoint.lastSyncedThreads[thread] = temp;
                             }
                         }
 
-                        self.pebl.storage.saveUserProfile(userProfile);
-                        if (self.running)
-                            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
-                    }
-                });
-            });
+                        self.pebl.user.getUser(function(userProfile) {
+
+                            if (userProfile) {
+                                for (let i = 0; i < deleteIds.length; i++) {
+                                    let v = deleteIds[i];
+                                    let thread = v.thread;
+                                    let bucket = buckets[thread];
+                                    if (bucket != null) {
+                                        delete bucket[v.target];
+                                    }
+
+                                    self.pebl.storage.removeMessage(userProfile, v.target);
+                                    self.pebl.storage.removeGroupMembership(userProfile, v.target);
+                                }
+
+                                for (let thread of Object.keys(memberships)) {
+                                    let membership = memberships[thread];
+                                    let cleanMemberships: Membership[] = [];
+
+                                    for (let messageId of Object.keys(membership)) {
+                                        let rec = membership[messageId];
+                                        cleanMemberships.push(rec);
+                                    }
+                                    if (cleanMemberships.length > 0) {
+                                        cleanMemberships.sort();
+                                        self.pebl.storage.saveGroupMembership(userProfile, cleanMemberships);
+
+                                        self.pebl.emitEvent(thread, cleanMemberships);
+                                    }
+                                }
+
+                                for (let thread of Object.keys(buckets)) {
+                                    let bucket = buckets[thread];
+                                    let cleanMessages: Message[] = [];
+
+                                    for (let messageId of Object.keys(bucket)) {
+                                        let rec: (Message | Reference) = bucket[messageId];
+                                        if (rec instanceof Message)
+                                            cleanMessages.push(rec);
+                                    }
+                                    if (cleanMessages.length > 0) {
+                                        cleanMessages.sort();
+                                        self.pebl.storage.saveMessages(userProfile, cleanMessages);
+
+                                        self.pebl.emitEvent(thread, cleanMessages);
+                                    }
+                                }
+
+                                self.pebl.storage.saveUserProfile(userProfile);
+                                if (self.running)
+                                    self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+                            }
+                        });
+                    });
+            })(array);
+        }
     }
 
     private pullBook(lastSynced: Date, book: string): void {
@@ -773,6 +795,7 @@ export class LLSyncAction implements SyncProcess {
                                         for (let membership of program.members) {
                                             self.pebl.emitEvent(self.pebl.events.removedMembership, membership.id);
                                         }
+                                        self.pebl.emitEvent(self.pebl.events.removedProgram, program);
                                     }
                                 } //typechecker
                                     
