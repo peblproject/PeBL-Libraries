@@ -7,6 +7,7 @@ export class UserProfile {
     readonly preferredName: string;
     readonly endpoints: Endpoint[];
     readonly registryEndpoint?: Endpoint;
+    readonly currentTeam?: string | null;
 
     constructor(raw: { [key: string]: any }) {
         this.identity = raw.identity;
@@ -15,7 +16,8 @@ export class UserProfile {
         this.preferredName = raw.preferredName;
         if (raw.registryEndpoint)
             this.registryEndpoint = new Endpoint(raw.registryEndpoint);
-
+        if (raw.currentTeam)
+            this.currentTeam = raw.currentTeam;
         this.endpoints = [];
 
         if (raw.endpoints)
@@ -36,7 +38,8 @@ export class UserProfile {
             "homePage": this.homePage,
             "preferredName": this.preferredName,
             "lrsUrls": urls,
-            "registryEndpoint": this.registryEndpoint
+            "registryEndpoint": this.registryEndpoint,
+            "currentTeam": this.currentTeam
         };
     }
 
