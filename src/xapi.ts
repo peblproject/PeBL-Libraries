@@ -423,3 +423,22 @@ export class Artifact extends XApiStatement {
 }
 
 // -------------------------------
+
+export class Invitation extends XApiStatement {
+    readonly token: string;
+    readonly programId: string;
+
+    constructor(raw: { [key: string]: any}) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.token = this.object.definition.name["en-US"];
+        this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "invited");
+    }
+}

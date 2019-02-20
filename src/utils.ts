@@ -182,4 +182,74 @@ export class Utils {
                 callback([]);
         });
     }
+
+    getUuid(): string {
+        /*!
+          Excerpt from: Math.uuid.js (v1.4)
+          http://www.broofa.com
+          mailto:robert@broofa.com
+          Copyright (c) 2010 Robert Kieffer
+          Dual licensed under the MIT and GPL licenses.
+        */
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+        return uuid;
+    }
+
+    getInviteToken(token: string, callback: (stmts: XApiStatement[]) => void): void {
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                let xhr = new XMLHttpRequest();
+                //TODO: multiple endpoints?
+                var endpoint = userProfile.endpoints[0];
+
+                var pipeline = [{
+                    "$match": {
+                        "$and": [{
+                            "statement.verb.id": {
+                                "$in": [
+                                    "http://www.peblproject.com/definitions.html#invited"
+                                ]
+                            }
+                        },
+                        {
+                            "statement.object.definition.name.en-US": {
+                                "$in": [
+                                    token
+                                ]
+                            }
+                        }]
+                    }
+                }];
+
+                xhr.addEventListener("load", function() {
+                    let result = JSON.parse(xhr.responseText);
+                    for (let i = 0; i < result.length; i++) {
+                        let rec = result[i]
+                        if (!rec.voided)
+                            result[i] = rec.statement;
+                        else
+                            result.splice(i, 1);
+                    }
+                    if (callback != null) {
+                        callback(result);
+                    }
+                });
+
+                xhr.addEventListener("error", function() {
+                    callback([]);
+                });
+
+                xhr.open("GET", endpoint.url + "api/statements/aggregate?pipeline=" + encodeURIComponent(JSON.stringify(pipeline)), true);
+
+                xhr.setRequestHeader("Authorization", "Basic " + endpoint.token);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                xhr.send();
+            }
+        });
+        
+    }
 }

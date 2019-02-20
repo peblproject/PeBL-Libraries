@@ -55,4 +55,6 @@ export class EventSet {
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
     eventHelped = "eventHelped";
+    eventInvited = "eventInvited";
+    eventUninvited = "eventUninvited";
 }

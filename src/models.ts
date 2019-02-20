@@ -8,6 +8,7 @@ export class UserProfile {
     readonly metadata?: { [key: string]: any };
     readonly endpoints: Endpoint[];
     readonly registryEndpoint?: Endpoint;
+    readonly currentTeam?: string | null;
 
     constructor(raw: { [key: string]: any }) {
         this.identity = raw.identity;
@@ -16,7 +17,8 @@ export class UserProfile {
         this.preferredName = raw.preferredName;
         if (raw.registryEndpoint)
             this.registryEndpoint = new Endpoint(raw.registryEndpoint);
-
+        if (raw.currentTeam)
+            this.currentTeam = raw.currentTeam;
         this.endpoints = [];
 
         this.metadata = raw.metadata;
@@ -40,7 +42,8 @@ export class UserProfile {
             "preferredName": this.preferredName,
             "lrsUrls": urls,
             "metadata": {},
-            "registryEndpoint": this.registryEndpoint
+            "registryEndpoint": this.registryEndpoint,
+            "currentTeam": this.currentTeam
         };
         if (this.metadata) {
             obj.metadata = this.metadata;

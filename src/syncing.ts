@@ -727,6 +727,32 @@ export class LLSyncAction implements SyncProcess {
     private startActivityPull(activityType: string, interval: number): void {
         let self = this;
 
+        let groupGetter = function(): void {
+            self.pebl.utils.getGroupMemberships(function(memberships) {
+                let queuedMembership: Membership[] = [];
+                if (memberships) {
+                    for (let membership of memberships) {
+                        if (membership.activityType == activityType)
+                            queuedMembership.push(membership);
+                    }
+                }
+
+                let callbackProcessor = function(): void {
+                    if (queuedMembership.length == 0) {
+                        if (self.running)
+                            self.activityPolls[activityType] = setTimeout(groupGetter.bind(self), interval);
+                    } else {
+                        let member = queuedMembership.pop();
+                        if (member) {
+                            self.pullActivity(activityType, member.membershipId, callbackProcessor);
+                        }
+                    }
+                };
+
+                callbackProcessor();
+            })
+        }
+
         this.pebl.utils.getGroupMemberships(function(memberships) {
             let queuedMembership: Membership[] = [];
             if (memberships) {
@@ -739,7 +765,7 @@ export class LLSyncAction implements SyncProcess {
             let callbackProcessor = function(): void {
                 if (queuedMembership.length == 0) {
                     if (self.running)
-                        self.activityPolls[activityType] = setTimeout(callbackProcessor.bind(self), interval);
+                        self.activityPolls[activityType] = setTimeout(groupGetter.bind(self), interval);
                 } else {
                     let member = queuedMembership.pop();
                     if (member) {
@@ -852,7 +878,6 @@ export class LLSyncAction implements SyncProcess {
                 callback();
         });
     }
-
 
     terminate(): void {
         this.running = false;
