@@ -5,6 +5,7 @@ export class UserProfile {
     readonly name: string;
     readonly homePage: string;
     readonly preferredName: string;
+    readonly metadata?: { [key: string]: any };
     readonly endpoints: Endpoint[];
     readonly registryEndpoint?: Endpoint;
 
@@ -18,6 +19,8 @@ export class UserProfile {
 
         this.endpoints = [];
 
+        this.metadata = raw.metadata;
+
         if (raw.endpoints)
             for (let endpointObj of raw.endpoints)
                 this.endpoints.push(new Endpoint(endpointObj));
@@ -30,14 +33,19 @@ export class UserProfile {
         let urls: { [key: string]: any } = {};
         for (let e of this.endpoints)
             urls[e.url] = e.toObject();
-        return {
+        let obj = {
             "identity": this.identity,
             "name": this.name,
             "homePage": this.homePage,
             "preferredName": this.preferredName,
             "lrsUrls": urls,
+            "metadata": {},
             "registryEndpoint": this.registryEndpoint
         };
+        if (this.metadata) {
+            obj.metadata = this.metadata;
+        }
+        return obj;
     }
 
 }
