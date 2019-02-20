@@ -5,7 +5,7 @@ const PEBL_THREAD_ARTIFACT_PREFIX = "peblThread://artifact-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation } from "./xapi";
 import { UserProfile } from "./models";
 import { Learnlet, Program } from "./activity";
 
@@ -906,6 +906,61 @@ export class PEBLEventHandlers {
                     }
                 });
             });
+        });
+    }
+
+    eventInvited(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            programId: payload.programId
+        }
+
+        this.pebl.storage.getCurrentBook(function(book) {
+            self.pebl.storage.getCurrentActivity(function(activity) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.token, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#invited", "invited");
+                        if (activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+
+                        let invite = new Invitation(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, invite);
+                    }
+                });
+            });
+        });
+    }
+
+    eventUninvited(event: CustomEvent) {
+        let xId = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/voided", "voided");
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addStatementRef(xapi, xId);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + 'Harness');
+
+                        let uninvite = new Voided(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, uninvite);
+                    });
+                });
+            }
         });
     }
 
