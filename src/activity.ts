@@ -133,6 +133,8 @@ export class Program extends Activity {
     programLevelStepsComplete: number;
     members: Membership[];
     programAvatar?: string;
+    programTeamName?: string;
+    programFocus?: string;
 
     constructor(raw: { [key: string]: any }) {
         raw.type = "program";
@@ -148,6 +150,8 @@ export class Program extends Activity {
         this.programCommunities = raw.programCommunities ? raw.programCommunities : [];
         this.programInstitutions = raw.programInstitutions ? raw.programInstitutions : [];
         this.programAvatar = raw.programAvatar;
+        this.programTeamName = raw.programTeamName;
+        this.programFocus = raw.programFocus;
         this.members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
     }
 
@@ -166,6 +170,8 @@ export class Program extends Activity {
         obj.programLevel = this.programLevel;
         obj.programIssues = this.programIssues;
         obj.programAvatar = this.programAvatar;
+        obj.programTeamName = this.programTeamName;
+        obj.programFocus = this.programFocus;
         obj.programCommunities = this.programCommunities;
         obj.programInstitutions = this.programInstitutions;
         obj.members = encodeURIComponent(JSON.stringify(this.members));
