@@ -1,4 +1,4 @@
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction } from "./xapi";
 import { UserProfile } from "./models";
 import { Activity } from "./activity";
 
@@ -145,6 +145,9 @@ export interface StorageAdapter {
     getGroupMembership(userProfile: UserProfile, callback: (groups: Membership[]) => void): void;
 
     removeGroupMembership(userProfile: UserProfile, groupId: string, callback?: (() => void)): void;
+
+
+    saveActivityEvent(userProfile: UserProfile, stmts: (ProgramAction | ProgramAction[]), callback?: (() => void)): void;
 
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;

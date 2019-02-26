@@ -57,4 +57,6 @@ export class EventSet {
     eventHelped = "eventHelped";
     eventInvited = "eventInvited";
     eventUninvited = "eventUninvited";
+    eventProgramLevelUp = "eventProgramLevelUp";
+    eventProgramLevelDown = "eventProgramLevelDown";
 }

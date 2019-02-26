@@ -1,5 +1,5 @@
 import { StorageAdapter } from "./adapters";
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction } from "./xapi";
 import { UserProfile } from "./models";
 import { Activity, toActivity } from "./activity";
 
@@ -41,8 +41,10 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             db.createObjectStore("lrsAuth", { keyPath: "id" });
 
             let activityStore = db.createObjectStore("activity", { keyPath: ["identity", "type", "id"] });
+            let activityEventStore = db.createObjectStore("activityEvents", { keyPath: ["id", "programId"] });
 
             activityStore.createIndex(MASTER_INDEX, ["identity", "type"]);
+            activityEventStore.createIndex(MASTER_INDEX, ["id", "programId"]);
 
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             annotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
@@ -1053,6 +1055,48 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let self = this;
             this.invocationQueue.push(function() {
                 self.removeGroupMembership(userProfile, xId, callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    saveActivityEvent(userProfile: UserProfile, stmts: (ProgramAction | ProgramAction[]), callback?: (() => void)): void {
+        if (this.db) {
+            if (stmts instanceof ProgramAction) {
+                let ga = stmts;
+                ga.identity = ga.actor.name;
+                let request = this.db.transaction(["activityEvents"], "readwrite").objectStore("activityEvents").put(ga);
+                request.onerror = function(e) {
+                    console.log(e);
+                };
+                request.onsuccess = function() {
+                    if (callback)
+                        callback();
+                };
+            } else {
+                let objectStore = this.db.transaction(["activityEvents"], "readwrite").objectStore("activityEvents");
+                let stmtsCopy: ProgramAction[] = stmts.slice(0);
+                let self: IndexedDBStorageAdapter = this;
+                let processCallback = function() {
+                    let record: (ProgramAction | undefined) = stmtsCopy.pop();
+                    if (record) {
+                        let clone = record;
+                        clone.identity = clone.actor.name;
+                        let request = objectStore.put(self.cleanRecord(clone));
+                        request.onerror = processCallback;
+                        request.onsuccess = processCallback;
+                    } else {
+                        if (callback)
+                            callback();
+                    }
+                };
+                processCallback();
+            }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveActivityEvent(userProfile, stmts, callback);
             });
         }
     }
