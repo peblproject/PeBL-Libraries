@@ -718,68 +718,90 @@ export class LLSyncAction implements SyncProcess {
 
     private pullActivityEvents(params: { [key: string]: any }): void {
         let self = this;
-        let pipeline: { [key: string]: any }[] = [
-            {
-                "$match": { "$or": [params] }
-            },
-            {
-                "$project": {
-                    "statement": 1,
-                    "_id": 0,
-                    "voided": 1
-                }
-            },
-            {
-                "$sort": {
-                    "stored": -1,
-                    "_id": 1
-                }
-            },
-            {
-                "$limit": 1500
+        //TODO: Assumes only $or in the object
+        let stringifiedParams = JSON.stringify(params["$or"]);
+        let arrayChunks = [params["$or"]];
+
+        //If the character count exceeds 4000, keep dividing the arrays in half until they are under 4000 characters
+        while (stringifiedParams.length > 4000) {
+            let newArrayChunks = [];
+            for (let array of arrayChunks) {
+                let newHalf = array.splice(0, Math.ceil(array.length / 2));
+                newArrayChunks.push(array);
+                newArrayChunks.push(newHalf);
             }
-        ];
+            //Deep copy
+            arrayChunks = JSON.parse(JSON.stringify(newArrayChunks));
+            stringifiedParams = JSON.stringify(newArrayChunks[0]);
+        }
 
-        this.pullHelper(pipeline,
-            function(stmts: XApiStatement[]): void {
-                let events: { [key: string]: any } = {};
-                for (let i = 0; i < stmts.length; i++) {
-                    let xapi = stmts[i];
-                    
-
-                    if (ProgramAction.is(xapi)) {
-                        let pa = new ProgramAction(xapi);                    
-
-                        events[pa.id] = pa;
-                        
-                        let temp = new Date(xapi.stored);
-                        let lastSyncedDate = self.endpoint.lastSyncedActivityEvents[pa.programId];
-                        if (lastSyncedDate.getTime() < temp.getTime())
-                            self.endpoint.lastSyncedActivityEvents[pa.programId] = temp;
-                    } else {
-                        new Error("Uknown statement type");
+        //Iterate over the divided arrays, create aggregate statement for each
+        for (let array of arrayChunks) {
+            (function(array) {
+                let pipeline: { [key: string]: any }[] = [
+                    {
+                        "$match": { "$or": array }
+                    },
+                    {
+                        "$project": {
+                            "statement": 1,
+                            "_id": 0,
+                            "voided": 1
+                        }
+                    },
+                    {
+                        "$sort": {
+                            "stored": -1,
+                            "_id": 1
+                        }
+                    },
+                    {
+                        "$limit": 1500
                     }
-                }
+                ];
 
-                self.pebl.user.getUser(function(userProfile) {
-                    if (userProfile) {
-                        let cleanEvents = [];
-                        for (let id of Object.keys(events))
-                            cleanEvents.push(events[id]);
+                self.pullHelper(pipeline,
+                    function(stmts: XApiStatement[]): void {
+                        let events: { [key: string]: any } = {};
+                        for (let i = 0; i < stmts.length; i++) {
+                            let xapi = stmts[i];
+                            
 
-                        if (cleanEvents.length > 0) {
-                            cleanEvents.sort();
-                            self.pebl.storage.saveActivityEvent(userProfile, cleanEvents);
-                            self.pebl.emitEvent(self.pebl.events.incomingActivityEvents, cleanEvents);
+                            if (ProgramAction.is(xapi)) {
+                                let pa = new ProgramAction(xapi);                    
+
+                                events[pa.id] = pa;
+                                
+                                let temp = new Date(xapi.stored);
+                                let lastSyncedDate = self.endpoint.lastSyncedActivityEvents[pa.programId];
+                                if (lastSyncedDate.getTime() < temp.getTime())
+                                    self.endpoint.lastSyncedActivityEvents[pa.programId] = temp;
+                            } else {
+                                new Error("Uknown statement type");
+                            }
                         }
 
-                        self.pebl.storage.saveUserProfile(userProfile);
+                        self.pebl.user.getUser(function(userProfile) {
+                            if (userProfile) {
+                                let cleanEvents = [];
+                                for (let id of Object.keys(events))
+                                    cleanEvents.push(events[id]);
 
-                        if (self.running)
-                            self.activityEventPoll = setTimeout(self.activityEventPollingCallback.bind(self), THREAD_POLL_INTERVAL);
-                    }
-                });
-            });
+                                if (cleanEvents.length > 0) {
+                                    cleanEvents.sort();
+                                    self.pebl.storage.saveActivityEvent(userProfile, cleanEvents);
+                                    self.pebl.emitEvent(self.pebl.events.incomingActivityEvents, cleanEvents);
+                                }
+
+                                self.pebl.storage.saveUserProfile(userProfile);
+
+                                if (self.running)
+                                    self.activityEventPoll = setTimeout(self.activityEventPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+                            }
+                        });
+                    });
+            })(array);
+        }
     }
 
     pull(): void {
