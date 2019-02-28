@@ -5,7 +5,7 @@ const PEBL_THREAD_ARTIFACT_PREFIX = "peblThread://artifact-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction } from "./xapi";
 import { UserProfile } from "./models";
 import { Learnlet, Program } from "./activity";
 
@@ -960,6 +960,162 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveOutgoingXApi(userProfile, uninvite);
                     });
                 });
+            }
+        });
+    }
+
+    eventProgramLevelUp(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programLevelUp", "programLevelUp");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
+    eventProgramLevelDown(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+        
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programLevelDown", "programLevelDown");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
+    eventProgramInvited(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+        
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programInvited", "programInvited");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
+    eventProgramUninvited(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+        
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programUninvited", "programUninvited");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
+    eventProgramJoined(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+        
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programJoined", "programJoined");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
+    eventProgramExpelled(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+        
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programExpelled", "programExpelled");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
             }
         });
     }

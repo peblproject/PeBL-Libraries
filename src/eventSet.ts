@@ -11,6 +11,7 @@ export class EventSet {
     incomingProgram = "incomingProgram";
     incomingArtifact = "incomingArtifact";
     incomingMembership = "incomingMembership";
+    incomingActivityEvents = "incomingActivityEvents";
 
     incomingErrors = "incomingErrors";
 
@@ -57,4 +58,11 @@ export class EventSet {
     eventHelped = "eventHelped";
     eventInvited = "eventInvited";
     eventUninvited = "eventUninvited";
+
+    eventProgramLevelUp = "eventProgramLevelUp";
+    eventProgramLevelDown = "eventProgramLevelDown";
+    eventProgramInvited = "eventProgramInvited";
+    eventProgramUninvited = "eventProgramUninvited";
+    eventProgramJoined = "eventProgramJoined";
+    eventProgramExpelled = "eventProgramExpelled";
 }

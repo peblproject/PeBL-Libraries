@@ -1,5 +1,5 @@
 import { PEBL } from "./pebl";
-import { XApiStatement, Membership } from "./xapi";
+import { XApiStatement, Membership, ProgramAction } from "./xapi";
 import { Program, Activity } from "./activity";
 
 export class Utils {
@@ -250,6 +250,16 @@ export class Utils {
                 xhr.send();
             }
         });
-        
+    }
+
+    getProgramActivityEvents(programId: string, callback: (events: ProgramAction[]) => void): void {
+        let self = this;
+        this.pebl.storage.getActivityEvent(programId, function(events) {
+            callback(<ProgramAction[]>events.sort(self.sortByTimestamp));
+        });
+    }
+
+    sortByTimestamp(a: XApiStatement, b: XApiStatement) {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     }
 }

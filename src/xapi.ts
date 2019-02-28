@@ -428,7 +428,7 @@ export class Invitation extends XApiStatement {
     readonly token: string;
     readonly programId: string;
 
-    constructor(raw: { [key: string]: any}) {
+    constructor(raw: { [key: string]: any }) {
         super(raw);
 
         let extensions = this.object.definition.extensions;
@@ -440,5 +440,31 @@ export class Invitation extends XApiStatement {
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "invited");
+    }
+}
+
+// -------------------------------
+
+export class ProgramAction extends XApiStatement {
+    readonly programId: string;
+    readonly action: string;
+    readonly previousValue?: any;
+    readonly newValue?: any;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.programId = this.object.definition.name["en-US"];
+        this.previousValue = extensions[PREFIX_PEBL_EXTENSION + "previousValue"];
+        this.newValue = extensions[PREFIX_PEBL_EXTENSION + "newValue"];
+        this.action = extensions[PREFIX_PEBL_EXTENSION + "action"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "programLevelUp") || (verb == "programLevelDown") || (verb == "programInvited") || (verb == "programUninvited")
+                || (verb == "programExpelled") || (verb == "programJoined")
     }
 }
