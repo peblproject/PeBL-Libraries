@@ -149,6 +149,8 @@ export interface StorageAdapter {
 
     saveActivityEvent(userProfile: UserProfile, stmts: (ProgramAction | ProgramAction[]), callback?: (() => void)): void;
 
+    getActivityEvent(programId: string, callback: (events: ProgramAction[]) => void): void;
+
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;
 

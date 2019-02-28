@@ -44,7 +44,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let activityEventStore = db.createObjectStore("activityEvents", { keyPath: ["id", "programId"] });
 
             activityStore.createIndex(MASTER_INDEX, ["identity", "type"]);
-            activityEventStore.createIndex(MASTER_INDEX, ["id", "programId"]);
+            activityEventStore.createIndex(MASTER_INDEX, ["programId"]);
 
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             annotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
@@ -1060,6 +1060,30 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     }
 
     // -------------------------------
+
+    getActivityEvent(programId: string, callback: (events: ProgramAction[]) => void): void {
+        if (this.db) {
+            let os = this.db.transaction(["activityEvents"], "readonly").objectStore("activityEvents");
+            let index = os.index(MASTER_INDEX);
+            let param = programId;
+            let self = this;
+            this.getAll(index,
+                IDBKeyRange.only(param),
+                function(arr) {
+                    if (arr.length == 0)
+                        self.getAll(index,
+                            IDBKeyRange.only([param]),
+                            callback);
+                    else
+                        callback(arr);
+                });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getActivityEvent(programId, callback);
+            });
+        }
+    }
 
     saveActivityEvent(userProfile: UserProfile, stmts: (ProgramAction | ProgramAction[]), callback?: (() => void)): void {
         if (this.db) {

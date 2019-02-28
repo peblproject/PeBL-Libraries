@@ -814,7 +814,11 @@ export class LLSyncAction implements SyncProcess {
                         "statement.verb.id": {
                             "$in": [
                                 "http://www.peblproject.com/definitions.html#programLevelUp",
-                                "http://www.peblproject.com/definitions.html#programLevelDown"
+                                "http://www.peblproject.com/definitions.html#programLevelDown",
+                                "http://www.peblproject.com/definitions.html#programInvited",
+                                "http://www.peblproject.com/definitions.html#programUninvited",
+                                "http://www.peblproject.com/definitions.html#programJoined",
+                                "http://www.peblproject.com/definitions.html#programExpelled"
                             ]
                         },
                         "statement.object.definition.name.en-US": membership.membershipId
