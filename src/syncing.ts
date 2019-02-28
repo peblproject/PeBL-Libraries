@@ -558,13 +558,14 @@ export class LLSyncAction implements SyncProcess {
                                 }
 
                                 self.pebl.storage.saveUserProfile(userProfile);
-                                if (self.running)
-                                    self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+                                
                             }
                         });
                     });
             })(array);
         }
+        if (self.running)
+            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
     }
 
     private pullBook(lastSynced: Date, book: string): void {
@@ -795,13 +796,14 @@ export class LLSyncAction implements SyncProcess {
 
                                 self.pebl.storage.saveUserProfile(userProfile);
 
-                                if (self.running)
-                                    self.activityEventPoll = setTimeout(self.activityEventPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+
                             }
                         });
                     });
             })(array);
         }
+        if (self.running)
+            self.activityEventPoll = setTimeout(self.activityEventPollingCallback.bind(self), THREAD_POLL_INTERVAL);
     }
 
     pull(): void {
