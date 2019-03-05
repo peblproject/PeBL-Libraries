@@ -216,7 +216,6 @@ export class LLSyncAction implements SyncProcess {
 
         xhr.open("POST", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
 
-        debugger;
         if (activity.etag) {
             xhr.setRequestHeader("If-Match", activity.etag);
         }
@@ -245,7 +244,6 @@ export class LLSyncAction implements SyncProcess {
 
         xhr.open("DELETE", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
     
-        debugger;
         if (activity.etag) {
             xhr.setRequestHeader("If-Match", activity.etag);
         }

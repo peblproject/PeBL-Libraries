@@ -34,6 +34,7 @@ export class EventSet {
     removedSharedAnnotation = "removedSharedAnnotation";
     removedLearnlet = "removedLearnlet";
     removedProgram = "removedProgram";
+    removedMessage = "removedMessage";
 
     eventLoggedIn = "eventLoggedIn";
     eventLoggedOut = "eventLoggedOut";

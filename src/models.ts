@@ -9,6 +9,7 @@ export class UserProfile {
     readonly endpoints: Endpoint[];
     readonly registryEndpoint?: Endpoint;
     readonly currentTeam?: string | null;
+    readonly currentClass?: string | null;
 
     constructor(raw: { [key: string]: any }) {
         this.identity = raw.identity;
@@ -19,6 +20,8 @@ export class UserProfile {
             this.registryEndpoint = new Endpoint(raw.registryEndpoint);
         if (raw.currentTeam)
             this.currentTeam = raw.currentTeam;
+        if (raw.currentClass)
+            this.currentClass = raw.currentClass;
         this.endpoints = [];
 
         this.metadata = raw.metadata;
@@ -43,7 +46,8 @@ export class UserProfile {
             "lrsUrls": urls,
             "metadata": {},
             "registryEndpoint": this.registryEndpoint,
-            "currentTeam": this.currentTeam
+            "currentTeam": this.currentTeam,
+            "currentClass": this.currentClass
         };
         if (this.metadata) {
             obj.metadata = this.metadata;

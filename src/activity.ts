@@ -142,9 +142,9 @@ export class Program extends Activity {
 
         this.programLevelStepsComplete = raw.programLevelStepsComplete || 0;
         this.programLevels = raw.programLevels || [];
-        this.programTitle = raw.programTitle || "Program Name";
-        this.programShortDescription = raw.programShortDescription || "Program Short Description";
-        this.programLongDescription = raw.programLongDescription || "Program Long Description";
+        this.programTitle = raw.programTitle || "";
+        this.programShortDescription = raw.programShortDescription || "";
+        this.programLongDescription = raw.programLongDescription || "";
         this.programLevel = raw.programLevel || 0;
         this.programIssues = raw.programIssues ? raw.programIssues : [];
         this.programCommunities = raw.programCommunities ? raw.programCommunities : [];
