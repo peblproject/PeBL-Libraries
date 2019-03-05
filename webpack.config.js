@@ -19,6 +19,7 @@ module.exports = {
 	extensions: ['.tsx', '.ts', '.js']
     },
     output: {
+        libraryTarget: "commonjs",
 	filename: 'PeBLCore.js',
 	path: path.resolve(__dirname, 'dist')
     }
