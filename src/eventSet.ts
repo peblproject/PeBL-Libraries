@@ -28,6 +28,8 @@ export class EventSet {
     newSharedAnnotation = "newSharedAnnotation";
     newArtifact = "newArtifact";
 
+    modifiedMembership = "modifiedMembership";
+
     removedPresence = "removedPresence";
     removedMembership = "removedMembership";
     removedAnnotation = "removedAnnotation";

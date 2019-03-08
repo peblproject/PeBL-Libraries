@@ -320,6 +320,71 @@ export class PEBLEventHandlers {
         });
     }
 
+    modifiedMembership(event: CustomEvent) {
+        let payload = event.detail;
+        let oldMembership = payload.oldMembership;
+        let newMembership = payload.newMembership;
+
+        let xapiVoided = {};
+        let xapiNew = {
+            id: ''
+        };
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                let newUserProfile = new UserProfile({
+                    identity: oldMembership.actor.account.name,
+                    name: oldMembership.actor.name,
+                    homePage: oldMembership.actor.account.homePage,
+                    preferredName: oldMembership.actor.name
+                });
+
+                // First void the old membership
+                self.xapiGen.addId(xapiVoided);
+                self.xapiGen.addVerb(xapiVoided, "http://adlnet.gov/expapi/verbs/voided", "voided");
+                self.xapiGen.addTimestamp(xapiVoided);
+                self.xapiGen.addStatementRef(xapiVoided, oldMembership.id);
+                self.xapiGen.addActorAccount(xapiVoided, newUserProfile);
+                self.xapiGen.addParentActivity(xapiVoided, PEBL_PREFIX + oldMembership.id);
+
+                let m = new Voided(xapiVoided);
+                // If modifying my own membership
+                self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                if (newUserProfile.identity === userProfile.identity)
+                    self.pebl.storage.removeGroupMembership(newUserProfile, oldMembership.id);
+
+                self.pebl.emitEvent(self.pebl.events.incomingMembership, [m]);
+
+                // Then send out a new one
+                let exts = {
+                    role: newMembership.role,
+                    activityType: newMembership.activityType
+                }
+
+                if (newMembership) {
+                    self.pebl.storage.getCurrentActivity(function(activity) {
+                        self.pebl.storage.getCurrentBook(function(book) {
+                            xapiNew.id = newMembership.id;
+                            self.xapiGen.addTimestamp(xapiNew);
+                            self.xapiGen.addActorAccount(xapiNew, newUserProfile);
+                            self.xapiGen.addObject(xapiNew, PEBL_THREAD_USER_PREFIX + newUserProfile.identity, newMembership.membershipId, newMembership.groupDescription, self.xapiGen.addExtensions(exts));
+                            self.xapiGen.addVerb(xapiNew, "http://www.peblproject.com/definitions.html#joined", "joined");
+                            if (book || activity)
+                                self.xapiGen.addParentActivity(xapiNew, PEBL_PREFIX + (book || activity));
+
+                            let n = new Membership(xapiNew);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, n);
+                            self.pebl.emitEvent(self.pebl.events.incomingMembership, [n]);
+                            if (newUserProfile.identity === userProfile.identity)
+                                self.pebl.storage.saveGroupMembership(userProfile, n);
+                        });
+                    });
+                }
+            }
+        });
+    }
+
     removedMembership(event: CustomEvent) {
         let xId = event.detail;
 
