@@ -38,6 +38,13 @@ export class XApiStatement {
         return this.actor.mbox || this.actor.openid ||
             (this.actor.account && this.actor.account.name);
     }
+
+    static is(x: any): boolean {
+        if (x.verb)
+            return true;
+        else
+            return false;
+    }
 }
 
 // -------------------------------

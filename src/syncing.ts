@@ -106,7 +106,7 @@ export class LLSyncAction implements SyncProcess {
     //     presence.send();
     // }
 
-    private pullActivity(activity: string, profileId: string, callback?: (() => void)): void {
+    private pullActivity(activity: string, profileId: string, callback?: ((activity?: Activity) => void)): void {
         let self = this;
         let presence = new XMLHttpRequest();
 
@@ -141,6 +141,7 @@ export class LLSyncAction implements SyncProcess {
                     }
                 } else {
                     console.log(jsonObj);
+                    activityObj = [];
                     new Error("Missing activity type dispatch or invalid response");
                 }
 
@@ -163,7 +164,11 @@ export class LLSyncAction implements SyncProcess {
                 }
 
                 if (callback) {
-                    callback();
+                    if (activityObj && activityObj.length > 0) {
+                        callback(activityObj[0])
+                    }
+                    else
+                        callback();
                 }
             } else {
                 console.log("Failed to pull", activity);
@@ -187,7 +192,7 @@ export class LLSyncAction implements SyncProcess {
         presence.send();
     }
 
-    private postActivity(activity: Activity, callback: ((success: boolean) => void)) {
+    private postActivity(activity: Activity, callback: ((success: boolean, oldActivity?: Activity, newActivity?: Activity) => void)) {
         let xhr = new XMLHttpRequest();
         let self = this;
 
@@ -202,10 +207,19 @@ export class LLSyncAction implements SyncProcess {
             new Error("Unknown activity format");
 
         xhr.addEventListener("load", function() {
-            activity.clearDirtyEdits();
-            self.pullActivity(activity.type, activity.id, function() {
-                callback(true);
-            });
+            if (xhr.status === 412) {
+                // There is a newer version on the server
+                console.log('Receieved a 412');
+                activity.clearDirtyEdits();
+                self.pullActivity(activity.type, activity.id, function(newActivity) {
+                    callback(false, activity, newActivity);
+                });
+            } else {
+                activity.clearDirtyEdits();
+                self.pullActivity(activity.type, activity.id, function() {
+                    callback(true);
+                });
+            }
         });
 
         xhr.addEventListener("error", function() {
@@ -948,9 +962,9 @@ export class LLSyncAction implements SyncProcess {
                                     //TODO: This probably won't remove other user's memberships to this program..
                                     if (Program.is(activity)) {
                                         let program = new Program(activity);
-                                        for (let membership of program.members) {
+                                        Program.iterateMembers(program, function(key, membership) {
                                             self.pebl.emitEvent(self.pebl.events.removedMembership, membership.id);
-                                        }
+                                        });
                                         self.pebl.emitEvent(self.pebl.events.removedProgram, program);
                                     }
                                 } //typechecker
@@ -978,7 +992,7 @@ export class LLSyncAction implements SyncProcess {
                         });
                 } else {
                     self.postActivity(activity,
-                    function(success: boolean): void {
+                    function(success: boolean, oldActivity?: Activity, newActivity?: Activity): void {
                         if (success) {
                             if (activity) //typechecker
                                 self.pebl.storage.removeOutgoingActivity(userProfile, activity);
@@ -991,6 +1005,14 @@ export class LLSyncAction implements SyncProcess {
                         } else {
                             if (activity) //typechecker
                                 self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+
+                            if (oldActivity && newActivity) {
+                                console.log('Returned false');
+                                console.log(oldActivity);
+                                console.log(newActivity);
+                                let mergedActivity = Activity.merge(oldActivity, newActivity) as Activity;
+                                outgoing.push(mergedActivity);
+                            }
 
                             if (outgoing.length == 0)
                                 callback();

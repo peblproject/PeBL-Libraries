@@ -239,7 +239,7 @@ export class PEBLEventHandlers {
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
                                 let m = new Membership(xapi);
-                                prog.members.push(m);
+                                prog.addMember(m);
                                 self.pebl.storage.saveGroupMembership(userProfile, m);
                                 self.pebl.storage.saveOutgoingXApi(userProfile, m);
                             }

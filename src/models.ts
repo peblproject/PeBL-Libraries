@@ -100,3 +100,32 @@ export class Endpoint {
 }
 
 // -------------------------------
+
+export class TempMembership {
+    id: string;
+    identity: string;
+    actor: {
+        name: string;
+    };
+    inviteId: string;
+    inviteLink: string;
+    status: string;
+    role: string;
+
+    constructor(raw: { [key: string]: any }) {
+        this.id = raw.id;
+        this.identity = raw.identity;
+        this.actor = raw.actor;
+        this.inviteId = raw.inviteId;
+        this.inviteLink = raw.inviteLink;
+        this.status = raw.status;
+        this.role = raw.role;
+    }
+
+    static is(x: any): boolean {
+        if (x.id && x.identity && x.actor && x.actor.name && x.inviteLink && x.status && x.role)
+            return true;
+        else
+            return false;
+    }
+}

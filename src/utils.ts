@@ -1,6 +1,7 @@
 import { PEBL } from "./pebl";
 import { XApiStatement, Membership, ProgramAction } from "./xapi";
 import { Program, Activity } from "./activity";
+import { TempMembership } from "./models";
 
 export class Utils {
 
@@ -261,5 +262,14 @@ export class Utils {
 
     sortByTimestamp(a: XApiStatement, b: XApiStatement) {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    }
+
+    iterateProgramMembers(program: Program, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
+        Program.iterateMembers(program, callback);
+    }
+
+    newTempMember(obj: { [key: string]: any }, callback: (tempMember: TempMembership) => void): void {
+        let tm = new TempMembership(obj);
+        callback(tm);
     }
 }

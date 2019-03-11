@@ -1,5 +1,7 @@
 // import { PEBL } from "./pebl";
+import { XApiStatement } from "./xapi";
 import { Membership } from "./xapi";
+import { TempMembership } from "./models";
 
 export class Activity {
 
@@ -52,6 +54,21 @@ export class Activity {
             id: this.id
         }
     };
+
+    static merge(oldActivity: any, newActivity: any): Activity {
+        let mergedActivity = {} as any;
+        Object.keys(oldActivity).forEach(function(key) {
+            mergedActivity[key] = oldActivity[key];
+        });
+        Object.keys(newActivity).forEach(function(key) {
+            if (mergedActivity[key] == null) {
+                // Leave it
+            } else {
+                mergedActivity[key] = newActivity[key];
+            }
+        });
+        return mergedActivity as Activity;
+    }
 }
 
 export class Learnlet extends Activity {
@@ -122,6 +139,7 @@ export class Learnlet extends Activity {
 // -------------------------------
 
 export class Program extends Activity {
+    [key: string]: (Membership | TempMembership | any);
     programTitle: string;
     programShortDescription: string;
     programLongDescription: string;
@@ -131,14 +149,24 @@ export class Program extends Activity {
     programInstitutions: string[];
     programLevels: { [key: string]: any }[];
     programLevelStepsComplete: number;
-    members: Membership[];
     programAvatar?: string;
     programTeamName?: string;
     programFocus?: string;
 
+
     constructor(raw: { [key: string]: any }) {
         raw.type = "program";
         super(raw);
+
+        let self = this;
+        Object.keys(raw).forEach(function(key) {
+            if(key.indexOf('member-') !== -1) {
+                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
+                if (member == null || (XApiStatement.is(member) && Membership.is(member as XApiStatement)) || TempMembership.is(member)) {
+                    self[key] = member;
+                }
+            }
+        });
 
         this.programLevelStepsComplete = raw.programLevelStepsComplete || 0;
         this.programLevels = raw.programLevels || [];
@@ -152,7 +180,6 @@ export class Program extends Activity {
         this.programAvatar = raw.programAvatar;
         this.programTeamName = raw.programTeamName;
         this.programFocus = raw.programFocus;
-        this.members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
     }
 
     static is(raw: { [key: string]: any }): boolean {
@@ -161,6 +188,17 @@ export class Program extends Activity {
 
     toTransportFormat(): { [key: string]: any } {
         let obj = super.toTransportFormat();
+        let self = this;
+
+        Object.keys(this).forEach(function(key) {
+            if(key.indexOf('member-') !== -1) {
+                if (self[key] == null) {
+                    obj[key] = self[key];
+                } else if ((XApiStatement.is(self[key]) && Membership.is(self[key] as XApiStatement)) || TempMembership.is(self[key])) {
+                    obj[key] = encodeURIComponent(JSON.stringify(self[key]));
+                }
+            }
+        });
 
         obj.programLevelStepsComplete = this.programLevelStepsComplete;
         obj.programLevels = this.programLevels;
@@ -174,8 +212,23 @@ export class Program extends Activity {
         obj.programFocus = this.programFocus;
         obj.programCommunities = this.programCommunities;
         obj.programInstitutions = this.programInstitutions;
-        obj.members = encodeURIComponent(JSON.stringify(this.members));
         return obj;
+    }
+
+    addMember(membership: (Membership | TempMembership)): void {
+        this['member-' + membership.id] = membership;
+    }
+
+    static iterateMembers(program: Program, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
+        Object.keys(program).forEach(function(key) {
+            if (key.indexOf('member-') !== -1 && program[key]) {
+                if (XApiStatement.is(program[key]) && Membership.is(program[key] as XApiStatement)) {
+                    callback(key, program[key] as Membership);
+                } else if (TempMembership.is(program[key])) {
+                    callback(key, program[key] as TempMembership);
+                }
+            }
+        });
     }
 }
 
