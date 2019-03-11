@@ -152,6 +152,7 @@ export class Program extends Activity {
     programAvatar?: string;
     programTeamName?: string;
     programFocus?: string;
+    members?: Membership[];
 
 
     constructor(raw: { [key: string]: any }) {
@@ -159,6 +160,18 @@ export class Program extends Activity {
         super(raw);
 
         let self = this;
+
+        // Translate legacy member format to new format
+        let members = [];
+        if (raw.members)
+            members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
+
+        if (members.length > 0) {
+            for (let member of members) {
+                self.addMember(member);
+            }
+        }
+
         Object.keys(raw).forEach(function(key) {
             if(key.indexOf('member-') !== -1) {
                 let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
@@ -180,6 +193,7 @@ export class Program extends Activity {
         this.programAvatar = raw.programAvatar;
         this.programTeamName = raw.programTeamName;
         this.programFocus = raw.programFocus;
+        this.members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
     }
 
     static is(raw: { [key: string]: any }): boolean {
@@ -212,6 +226,7 @@ export class Program extends Activity {
         obj.programFocus = this.programFocus;
         obj.programCommunities = this.programCommunities;
         obj.programInstitutions = this.programInstitutions;
+        obj.members = encodeURIComponent(JSON.stringify(this.members));
         return obj;
     }
 
