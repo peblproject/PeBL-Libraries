@@ -21,7 +21,6 @@ export class LLSyncAction implements SyncProcess {
     private bookPoll: (number | null) = null;
     private threadPoll: (number | null) = null;
     private activityPolls: { [key: string]: number } = {};
-    private activityEventPoll: (number | null) = null;
 
     private running: boolean = false;
     private endpoint: Endpoint;
@@ -47,10 +46,6 @@ export class LLSyncAction implements SyncProcess {
         for (let key in this.activityPolls)
             clearTimeout(this.activityPolls[key]);
         this.activityPolls = {};
-
-        if (this.activityEventPoll)
-            clearTimeout(this.activityEventPoll)
-        this.activityEventPoll = null;
     }
 
     private toVoidRecord(rec: XApiStatement): XApiStatement {
@@ -362,6 +357,7 @@ export class LLSyncAction implements SyncProcess {
                         let timeStr = self.endpoint.lastSyncedThreads[thread];
                         let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
                         self.endpoint.lastSyncedThreads[thread] = timestamp;
+                        self.endpoint.lastSyncedThreads[fullDirectThread] = timestamp;
 
                         threadPairs.push({
                             "statement.stored": {
@@ -475,14 +471,14 @@ export class LLSyncAction implements SyncProcess {
 
                 self.pullHelper(pipeline,
                     function(stmts: XApiStatement[]): void {
-                        let buckets: { [thread: string]: { [id: string]: (Message | Reference) } } = {};
+                        let buckets: { [thread: string]: { [id: string]: (Message | Reference | ProgramAction) } } = {};
                         let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
                         let deleteIds: Voided[] = [];
 
                         for (let i = 0; i < stmts.length; i++) {
                             let xapi = stmts[i];
                             let thread: (string | null) = null;
-                            let tsd: (Message | Reference | Membership | null) = null;
+                            let tsd: (Message | Reference | Membership | ProgramAction | null) = null;
 
                             if (Message.is(xapi)) {
                                 let m = new Message(xapi);
@@ -501,6 +497,10 @@ export class LLSyncAction implements SyncProcess {
                                 let m = new Membership(xapi);
                                 thread = m.thread;
                                 tsd = m;
+                            } else if (ProgramAction.is(xapi)) {
+                                let pa = new ProgramAction(xapi);
+                                thread = pa.thread;
+                                tsd = pa;
                             }
 
                             if (thread != null) {
@@ -555,17 +555,26 @@ export class LLSyncAction implements SyncProcess {
                                 for (let thread of Object.keys(buckets)) {
                                     let bucket = buckets[thread];
                                     let cleanMessages: Message[] = [];
+                                    let cleanProgramActions: ProgramAction[] = [];
 
                                     for (let messageId of Object.keys(bucket)) {
-                                        let rec: (Message | Reference) = bucket[messageId];
+                                        let rec: (Message | Reference | ProgramAction) = bucket[messageId];
                                         if (rec instanceof Message)
                                             cleanMessages.push(rec);
+                                        else if (rec instanceof ProgramAction)
+                                            cleanProgramActions.push(rec);
                                     }
                                     if (cleanMessages.length > 0) {
                                         cleanMessages.sort();
                                         self.pebl.storage.saveMessages(userProfile, cleanMessages);
 
                                         self.pebl.emitEvent(thread, cleanMessages);
+                                    }
+                                    if (cleanProgramActions.length > 0) {
+                                        cleanProgramActions.sort();
+                                        self.pebl.storage.saveActivityEvent(userProfile, cleanProgramActions);
+
+                                        self.pebl.emitEvent(self.pebl.events.incomingActivityEvents, cleanProgramActions);
                                     }
                                 }
 
@@ -729,95 +738,6 @@ export class LLSyncAction implements SyncProcess {
         });
     }
 
-    private pullActivityEvents(params: { [key: string]: any }): void {
-        let self = this;
-        //TODO: Assumes only $or in the object
-        let stringifiedParams = JSON.stringify(params["$or"]);
-        let arrayChunks = [params["$or"]];
-
-        //If the character count exceeds 4000, keep dividing the arrays in half until they are under 4000 characters
-        while (stringifiedParams.length > 4000) {
-            let newArrayChunks = [];
-            for (let array of arrayChunks) {
-                let newHalf = array.splice(0, Math.ceil(array.length / 2));
-                newArrayChunks.push(array);
-                newArrayChunks.push(newHalf);
-            }
-            //Deep copy
-            arrayChunks = JSON.parse(JSON.stringify(newArrayChunks));
-            stringifiedParams = JSON.stringify(newArrayChunks[0]);
-        }
-
-        //Iterate over the divided arrays, create aggregate statement for each
-        for (let array of arrayChunks) {
-            (function(array) {
-                let pipeline: { [key: string]: any }[] = [
-                    {
-                        "$match": { "$or": array }
-                    },
-                    {
-                        "$project": {
-                            "statement": 1,
-                            "_id": 0,
-                            "voided": 1
-                        }
-                    },
-                    {
-                        "$sort": {
-                            "stored": -1,
-                            "_id": 1
-                        }
-                    },
-                    {
-                        "$limit": 1500
-                    }
-                ];
-
-                self.pullHelper(pipeline,
-                    function(stmts: XApiStatement[]): void {
-                        let events: { [key: string]: any } = {};
-                        for (let i = 0; i < stmts.length; i++) {
-                            let xapi = stmts[i];
-                            
-
-                            if (ProgramAction.is(xapi)) {
-                                let pa = new ProgramAction(xapi);                    
-
-                                events[pa.id] = pa;
-                                
-                                let temp = new Date(xapi.stored);
-                                let lastSyncedDate = self.endpoint.lastSyncedActivityEvents[pa.programId];
-                                if (lastSyncedDate.getTime() < temp.getTime())
-                                    self.endpoint.lastSyncedActivityEvents[pa.programId] = temp;
-                            } else {
-                                new Error("Uknown statement type");
-                            }
-                        }
-
-                        self.pebl.user.getUser(function(userProfile) {
-                            if (userProfile) {
-                                let cleanEvents = [];
-                                for (let id of Object.keys(events))
-                                    cleanEvents.push(events[id]);
-
-                                if (cleanEvents.length > 0) {
-                                    cleanEvents.sort();
-                                    self.pebl.storage.saveActivityEvent(userProfile, cleanEvents);
-                                    self.pebl.emitEvent(self.pebl.events.incomingActivityEvents, cleanEvents);
-                                }
-
-                                self.pebl.storage.saveUserProfile(userProfile);
-
-
-                            }
-                        });
-                    });
-            })(array);
-        }
-        if (self.running)
-            self.activityEventPoll = setTimeout(self.activityEventPollingCallback.bind(self), THREAD_POLL_INTERVAL);
-    }
-
     pull(): void {
         this.running = true;
 
@@ -829,43 +749,6 @@ export class LLSyncAction implements SyncProcess {
         this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
         this.startActivityPull("program", PROGRAM_POLL_INTERVAL);
         this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
-
-        this.activityEventPollingCallback();
-    }
-
-    private activityEventPollingCallback(): void {
-        let self = this;
-        let threadPairs: { [key: string]: any }[] = [];
-
-        this.pebl.utils.getGroupMemberships(function(memberships) {
-            if (memberships) {
-                for (let membership of memberships) {
-                    let timeStr = self.endpoint.lastSyncedActivityEvents[membership.membershipId];
-                    let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
-                    self.endpoint.lastSyncedActivityEvents[membership.membershipId] = timestamp;
-                    threadPairs.push({
-                        "statement.stored": {
-                            "$gt": timestamp.toISOString()
-                        },
-                        "statement.verb.id": {
-                            "$in": [
-                                "http://www.peblproject.com/definitions.html#programLevelUp",
-                                "http://www.peblproject.com/definitions.html#programLevelDown",
-                                "http://www.peblproject.com/definitions.html#programInvited",
-                                "http://www.peblproject.com/definitions.html#programUninvited",
-                                "http://www.peblproject.com/definitions.html#programJoined",
-                                "http://www.peblproject.com/definitions.html#programExpelled"
-                            ]
-                        },
-                        "statement.object.definition.name.en-US": membership.membershipId
-                    });
-                }
-                if ((threadPairs.length == 0) && self.running)
-                    self.activityEventPoll = setTimeout(self.activityEventPollingCallback.bind(self), THREAD_POLL_INTERVAL);
-                else
-                    self.pullActivityEvents({ "$or": threadPairs });
-            }
-        });
     }
 
     private startActivityPull(activityType: string, interval: number): void {

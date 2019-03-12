@@ -453,6 +453,7 @@ export class Invitation extends XApiStatement {
 // -------------------------------
 
 export class ProgramAction extends XApiStatement {
+    readonly thread: string;
     readonly programId: string;
     readonly action: string;
     readonly previousValue?: any;
@@ -460,6 +461,8 @@ export class ProgramAction extends XApiStatement {
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
+
+        this.thread = this.object.id;
 
         let extensions = this.object.definition.extensions;
 

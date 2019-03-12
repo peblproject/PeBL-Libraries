@@ -2,6 +2,7 @@ const PEBL_PREFIX = "pebl://";
 const PEBL_THREAD_PREFIX = "peblThread://";
 const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
 const PEBL_THREAD_ARTIFACT_PREFIX = "peblThread://artifact-";
+const PEBL_THREAD_GROUP_PREFIX = "peblThread://group-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
@@ -1073,7 +1074,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programLevelUp", "programLevelUp");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
@@ -1099,7 +1100,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programLevelDown", "programLevelDown");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
@@ -1125,7 +1126,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programInvited", "programInvited");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
@@ -1151,7 +1152,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programUninvited", "programUninvited");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
@@ -1177,7 +1178,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programJoined", "programJoined");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
@@ -1203,7 +1204,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programExpelled", "programExpelled");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + 'Harness', payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
