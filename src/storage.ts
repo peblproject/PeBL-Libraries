@@ -1089,7 +1089,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         if (this.db) {
             if (stmts instanceof ProgramAction) {
                 let ga = stmts;
-                ga.identity = ga.actor.name;
+                ga.identity = ga.actor.account.name;
                 let request = this.db.transaction(["activityEvents"], "readwrite").objectStore("activityEvents").put(ga);
                 request.onerror = function(e) {
                     console.log(e);
@@ -1106,7 +1106,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     let record: (ProgramAction | undefined) = stmtsCopy.pop();
                     if (record) {
                         let clone = record;
-                        clone.identity = clone.actor.name;
+                        clone.identity = clone.actor.account.name;
                         let request = objectStore.put(self.cleanRecord(clone));
                         request.onerror = processCallback;
                         request.onsuccess = processCallback;
