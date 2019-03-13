@@ -357,7 +357,6 @@ export class LLSyncAction implements SyncProcess {
                         let timeStr = self.endpoint.lastSyncedThreads[thread];
                         let timestamp: Date = timeStr == null ? new Date("2017-06-05T21:07:49-07:00") : timeStr;
                         self.endpoint.lastSyncedThreads[thread] = timestamp;
-                        self.endpoint.lastSyncedThreads[fullDirectThread] = timestamp;
 
                         threadPairs.push({
                             "statement.stored": {
@@ -474,56 +473,54 @@ export class LLSyncAction implements SyncProcess {
                         let buckets: { [thread: string]: { [id: string]: (Message | Reference | ProgramAction) } } = {};
                         let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
                         let deleteIds: Voided[] = [];
+                        self.pebl.user.getUser(function(userProfile) {
+                            if (userProfile) {
+                                for (let i = 0; i < stmts.length; i++) {
+                                    let xapi = stmts[i];
+                                    let thread: (string | null) = null;
+                                    let tsd: (Message | Reference | Membership | ProgramAction | null) = null;
 
-                        for (let i = 0; i < stmts.length; i++) {
-                            let xapi = stmts[i];
-                            let thread: (string | null) = null;
-                            let tsd: (Message | Reference | Membership | ProgramAction | null) = null;
-
-                            if (Message.is(xapi)) {
-                                let m = new Message(xapi);
-                                thread = m.thread;
-                                tsd = m;
-                            } else if (Reference.is(xapi)) {
-                                let r = new Reference(xapi);
-                                self.pebl.network.queueReference(r);
-                                tsd = r;
-                                thread = r.thread;
-                            } else if (Voided.is(xapi)) {
-                                let v = new Voided(xapi);
-                                deleteIds.push(v);
-                                thread = v.thread;
-                            } else if (Membership.is(xapi)) {
-                                let m = new Membership(xapi);
-                                thread = m.thread;
-                                tsd = m;
-                            } else if (ProgramAction.is(xapi)) {
-                                let pa = new ProgramAction(xapi);
-                                thread = pa.thread;
-                                tsd = pa;
-                            }
-
-                            if (thread != null) {
-                                if (tsd != null) {
-                                    let container = tsd instanceof Membership ? memberships : buckets;
-                                    let stmts = container[thread];
-                                    if (stmts == null) {
-                                        stmts = {};
-                                        container[thread] = stmts;
+                                    if (Message.is(xapi)) {
+                                        let m = new Message(xapi);
+                                        thread = m.thread;
+                                        tsd = m;
+                                    } else if (Reference.is(xapi)) {
+                                        let r = new Reference(xapi);
+                                        self.pebl.network.queueReference(r);
+                                        tsd = r;
+                                        thread = r.thread;
+                                    } else if (Voided.is(xapi)) {
+                                        let v = new Voided(xapi);
+                                        deleteIds.push(v);
+                                        thread = v.thread;
+                                    } else if (Membership.is(xapi)) {
+                                        let m = new Membership(xapi);
+                                        thread = m.thread;
+                                        tsd = m;
+                                    } else if (ProgramAction.is(xapi)) {
+                                        let pa = new ProgramAction(xapi);
+                                        thread = 'group-user-' + userProfile.identity;
+                                        tsd = pa;
                                     }
-                                    stmts[tsd.id] = tsd;
+
+                                    if (thread != null) {
+                                        if (tsd != null) {
+                                            let container = tsd instanceof Membership ? memberships : buckets;
+                                            let stmts = container[thread];
+                                            if (stmts == null) {
+                                                stmts = {};
+                                                container[thread] = stmts;
+                                            }
+                                            stmts[tsd.id] = tsd;
+                                        }
+
+                                        let temp = new Date(xapi.stored);
+                                        let lastSyncedDate = self.endpoint.lastSyncedThreads[thread];
+                                        if (lastSyncedDate.getTime() < temp.getTime())
+                                            self.endpoint.lastSyncedThreads[thread] = temp;
+                                    }
                                 }
 
-                                let temp = new Date(xapi.stored);
-                                let lastSyncedDate = self.endpoint.lastSyncedThreads[thread];
-                                if (lastSyncedDate.getTime() < temp.getTime())
-                                    self.endpoint.lastSyncedThreads[thread] = temp;
-                            }
-                        }
-
-                        self.pebl.user.getUser(function(userProfile) {
-
-                            if (userProfile) {
                                 for (let i = 0; i < deleteIds.length; i++) {
                                     let v = deleteIds[i];
                                     let thread = v.thread;
