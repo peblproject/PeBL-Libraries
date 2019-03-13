@@ -458,6 +458,7 @@ export class ProgramAction extends XApiStatement {
     readonly action: string;
     readonly previousValue?: any;
     readonly newValue?: any;
+    identity: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -470,6 +471,8 @@ export class ProgramAction extends XApiStatement {
         this.previousValue = extensions[PREFIX_PEBL_EXTENSION + "previousValue"];
         this.newValue = extensions[PREFIX_PEBL_EXTENSION + "newValue"];
         this.action = extensions[PREFIX_PEBL_EXTENSION + "action"];
+
+        this.identity = this.actor.account.name;
     }
 
     static is(x: XApiStatement): boolean {
