@@ -475,6 +475,6 @@ export class ProgramAction extends XApiStatement {
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "programLevelUp") || (verb == "programLevelDown") || (verb == "programInvited") || (verb == "programUninvited")
-                || (verb == "programExpelled") || (verb == "programJoined")
+                || (verb == "programExpelled") || (verb == "programJoined") || (verb == "programActivityLaunched")
     }
 }

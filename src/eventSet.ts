@@ -68,4 +68,5 @@ export class EventSet {
     eventProgramUninvited = "eventProgramUninvited";
     eventProgramJoined = "eventProgramJoined";
     eventProgramExpelled = "eventProgramExpelled";
+    eventProgramActivityLaunched = "eventProgramActivityLaunched";
 }
