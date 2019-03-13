@@ -443,10 +443,10 @@ export class LLSyncAction implements SyncProcess {
 
         let self = this;
 
-        //Iterate over the divided arrays, create aggregate statement for each
-        for (let array of arrayChunks) {
-            (function(array) {
-                let pipeline: { [key: string]: any }[] = [
+        let chunkIterator = function(arrays: any[]): void {
+            let array = arrays.pop();
+
+            let pipeline: { [key: string]: any }[] = [
                     {
                         "$match": { "$or": array }
                     },
@@ -468,7 +468,7 @@ export class LLSyncAction implements SyncProcess {
                     }
                 ];
 
-                self.pullHelper(pipeline,
+            self.pullHelper(pipeline,
                     function(stmts: XApiStatement[]): void {
                         let buckets: { [thread: string]: { [id: string]: (Message | Reference | ProgramAction) } } = {};
                         let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
@@ -576,14 +576,19 @@ export class LLSyncAction implements SyncProcess {
                                 }
 
                                 self.pebl.storage.saveUserProfile(userProfile);
-                                
+
+                                if (arrays.length > 0) {
+                                    chunkIterator(arrays);
+                                } else {
+                                    if (self.running)
+                                        self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+                                }
                             }
                         });
                     });
-            })(array);
         }
-        if (self.running)
-            self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+
+        chunkIterator(arrayChunks);
     }
 
     private pullBook(lastSynced: Date, book: string): void {
