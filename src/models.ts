@@ -10,6 +10,16 @@ export class UserProfile {
     readonly registryEndpoint?: Endpoint;
     readonly currentTeam?: string | null;
     readonly currentClass?: string | null;
+    readonly firstName?: string;
+    readonly lastName?: string;
+    readonly avatar?: string;
+    readonly email?: string;
+    readonly phoneNumber?: string;
+    readonly streetAddress?: string;
+    readonly city?: string;
+    readonly state?: string;
+    readonly zipCode?: string;
+    readonly country?: string;
 
     constructor(raw: { [key: string]: any }) {
         this.identity = raw.identity;
@@ -32,6 +42,27 @@ export class UserProfile {
 
         if (this.homePage == null)
             this.homePage = "acct:keycloak-server";
+
+        if (raw.firstName)
+            this.firstName = raw.firstName;
+        if (raw.lastName)
+            this.lastName = raw.lastName;
+        if (raw.avatar)
+            this.avatar = raw.avatar;
+        if (raw.email)
+            this.email = raw.email;
+        if (raw.phoneNumber)
+            this.phoneNumber = raw.phoneNumber;
+        if (raw.streetAddress)
+            this.streetAddress = raw.streetAddress;
+        if (raw.city)
+            this.city = raw.city;
+        if (raw.state)
+            this.state = raw.state;
+        if (raw.zipCode)
+            this.zipCode = raw.zipCode;
+        if (raw.country)
+            this.country = raw.country;
     }
 
     toObject(): { [key: string]: any } {
@@ -49,9 +80,29 @@ export class UserProfile {
             "currentTeam": this.currentTeam,
             "currentClass": this.currentClass
         };
-        if (this.metadata) {
+        if (this.metadata)
             obj.metadata = this.metadata;
-        }
+        if (this.firstName)
+            obj.firstName = this.firstName;
+        if (this.lastName)
+            obj.lastName = this.lastName;
+        if (this.avatar)
+            obj.avatar = this.avatar;
+        if (this.email)
+            obj.email = this.email;
+        if (this.phoneNumber)
+            obj.phoneNumber = this.phoneNumber;
+        if (this.streetAddress)
+            obj.streetAddress = this.streetAddress;
+        if (this.city)
+            obj.city = this.city;
+        if (this.state)
+            obj.state = this.state;
+        if (this.zipCode)
+            obj.zipCode = this.zipCode;
+        if (this.country)
+            obj.country = this.country;
+
         return obj;
     }
 
