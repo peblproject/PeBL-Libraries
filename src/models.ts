@@ -78,30 +78,20 @@ export class UserProfile {
             "metadata": {},
             "registryEndpoint": this.registryEndpoint,
             "currentTeam": this.currentTeam,
-            "currentClass": this.currentClass
+            "currentClass": this.currentClass,
+            "firstName": this.firstName,
+            "lastName": this.lastName,
+            "avatar": this.avatar,
+            "email": this.email,
+            "phoneNumber": this.phoneNumber,
+            "streetAddress": this.streetAddress,
+            "city": this.city,
+            "state": this.state,
+            "zipCode": this.zipCode,
+            "country": this.country
         };
         if (this.metadata)
             obj.metadata = this.metadata;
-        if (this.firstName)
-            obj.firstName = this.firstName;
-        if (this.lastName)
-            obj.lastName = this.lastName;
-        if (this.avatar)
-            obj.avatar = this.avatar;
-        if (this.email)
-            obj.email = this.email;
-        if (this.phoneNumber)
-            obj.phoneNumber = this.phoneNumber;
-        if (this.streetAddress)
-            obj.streetAddress = this.streetAddress;
-        if (this.city)
-            obj.city = this.city;
-        if (this.state)
-            obj.state = this.state;
-        if (this.zipCode)
-            obj.zipCode = this.zipCode;
-        if (this.country)
-            obj.country = this.country;
 
         return obj;
     }
