@@ -844,11 +844,13 @@ export class LLSyncAction implements SyncProcess {
                                 if (activity) {
                                     self.pebl.storage.removeOutgoingActivity(userProfile, activity);
                                     self.pebl.storage.removeActivity(userProfile, activity.id, activity.type);
-                                    //TODO: This probably won't remove other user's memberships to this program..
                                     if (Program.is(activity)) {
                                         let program = new Program(activity);
                                         Program.iterateMembers(program, function(key, membership) {
-                                            self.pebl.emitEvent(self.pebl.events.removedMembership, membership.id);
+                                            self.pebl.emitEvent(self.pebl.events.modifiedMembership, {
+                                                oldMembership: membership,
+                                                newMembership: null
+                                            });
                                         });
                                         self.pebl.emitEvent(self.pebl.events.removedProgram, program);
                                     }

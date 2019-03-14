@@ -358,12 +358,13 @@ export class PEBLEventHandlers {
                 self.pebl.emitEvent(self.pebl.events.incomingMembership, [m]);
 
                 // Then send out a new one
-                let exts = {
-                    role: newMembership.role,
-                    activityType: newMembership.activityType
-                }
-
+                
                 if (newMembership) {
+                    let exts = {
+                        role: newMembership.role,
+                        activityType: newMembership.activityType
+                    }
+
                     self.pebl.storage.getCurrentActivity(function(activity) {
                         self.pebl.storage.getCurrentBook(function(book) {
                             xapiNew.id = newMembership.id;
