@@ -69,4 +69,5 @@ export class EventSet {
     eventProgramJoined = "eventProgramJoined";
     eventProgramExpelled = "eventProgramExpelled";
     eventProgramActivityLaunched = "eventProgramActivityLaunched";
+    eventProgramActivityCompleted = "eventProgramActivityCompleted";
 }
