@@ -716,7 +716,7 @@ export class LLSyncAction implements SyncProcess {
                         for (let id of Object.keys(sharedAnnotations))
                             cleanSharedAnnotations.push(sharedAnnotations[id]);
 
-                        if (cleanAnnotations.length > 0) {
+                        if (cleanSharedAnnotations.length > 0) {
                             cleanSharedAnnotations.sort();
                             self.pebl.storage.saveSharedAnnotations(userProfile, cleanSharedAnnotations);
                             self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, cleanSharedAnnotations);
