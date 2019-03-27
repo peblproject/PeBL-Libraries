@@ -121,7 +121,7 @@ export interface StorageAdapter {
 
     saveQueuedReference(userProfile: UserProfile, ref: Reference, callback?: (() => void)): void;
 
-    getQueuedReference(userProfile: UserProfile, callback: (ref?: Reference) => void): void;
+    getQueuedReference(userProfile: UserProfile, currentBook: string, callback: (ref?: Reference) => void): void;
 
     removeQueuedReference(userProfile: UserProfile, refId: string, callback?: (() => void)): void;
 

@@ -56,7 +56,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
             groupStore.createIndex(MASTER_INDEX, "identity");
             messageStore.createIndex(MASTER_INDEX, ["identity", "thread"]);
-            queuedReferences.createIndex(MASTER_INDEX, "identity");
+            queuedReferences.createIndex(MASTER_INDEX, ["identity", "book"]);
             notificationStore.createIndex(MASTER_INDEX, "identity");
             tocStore.createIndex(MASTER_INDEX, ["identity", "book"]);
         };
@@ -800,17 +800,17 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getQueuedReference(userProfile: UserProfile, callback: (ref?: Reference) => void): void {
+    getQueuedReference(userProfile: UserProfile, currentBook: string, callback: (ref?: Reference) => void): void {
         if (this.db) {
             let os = this.db.transaction(["queuedReferences"], "readonly").objectStore("queuedReferences")
             let index = os.index(MASTER_INDEX);
-            let request = index.openCursor(IDBKeyRange.only(userProfile.identity));
+            let request = index.openCursor(IDBKeyRange.only([userProfile.identity, currentBook]));
             request.onerror = function(e) {
                 console.log(e);
             };
             request.onsuccess = function() {
                 if (request.result == null) {
-                    let req = index.openCursor(IDBKeyRange.only([userProfile.identity]));
+                    let req = index.openCursor(IDBKeyRange.only([userProfile.identity, currentBook]));
                     req.onerror = function(e) {
                         console.log(e);
                     };
@@ -828,7 +828,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.getQueuedReference(userProfile, callback);
+                self.getQueuedReference(userProfile, currentBook, callback);
             });
         }
     }

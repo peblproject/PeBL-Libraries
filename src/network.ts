@@ -63,10 +63,10 @@ export class Network implements NetworkAdapter {
         let self = this;
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile && userProfile.registryEndpoint) {
-                self.pebl.storage.getQueuedReference(userProfile, function(ref) {
-                    if (ref) {
-                        self.pebl.storage.getCurrentBook(function(currentBook) {
-                            if (currentBook && currentBook === ref.book) {
+                self.pebl.storage.getCurrentBook(function(currentBook) {
+                    if (currentBook) {
+                        self.pebl.storage.getQueuedReference(userProfile, currentBook, function(ref) {
+                            if (ref) {
                                 self.pebl.storage.getToc(userProfile, ref.book, function(toc) {
                                     //Wait to add resources until the static TOC has been initialized, otherwise it never gets intialized
                                     if (toc.length > 0) {
@@ -116,11 +116,14 @@ export class Network implements NetworkAdapter {
                                         self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
                                     }
                                 });
+                                
+                            } else {
+                                if (self.running)
+                                    self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
                             }
                         });
-                    } else {
-                        if (self.running)
-                            self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                    } else if (self.running) {
+                        self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
                     }
                 });
             } else if (self.running)
