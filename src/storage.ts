@@ -49,7 +49,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             annotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             competencyStore.createIndex(MASTER_INDEX, "identity");
-            generalAnnotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
+            generalAnnotationStore.createIndex(MASTER_INDEX, "book");
 
             outgoingActivityStore.createIndex(MASTER_INDEX, "identity");
             outgoingXApiStore.createIndex(MASTER_INDEX, "identity");
@@ -169,7 +169,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     getSharedAnnotations(userProfile: UserProfile, book: string, callback: (stmts: SharedAnnotation[]) => void): void {
         if (this.db) {
             let index = this.db.transaction(["sharedAnnotations"], "readonly").objectStore("sharedAnnotations").index(MASTER_INDEX);
-            let param = [userProfile.identity, book];
+            let param = book;
             this.getAll(index,
                 IDBKeyRange.only(param),
                 callback);
@@ -183,7 +183,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     removeSharedAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void {
         if (this.db) {
-            let request = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations").delete(IDBKeyRange.only([userProfile.identity, id]));
+            let request = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations").delete(IDBKeyRange.only(id));
             request.onerror = function(e) {
                 console.log(e);
             };
