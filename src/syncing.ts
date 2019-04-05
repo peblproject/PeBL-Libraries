@@ -206,12 +206,15 @@ export class LLSyncAction implements SyncProcess {
                 // There is a newer version on the server
                 console.log('Receieved a 412');
                 activity.clearDirtyEdits();
+
                 self.pullActivity(activity.type, activity.id, function(newActivity) {
+                    self.pebl.emitEvent(self.pebl.events.saveProgramConflict, newActivity);
                     callback(false, activity, newActivity);
                 });
             } else {
                 activity.clearDirtyEdits();
                 self.pullActivity(activity.type, activity.id, function() {
+                    self.pebl.emitEvent(self.pebl.events.saveProgramSuccess, activity);
                     callback(true);
                 });
             }
@@ -219,6 +222,7 @@ export class LLSyncAction implements SyncProcess {
 
         xhr.addEventListener("error", function() {
             self.pullActivity(activity.type, activity.id, function() {
+                self.pebl.emitEvent(self.pebl.events.saveProgramError, activity);
                 callback(false);
             });
         });

@@ -16,6 +16,9 @@ export class EventSet {
     incomingErrors = "incomingErrors";
 
     saveProgram = "saveProgram";
+    saveProgramConflict = "saveProgramConflict";
+    saveProgramSuccess = "saveProgramSuccess";
+    saveProgramError = "saveProgramError";
 
     newLearnlet = "newLearnlet";
     newBook = "newBook";
