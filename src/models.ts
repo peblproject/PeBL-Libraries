@@ -152,6 +152,7 @@ export class TempMembership {
     inviteLink: string;
     status: string;
     role: string;
+    inviteRole: string;
 
     constructor(raw: { [key: string]: any }) {
         this.id = raw.id;
@@ -161,10 +162,11 @@ export class TempMembership {
         this.inviteLink = raw.inviteLink;
         this.status = raw.status;
         this.role = raw.role;
+        this.inviteRole = raw.inviteRole;
     }
 
     static is(x: any): boolean {
-        if (x.id && x.identity && x.actor && x.actor.name && x.inviteLink && x.status && x.role)
+        if (x.id && x.identity && x.actor && x.actor.name && x.inviteLink && x.status && x.role && x.inviteRole)
             return true;
         else
             return false;

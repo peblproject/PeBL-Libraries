@@ -1009,7 +1009,8 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            programId: payload.programId
+            programId: payload.programId,
+            programRole: payload.programRole
         }
 
         this.pebl.storage.getCurrentBook(function(book) {
