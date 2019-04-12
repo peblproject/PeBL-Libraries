@@ -138,6 +138,15 @@ export class Utils {
         });
     }
 
+    removeProgram(programId: string, callback: () => void): void {
+        let self = this;
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.removeActivity(userProfile, programId, 'program', callback);
+            }
+        });
+    }
+
     newEmptyProgram(callback: (program?: Program) => void): void {
         callback(new Program({}));
     }

@@ -239,7 +239,7 @@ export class LLSyncAction implements SyncProcess {
         xhr.send(jsObj);
     }
 
-    private deleteActivity(activity: Activity, callback: ((success: boolean) => void)) {
+    private deleteActivity(activity: Activity, callback: ((success: boolean, oldActivity?: Activity, newActivity?: Activity) => void)) {
         let xhr = new XMLHttpRequest();
         let self = this;
 
@@ -248,7 +248,14 @@ export class LLSyncAction implements SyncProcess {
         }
 
         xhr.addEventListener("load", function() {
-            callback(true);
+            if (xhr.status === 412) {
+                console.log('CONFLICT DURING DELETE: RETRYING');
+                self.pullActivity(activity.type, activity.id, function(newActivity) {
+                    callback(false, activity, newActivity);
+                });
+            } else {
+                callback(true);
+            }
         });
 
         xhr.addEventListener("error", function() {
@@ -843,7 +850,7 @@ export class LLSyncAction implements SyncProcess {
             if (userProfile && activity) {
                 if (activity.delete && activity.delete === true) {
                     self.deleteActivity(activity,
-                        function(success: boolean): void {
+                        function(success: boolean, oldActivity?: Activity, newActivity?: Activity): void {
                             if (success) {
                                 if (activity) {
                                     self.pebl.storage.removeOutgoingActivity(userProfile, activity);
@@ -857,6 +864,12 @@ export class LLSyncAction implements SyncProcess {
                                             });
                                         });
                                         self.pebl.emitEvent(self.pebl.events.removedProgram, program);
+                                        self.pebl.emitEvent(self.pebl.events.eventProgramModified, {
+                                            programId: program.id,
+                                            action: 'deleted',
+                                            previousValue: null,
+                                            newValue: null
+                                        });
                                     }
                                 } //typechecker
                                     
@@ -869,6 +882,11 @@ export class LLSyncAction implements SyncProcess {
                             } else {
                                 if (activity) //typechecker
                                     self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+
+                                if (oldActivity && newActivity) {
+                                    let mergedActivity = Activity.merge(oldActivity, newActivity) as Activity;
+                                    outgoing.push(mergedActivity);
+                                }
 
                                 if (outgoing.length == 0)
                                     callback();
@@ -898,9 +916,6 @@ export class LLSyncAction implements SyncProcess {
                                 self.pebl.storage.removeOutgoingActivity(userProfile, activity);
 
                             if (oldActivity && newActivity) {
-                                console.log('Returned false');
-                                console.log(oldActivity);
-                                console.log(newActivity);
                                 let mergedActivity = Activity.merge(oldActivity, newActivity) as Activity;
                                 outgoing.push(mergedActivity);
                             }

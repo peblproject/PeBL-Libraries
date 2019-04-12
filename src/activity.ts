@@ -61,12 +61,19 @@ export class Activity {
             mergedActivity[key] = oldActivity[key];
         });
         Object.keys(newActivity).forEach(function(key) {
+            // Null properties were set for a reason and should not be changed.
             if (mergedActivity[key] == null) {
                 // Leave it
             } else {
                 mergedActivity[key] = newActivity[key];
             }
         });
+
+        // If either is flagged for deletion, that should not be changed.
+        if ((oldActivity.delete && oldActivity.delete == true) || (newActivity.delete && newActivity.delete == true)) {
+            mergedActivity.delete = true;
+        }
+
         return mergedActivity as Activity;
     }
 }
