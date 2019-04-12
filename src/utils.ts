@@ -281,4 +281,26 @@ export class Utils {
         let tm = new TempMembership(obj);
         callback(tm);
     }
+
+    getNotifications(callback: (notifications: XApiStatement[]) => void): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getNotifications(userProfile, function(notifications) {
+                    callback(notifications);
+                });
+            } else {
+                callback([]);
+            }
+        });
+    }
+
+    removeNotification(notificationId: string): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.removeNotification(userProfile, notificationId);
+            }
+        });
+    }
 }
