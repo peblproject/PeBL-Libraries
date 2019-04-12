@@ -12,7 +12,7 @@ const PROGRAM_POLL_INTERVAL = 60000;
 
 import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership, ProgramAction } from "./xapi";
 import { SyncProcess } from "./adapters";
-import { Endpoint } from "./models";
+import { Endpoint, TempMembership } from "./models";
 import { PEBL } from "./pebl";
 import { Activity, Program, Learnlet, Presence } from "./activity";
 
@@ -858,10 +858,12 @@ export class LLSyncAction implements SyncProcess {
                                     if (Program.is(activity)) {
                                         let program = new Program(activity);
                                         Program.iterateMembers(program, function(key, membership) {
-                                            self.pebl.emitEvent(self.pebl.events.modifiedMembership, {
-                                                oldMembership: membership,
-                                                newMembership: null
-                                            });
+                                            if (!TempMembership.is(membership)) {
+                                                self.pebl.emitEvent(self.pebl.events.modifiedMembership, {
+                                                    oldMembership: membership,
+                                                    newMembership: null
+                                                });
+                                            }
                                         });
                                         self.pebl.emitEvent(self.pebl.events.removedProgram, program);
                                         self.pebl.emitEvent(self.pebl.events.eventProgramModified, {
