@@ -201,53 +201,30 @@ export class PEBLEventHandlers {
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
+                let exts = {
+                    role: "owner",
+                    activityType: "program"
+                };
 
-                self.pebl.utils.getGroupMemberships(function(groups) {
-                    let role: (string | undefined);
-                    for (let group of groups) {
-                        if (group.membershipId == prog.id) {
-                            role = group.role;
-                            break;
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        if (Program.isNew(prog)) {
+                            self.xapiGen.addId(xapi);
+                            self.xapiGen.addTimestamp(xapi);
+                            self.xapiGen.addActorAccount(xapi, userProfile);
+                            self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + userProfile.identity, prog.id, prog.programShortDescription, self.xapiGen.addExtensions(exts));
+                            self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#joined", "joined");
+                            if (book || activity)
+                                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
+
+                            let m = new Membership(xapi);
+                            prog.addMember(m);
+                            self.pebl.storage.saveGroupMembership(userProfile, m);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, m);
                         }
-                    }
-
-                    let exts = {
-                        role: "owner",
-                        activityType: "program"
-                    };
-
-                    // let prog = new Program({
-                    //     p: payload.name,
-                    //     longDescription: payload.longDescription,
-                    //     progressLevel: payload.progressLevel,
-                    //     shortDescription: payload.shortDescription,
-                    //     issues: payload.issues,
-                    //     targetCommunities: payload.targetedCommunities,
-                    //     associatedOrganizations: payload.associatedOrganizations,
-                    //     programAvatar: payload.programAvatar,
-                    //     members: []
-                    // });
-
-                    self.pebl.storage.getCurrentActivity(function(activity) {
-                        self.pebl.storage.getCurrentBook(function(book) {
-                            if (!role) {
-                                self.xapiGen.addId(xapi);
-                                self.xapiGen.addTimestamp(xapi);
-                                self.xapiGen.addActorAccount(xapi, userProfile);
-                                self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + userProfile.identity, prog.id, prog.programShortDescription, self.xapiGen.addExtensions(exts));
-                                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#joined", "joined");
-                                if (book || activity)
-                                    self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
-
-                                let m = new Membership(xapi);
-                                prog.addMember(m);
-                                self.pebl.storage.saveGroupMembership(userProfile, m);
-                                self.pebl.storage.saveOutgoingXApi(userProfile, m);
-                            }
-                            self.pebl.storage.saveOutgoingActivity(userProfile, prog);
-                            self.pebl.storage.saveActivity(userProfile, prog);
-                            self.pebl.emitEvent(self.pebl.events.incomingProgram, [prog]);
-                        });
+                        self.pebl.storage.saveOutgoingActivity(userProfile, prog);
+                        self.pebl.storage.saveActivity(userProfile, prog);
+                        self.pebl.emitEvent(self.pebl.events.incomingProgram, [prog]);
                     });
                 });
             }
@@ -1305,6 +1282,32 @@ export class PEBLEventHandlers {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programModified", "programModified");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
+    eventProgramDeleted(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+        
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programDeleted", "programDeleted");
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
