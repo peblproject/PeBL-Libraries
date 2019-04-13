@@ -252,6 +252,28 @@ export class Program extends Activity {
             }
         });
     }
+
+    static isMember(program: Program, userIdentity: string): boolean {
+        let isMember = false;
+        Object.keys(program).forEach(function(key) {
+            if (key.indexOf('member-') !== -1 && program[key]) {
+                if (program[key].identity === userIdentity) {
+                    isMember = true;
+                }
+            }
+        });
+        return isMember;
+    }
+
+    static isNew(program: Program): boolean {
+        let isNew = true;
+        Object.keys(program).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                isNew = false;
+            }
+        });
+        return isNew;
+    }
 }
 
 // -------------------------------
