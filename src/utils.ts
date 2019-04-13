@@ -124,6 +124,29 @@ export class Utils {
         })
     }
 
+    pullProgram(programId: string, callback: (activity?: Activity) => void): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                let network = (self.pebl as any).network;
+                if (network && network.syncingProcess && network.syncingProcess.length > 0) {
+                    network.syncingProcess[0].pullActivity('program', programId, function(activity?: Activity) {
+                        if (activity) {
+                            callback(<Program>activity);
+                        } else {
+                            callback();
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    mergePrograms(oldProgram: Program, newProgram: Program): Program {
+        let mergedProgram = Program.merge(oldProgram, newProgram) as Program;
+        return mergedProgram;
+    }
+
     getProgram(programId: string, callback: (program?: Program) => void): void {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
@@ -136,6 +159,10 @@ export class Utils {
                 });
             }
         });
+    }
+
+    isProgramMember(program: Program, userIdentity: string): boolean {
+        return Program.isMember(program, userIdentity);
     }
 
     removeProgram(programId: string, callback: () => void): void {
@@ -177,6 +204,16 @@ export class Utils {
                 });
             } else
                 callback(null);
+        });
+    }
+
+    removeGroupMembership(groupId: string, callback: () => void): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.removeGroupMembership(userProfile, groupId, callback);
+            }
         });
     }
 
