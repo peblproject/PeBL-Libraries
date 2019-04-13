@@ -101,7 +101,7 @@ export class LLSyncAction implements SyncProcess {
     //     presence.send();
     // }
 
-    private pullActivity(activity: string, profileId: string, callback?: ((activity?: Activity) => void)): void {
+    pullActivity(activity: string, profileId: string, callback?: ((activity?: Activity) => void)): void {
         let self = this;
         let presence = new XMLHttpRequest();
 
@@ -866,7 +866,7 @@ export class LLSyncAction implements SyncProcess {
                                             }
                                         });
                                         self.pebl.emitEvent(self.pebl.events.removedProgram, program);
-                                        self.pebl.emitEvent(self.pebl.events.eventProgramModified, {
+                                        self.pebl.emitEvent(self.pebl.events.eventProgramDeleted, {
                                             programId: program.id,
                                             action: 'deleted',
                                             previousValue: null,
@@ -905,8 +905,15 @@ export class LLSyncAction implements SyncProcess {
                     self.postActivity(activity,
                     function(success: boolean, oldActivity?: Activity, newActivity?: Activity): void {
                         if (success) {
-                            if (activity) //typechecker
+                            if (activity) { //typechecker
                                 self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+                                self.pebl.emitEvent(self.pebl.events.eventProgramModified, {
+                                    programId: activity.id,
+                                    action: 'modified',
+                                    previousValue: null,
+                                    newValue: null
+                                });
+                            }
 
                             if (outgoing.length == 0)
                                 callback();
