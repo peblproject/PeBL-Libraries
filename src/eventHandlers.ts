@@ -6,7 +6,7 @@ const PEBL_THREAD_GROUP_PREFIX = "peblThread://group-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest } from "./xapi";
 import { UserProfile } from "./models";
 import { Learnlet, Program } from "./activity";
 
@@ -945,7 +945,42 @@ export class PEBLEventHandlers {
     }
 
     eventCompatibilityTested(event: CustomEvent) {
+        let payload = event.detail;
 
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            readerName: payload.readerName,
+            osName: payload.osName,
+            osVersion: payload.osVersion,
+            browserName: payload.browserName,
+            browserVersion: payload.browserVersion,
+            userAgent: payload.userAgent,
+            appVersion: payload.appVersion,
+            platform: payload.platform,
+            vendor: payload.vendor,
+            testResults: payload.testResults
+        }
+
+        this.pebl.storage.getCurrentBook(function(book) {
+            self.pebl.storage.getCurrentActivity(function(activity) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#compatibilityTested", "compatibilityTested");
+                        if (activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+
+                        let test = new CompatibilityTest(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, test);
+                    }
+                });
+            });
+        });
     }
 
     eventChecklisted(event: CustomEvent) {

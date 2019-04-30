@@ -481,3 +481,40 @@ export class ProgramAction extends XApiStatement {
                 || (verb == "programDeleted")
     }
 }
+
+// -------------------------------
+
+export class CompatibilityTest extends XApiStatement {
+    readonly readerName: string;
+    readonly osName: string;
+    readonly osVersion: string;
+    readonly browserName: string;
+    readonly browserVersion: string;
+    readonly userAgent: string;
+    readonly appVersion: string;
+    readonly platform: string;
+    readonly vendor: string;
+    readonly testResults: { [key: string]: string };
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.readerName = extensions[PREFIX_PEBL_EXTENSION + "readerName"];
+        this.osName = extensions[PREFIX_PEBL_EXTENSION + "osName"];
+        this.osVersion = extensions[PREFIX_PEBL_EXTENSION + "osVersion"];
+        this.browserName = extensions[PREFIX_PEBL_EXTENSION + "browserName"];
+        this.browserVersion = extensions[PREFIX_PEBL_EXTENSION + "browserVersion"];
+        this.userAgent = extensions[PREFIX_PEBL_EXTENSION + "userAgent"];
+        this.appVersion = extensions[PREFIX_PEBL_EXTENSION + "appVersion"];
+        this.platform = extensions[PREFIX_PEBL_EXTENSION + "platform"];
+        this.vendor = extensions[PREFIX_PEBL_EXTENSION + "vendor"];
+        this.testResults = JSON.parse(extensions[PREFIX_PEBL_EXTENSION + "testResults"]);
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "compatibilityTested")
+    }
+}
