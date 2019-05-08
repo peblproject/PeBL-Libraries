@@ -119,25 +119,29 @@ export class PEBL {
 
     unsubscribeEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
         let i = 0;
-        for (let pack of this.subscribedEventHandlers[eventName]) {
-            if ((pack.once == once) && (pack.fn == callback)) {
-                document.removeEventListener(eventName, pack.modifiedFn);
-                this.subscribedEventHandlers[eventName].splice(i, 1);
-                return;
+        if (this.subscribedEventHandlers[eventName]) {
+            for (let pack of this.subscribedEventHandlers[eventName]) {
+                if ((pack.once == once) && (pack.fn == callback)) {
+                    document.removeEventListener(eventName, pack.modifiedFn);
+                    this.subscribedEventHandlers[eventName].splice(i, 1);
+                    return;
+                }
+                i++;
             }
-            i++;
         }
     }
 
     unsubscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
         let i = 0;
-        for (let pack of this.subscribedThreadHandlers[thread]) {
-            if ((pack.once == once) && (pack.fn == callback)) {
-                document.removeEventListener(thread, pack.modifiedFn);
-                this.subscribedThreadHandlers[thread].splice(i, 1);
-                return;
+        if (this.subscribedThreadHandlers[thread]) {
+            for (let pack of this.subscribedThreadHandlers[thread]) {
+                if ((pack.once == once) && (pack.fn == callback)) {
+                    document.removeEventListener(thread, pack.modifiedFn);
+                    this.subscribedThreadHandlers[thread].splice(i, 1);
+                    return;
+                }
+                i++;
             }
-            i++;
         }
     }
 
