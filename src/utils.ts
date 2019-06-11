@@ -1,5 +1,5 @@
 import { PEBL } from "./pebl";
-import { XApiStatement, Membership, ProgramAction } from "./xapi";
+import { XApiStatement, Membership, ProgramAction, Message } from "./xapi";
 import { Program, Activity } from "./activity";
 import { TempMembership } from "./models";
 
@@ -337,6 +337,19 @@ export class Utils {
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.removeNotification(userProfile, notificationId);
+            }
+        });
+    }
+
+    getMessages(thread: string, callback: (messages: Message[]) => void): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getMessages(userProfile, thread, function(messages) {
+                    callback(messages);
+                });
+            } else {
+                callback([]);
             }
         });
     }
