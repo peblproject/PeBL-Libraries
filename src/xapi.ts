@@ -523,6 +523,7 @@ export class CompatibilityTest extends XApiStatement {
 
 export class ModuleRating extends XApiStatement {
     readonly rating: string;
+    readonly idref: string;
     readonly programId?: string;
 
     constructor(raw: { [key: string]: any }) {
@@ -532,6 +533,7 @@ export class ModuleRating extends XApiStatement {
 
         this.rating = this.object.definition.name["en-US"];
 
+        this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
         this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
     }
 
@@ -544,6 +546,7 @@ export class ModuleRating extends XApiStatement {
 export class ModuleFeedback extends XApiStatement {
     readonly feedback: string;
     readonly willingToDiscuss: string;
+    readonly idref: string;
     readonly programId?: string;
 
     constructor(raw: { [key: string]: any }) {
@@ -554,6 +557,7 @@ export class ModuleFeedback extends XApiStatement {
         this.feedback = this.object.definition.name["en-US"];
 
         this.willingToDiscuss = extensions[PREFIX_PEBL_EXTENSION + "willingToDiscuss"];
+        this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
         this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
     }
 

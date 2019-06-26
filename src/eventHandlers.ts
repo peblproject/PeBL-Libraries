@@ -1419,6 +1419,7 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
+            idref: payload.idref,
             programId: payload.programId
         }
         this.pebl.storage.getCurrentBook(function(book) {
@@ -1448,6 +1449,7 @@ export class PEBLEventHandlers {
 
         let exts = {
             willingToDiscuss: payload.willingToDiscuss,
+            idref: payload.idref,
             programId: payload.programId
         }
         this.pebl.storage.getCurrentBook(function(book) {
