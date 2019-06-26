@@ -183,7 +183,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     removeSharedAnnotation(userProfile: UserProfile, id: string, callback?: (() => void)): void {
         if (this.db) {
-            let request = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations").delete(IDBKeyRange.only(id));
+            let request = this.db.transaction(["sharedAnnotations"], "readwrite").objectStore("sharedAnnotations").delete(IDBKeyRange.only([userProfile.identity, id]));
             request.onerror = function(e) {
                 console.log(e);
             };
