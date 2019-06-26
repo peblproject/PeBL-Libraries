@@ -518,3 +518,47 @@ export class CompatibilityTest extends XApiStatement {
         return (verb == "compatibilityTested")
     }
 }
+
+// -------------------------------
+
+export class ModuleRating extends XApiStatement {
+    readonly rating: string;
+    readonly programId?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.rating = this.object.definition.name["en-US"];
+
+        this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "moduleRating")
+    }
+}
+
+export class ModuleFeedback extends XApiStatement {
+    readonly feedback: string;
+    readonly willingToDiscuss: string;
+    readonly programId?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.feedback = this.object.definition.name["en-US"];
+
+        this.willingToDiscuss = extensions[PREFIX_PEBL_EXTENSION + "willingToDiscuss"];
+        this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "moduleFeedback")
+    }
+}
