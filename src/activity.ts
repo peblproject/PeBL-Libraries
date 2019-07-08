@@ -276,6 +276,218 @@ export class Program extends Activity {
     }
 }
 
+export class Institution extends Activity {
+    [key: string]: (Membership | TempMembership | Program | any);
+    institutionName: string;
+    institutionDescription: string;
+    instititionAvatar?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        raw.type = "institution";
+        super(raw);
+
+        let self = this;
+
+        Object.keys(raw).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
+                if (member == null || (XApiStatement.is(member) && Membership.is(member as XApiStatement)) || TempMembership.is(member)) {
+                    self[key] = member;
+                }
+            } else if (key.indexOf('program-') !== -1) {
+                let program = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ?  raw[key] : null;
+                if (program == null || (Program.is(program))) {
+                    self[key] = program;
+                }
+            }
+        });
+
+        this.institutionName = raw.institutionName || "";
+        this.institutionDescription = raw.institutionDescription || "";
+        this.institutionAvatar = raw.institutionAvatar;
+    }
+
+    static is(raw: { [key: string]: any }): boolean {
+        return raw.type == "institution";
+    }
+
+    toTransportFormat(): { [key: string]: any } {
+        let obj = super.toTransportFormat();
+        let self = this;
+
+        Object.keys(this).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                if (self[key] == null) {
+                    obj[key] = self[key];
+                } else if ((XApiStatement.is(self[key]) && Membership.is(self[key] as XApiStatement)) || TempMembership.is(self[key])) {
+                    obj[key] = encodeURIComponent(JSON.stringify(self[key]));
+                }
+            } else if (key.indexOf('member-') !== -1) {
+                if (self[key] == null) {
+                    obj[key] = self[key];
+                } else if (Program.is(self[key])) {
+                    obj[key] = encodeURIComponent(JSON.stringify(self[key]));
+                }
+            }
+        });
+
+        obj.institutionName = this.institutionName;
+        obj.institutionDescription = this.institutionDescription;
+        obj.instititionAvatar = this.institutionAvatar;
+        return obj;
+    }
+
+    addMember(membership: (Membership | TempMembership)): void {
+        this['member-' + membership.id] = membership;
+    }
+
+    addProgram(program: Program): void {
+        this['program-' + program.id] = program;
+    }
+
+    static iterateMembers(institution: Institution, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
+        Object.keys(institution).forEach(function(key) {
+            if (key.indexOf('member-') !== -1 && institution[key]) {
+                if (XApiStatement.is(institution[key]) && Membership.is(institution[key] as XApiStatement)) {
+                    callback(key, institution[key] as Membership);
+                } else if (TempMembership.is(institution[key])) {
+                    callback(key, institution[key] as TempMembership);
+                }
+            }
+        });
+    }
+
+    static isMember(institution: Institution, userIdentity: string): boolean {
+        let isMember = false;
+        Object.keys(institution).forEach(function(key) {
+            if (key.indexOf('member-') !== -1 && institution[key]) {
+                if (institution[key].identity === userIdentity) {
+                    isMember = true;
+                }
+            }
+        });
+        return isMember;
+    }
+
+    static iteratePrograms(institution: Institution, callback: (key: string, program: Program) => void): void {
+        Object.keys(institution).forEach(function(key) {
+            if (key.indexOf('program-') !== -1 && institution[key]) {
+                if (Program.is(institution[key])) {
+                    callback(key, institution[key] as Program);
+                }
+            }
+        })
+    }
+
+    static isProgram(institution: Institution, programId: string): boolean {
+        let isProgram = false;
+        Object.keys(institution).forEach(function(key) {
+            if (key.indexOf('program-') !== -1 && institution[key]) {
+                if (institution[key].id === programId) {
+                    isProgram = true;
+                }
+            }
+        });
+        return isProgram;
+    }
+
+    static isNew(institution: Institution): boolean {
+        let isNew = true;
+        Object.keys(institution).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                isNew = false;
+            }
+        });
+        return isNew;
+    }
+}
+
+export class System extends Activity {
+    [key: string]: (Membership | TempMembership | any);
+    systemName: string;
+    systemDescription: string;
+
+    constructor(raw: { [key: string]: any }) {
+        raw.type = "system";
+        super(raw);
+
+        let self = this;
+
+        Object.keys(raw).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
+                if (member == null || (XApiStatement.is(member) && Membership.is(member as XApiStatement)) || TempMembership.is(member)) {
+                    self[key] = member;
+                }
+            }
+        });
+
+        this.systemName = raw.systemName || "";
+        this.systemDescription = raw.systemDescription || "";
+    }
+
+    static is(raw: { [key: string]: any }): boolean {
+        return raw.type == "system";
+    }
+
+    toTransportFormat(): { [key: string]: any } {
+        let obj = super.toTransportFormat();
+        let self = this;
+
+        Object.keys(this).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                if (self[key] == null) {
+                    obj[key] = self[key];
+                } else if ((XApiStatement.is(self[key]) && Membership.is(self[key] as XApiStatement)) || TempMembership.is(self[key])) {
+                    obj[key] = encodeURIComponent(JSON.stringify(self[key]));
+                }
+            }
+        });
+
+        obj.systemName = this.systemName;
+        obj.systemDescription = this.systemDescription;
+        return obj;
+    }
+
+    addMember(membership: (Membership | TempMembership)): void {
+        this['member-' + membership.id] = membership;
+    }
+
+    static iterateMembers(system: System, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
+        Object.keys(system).forEach(function(key) {
+            if (key.indexOf('member-') !== -1 && system[key]) {
+                if (XApiStatement.is(system[key]) && Membership.is(system[key] as XApiStatement)) {
+                    callback(key, system[key] as Membership);
+                } else if (TempMembership.is(system[key])) {
+                    callback(key, system[key] as TempMembership);
+                }
+            }
+        });
+    }
+
+    static isMember(system: System, userIdentity: string): boolean {
+        let isMember = false;
+        Object.keys(system).forEach(function(key) {
+            if (key.indexOf('member-') !== -1 && system[key]) {
+                if (system[key].identity === userIdentity) {
+                    isMember = true;
+                }
+            }
+        });
+        return isMember;
+    }
+
+    static isNew(system: System): boolean {
+        let isNew = true;
+        Object.keys(system).forEach(function(key) {
+            if (key.indexOf('member-') !== -1) {
+                isNew = false;
+            }
+        });
+        return isNew;
+    }
+}
+
 // -------------------------------
 
 export class Presence extends Activity {
@@ -297,6 +509,10 @@ export function toActivity(obj: { [key: string]: any }): (Activity | null) {
         act = new Learnlet(obj);
     } else if (Learnlet.is(obj)) {
         act = new Presence(obj);
+    } else if (Institution.is(obj)) {
+        act = new Institution(obj);
+    } else if (System.is(obj)) {
+        act = new System(obj);
     } else
         new Error("Unknown activity type");
 

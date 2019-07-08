@@ -9,12 +9,14 @@ const BOOK_POLL_INTERVAL = 6000;
 const PRESENCE_POLL_INTERVAL = 120000;
 const LEARNLET_POLL_INTERVAL = 60000;
 const PROGRAM_POLL_INTERVAL = 60000;
+const INSTITUTION_POLL_INTERVAL = 60000;
+const SYSTEM_POLL_INTERVAL = 60000;
 
 import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership, ProgramAction } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint, TempMembership } from "./models";
 import { PEBL } from "./pebl";
-import { Activity, Program, Learnlet, Presence } from "./activity";
+import { Activity, Program, Learnlet, Presence, Institution, System } from "./activity";
 
 export class LLSyncAction implements SyncProcess {
 
@@ -134,6 +136,22 @@ export class LLSyncAction implements SyncProcess {
                     if (s) {
                         p.etag = s;
                     }
+                } else if (activity == "institution" && Institution.is(jsonObj)) {
+                    activityEvent = self.pebl.events.incomingInstitution;
+                    let i = new Institution(jsonObj);
+                    activityObj = [i];
+                    let s: string | null = presence.getResponseHeader("etag");
+                    if (s) {
+                        i.etag = s;
+                    }
+                } else if (activity == "system" && System.is(jsonObj)) {
+                    activityEvent = self.pebl.events.incomingSystem;
+                    let sys = new System(jsonObj);
+                    activityObj = [sys];
+                    let s: string | null = presence.getResponseHeader("etag");
+                    if (s) {
+                        sys.etag = s;
+                    }
                 } else {
                     console.log(jsonObj);
                     activityObj = [];
@@ -149,6 +167,10 @@ export class LLSyncAction implements SyncProcess {
 
                             } else if (activity == "presense") {
 
+                            } else if (activity == "institution") {
+                                self.pebl.storage.saveActivity(userProfile, activityObj[0]);
+                            } else if (activity == "system") {
+                                self.pebl.storage.saveActivity(userProfile, activityObj[0]);
                             }
 
                             if (activityEvent) {
@@ -198,6 +220,12 @@ export class LLSyncAction implements SyncProcess {
         } else if (Learnlet.is(activity)) {
             activity = new Learnlet(activity);
             jsObj = JSON.stringify(new Learnlet(activity).toTransportFormat());
+        } else if (Institution.is(activity)) {
+            activity = new Institution(activity);
+            jsObj = JSON.stringify(activity.toTransportFormat());
+        } else if (System.is(activity)) {
+            activity = new System(activity);
+            jsObj = JSON.stringify(activity.toTransportFormat());
         } else
             new Error("Unknown activity format");
 
@@ -243,7 +271,7 @@ export class LLSyncAction implements SyncProcess {
         let xhr = new XMLHttpRequest();
         let self = this;
 
-        if (!Program.is(activity) && !Learnlet.is(activity)) {
+        if (!Program.is(activity) && !Learnlet.is(activity) && !Institution.is(activity) && !System.is(activity)) {
             new Error("Unknown activity format");
         }
 
@@ -762,6 +790,8 @@ export class LLSyncAction implements SyncProcess {
         this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
         this.startActivityPull("program", PROGRAM_POLL_INTERVAL);
         this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
+        this.startActivityPull("institution", INSTITUTION_POLL_INTERVAL);
+        this.startActivityPull("system", SYSTEM_POLL_INTERVAL);
     }
 
     private startActivityPull(activityType: string, interval: number): void {
@@ -870,6 +900,40 @@ export class LLSyncAction implements SyncProcess {
                                             programId: program.id,
                                             action: 'deleted',
                                             previousValue: null,
+                                            newValue: null
+                                        });
+                                    } else if (Institution.is(activity)) {
+                                        let institution = new Institution(activity);
+                                        Institution.iterateMembers(institution, function(key, membership) {
+                                            if (!TempMembership.is(membership)) {
+                                                self.pebl.emitEvent(self.pebl.events.modifiedMembership, {
+                                                    oldMembership: membership,
+                                                    newMembership: null
+                                                });
+                                            }
+                                        });
+                                        self.pebl.emitEvent(self.pebl.events.removedInstitution, institution);
+                                        self.pebl.emitEvent(self.pebl.events.eventInstitutionDeleted, {
+                                            institutionId: institution.id,
+                                            action: 'deleted',
+                                            previousvalue: null,
+                                            newValue: null
+                                        });
+                                    } else if (System.is(activity)) {
+                                        let system = new System(activity);
+                                        System.iterateMembers(system, function(key, membership) {
+                                            if (!TempMembership.is(membership)) {
+                                                self.pebl.emitEvent(self.pebl.events.modifiedMembership, {
+                                                    oldMembership: membership,
+                                                    newMembership: null
+                                                });
+                                            }
+                                        });
+                                        self.pebl.emitEvent(self.pebl.events.removedSystem, system);
+                                        self.pebl.emitEvent(self.pebl.events.eventSystemDeleted, {
+                                            institutionId: system.id,
+                                            action: 'deleted',
+                                            previousvalue: null,
                                             newValue: null
                                         });
                                     }

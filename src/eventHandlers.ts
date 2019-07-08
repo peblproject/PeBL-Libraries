@@ -8,7 +8,7 @@ import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
 import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback } from "./xapi";
 import { UserProfile } from "./models";
-import { Learnlet, Program } from "./activity";
+import { Learnlet, Program, Institution, System } from "./activity";
 
 export class PEBLEventHandlers {
 
@@ -225,6 +225,82 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveOutgoingActivity(userProfile, prog);
                         self.pebl.storage.saveActivity(userProfile, prog);
                         self.pebl.emitEvent(self.pebl.events.incomingProgram, [prog]);
+                    });
+                });
+            }
+        });
+    }
+
+    saveInstitution(event: CustomEvent) {
+        let inst: Institution = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                let exts = {
+                    role: "owner",
+                    activityType: "institution"
+                };
+
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        if (Institution.isNew(inst)) {
+                            self.xapiGen.addId(xapi);
+                            self.xapiGen.addTimestamp(xapi);
+                            self.xapiGen.addActorAccount(xapi, userProfile);
+                            self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + userProfile.identity, inst.id, inst.description, self.xapiGen.addExtensions(exts));
+                            self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#joined", "joined");
+                            if (book || activity)
+                                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
+
+                            let m = new Membership(xapi);
+                            inst.addMember(m);
+                            self.pebl.storage.saveGroupMembership(userProfile, m);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                        }
+                        self.pebl.storage.saveOutgoingActivity(userProfile, inst);
+                        self.pebl.storage.saveActivity(userProfile, inst);
+                        self.pebl.emitEvent(self.pebl.events.incomingInstitition, [inst]);
+                    });
+                });
+            }
+        });
+    }
+
+    saveSystem(event: CustomEvent) {
+        let system: System = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                let exts = {
+                    role: "owner",
+                    activityType: "system"
+                };
+
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        if (System.isNew(system)) {
+                            self.xapiGen.addId(xapi);
+                            self.xapiGen.addTimestamp(xapi);
+                            self.xapiGen.addActorAccount(xapi, userProfile);
+                            self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + userProfile.identity, system.id, system.description, self.xapiGen.addExtensions(exts));
+                            self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#joined", "joined");
+                            if (book || activity)
+                                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
+
+                            let m = new Membership(xapi);
+                            system.addMember(m);
+                            self.pebl.storage.saveGroupMembership(userProfile, m);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                        }
+                        self.pebl.storage.saveOutgoingActivity(userProfile, system);
+                        self.pebl.storage.saveActivity(userProfile, system);
+                        self.pebl.emitEvent(self.pebl.events.incomingSystem, [system]);
                     });
                 });
             }

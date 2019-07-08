@@ -9,6 +9,8 @@ export class EventSet {
     incomingPresence = "incomingPresence";
     incomingLearnlet = "incomingLearnlet";
     incomingProgram = "incomingProgram";
+    incomingInstitution = "incomingInstitution";
+    incomingSystem = "incomingSystem";
     incomingArtifact = "incomingArtifact";
     incomingMembership = "incomingMembership";
     incomingActivityEvents = "incomingActivityEvents";
@@ -19,6 +21,8 @@ export class EventSet {
     saveProgramConflict = "saveProgramConflict";
     saveProgramSuccess = "saveProgramSuccess";
     saveProgramError = "saveProgramError";
+    saveInstitution = "saveInstitution";
+    saveSystem = "saveSystem";
 
     newLearnlet = "newLearnlet";
     newBook = "newBook";
