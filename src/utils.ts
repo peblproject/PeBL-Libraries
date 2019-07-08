@@ -1,6 +1,6 @@
 import { PEBL } from "./pebl";
 import { XApiStatement, Membership, ProgramAction, Message } from "./xapi";
-import { Program, Activity } from "./activity";
+import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
 
 export class Utils {
@@ -161,8 +161,48 @@ export class Utils {
         });
     }
 
+    getInstitution(institutionId: string, callback: (institution?: Institution) => void): void {
+        let self = this;
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getActivityById(userProfile, "institution", institutionId, function(activity?: Activity) {
+                    if (activity)
+                        callback(<Institution>activity);
+                    else
+                        callback();
+                });
+            }
+        });
+    }
+
+    getSystem(systemId: string, callback: (system?: System) => void): void {
+        let self = this;
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getActivityById(userProfile, "system", systemId, function(activity?: Activity) {
+                    if (activity)
+                        callback(<System>activity);
+                    else
+                        callback();
+                });
+            }
+        });
+    }
+
     isProgramMember(program: Program, userIdentity: string): boolean {
         return Program.isMember(program, userIdentity);
+    }
+
+    isInstitutionMember(institution: Institution, userIdentity: string): boolean {
+        return Institution.isMember(institution, userIdentity);
+    }
+
+    isProgramMemberOfInstitution(institution: Institution, programId: string): boolean {
+        return Institution.isProgram(institution, programId);
+    }
+
+    isSystemMember(system: System, userIdentity: string): boolean {
+        return System.isMember(system, userIdentity);
     }
 
     removeProgram(programId: string, callback: () => void): void {
@@ -174,8 +214,21 @@ export class Utils {
         });
     }
 
+    removeInstitution(institutionId: string, callback: () => void): void {
+        let self = this;
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.removeActivity(userProfile, institutionId, 'institution', callback);
+            }
+        });
+    }
+
     newEmptyProgram(callback: (program?: Program) => void): void {
         callback(new Program({}));
+    }
+
+    newEmptyInstitution(callback: (institution?: Institution) => void): void {
+        callback(new Institution({}));
     }
 
     getGroupMemberships(callback: (memberships: Membership[]) => void): void {
@@ -226,6 +279,32 @@ export class Utils {
                     callback(<Program[]>activities);
                 });
             } else
+                callback([]);
+        });
+    }
+
+    getInstitutions(callback: (institutions: Institution[]) => void): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getActivity(userProfile, "institution", function(activities) {
+                    callback(<Institution[]>activities);
+                });
+            } else
+                callback([]);
+        });
+    }
+
+    getSystems(callback: (systems: System[]) => void): void {
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getActivity(userProfile, "system", function(activities) {
+                    callback(<System[]>activities);
+                });
+            } else 
                 callback([]);
         });
     }
@@ -312,6 +391,18 @@ export class Utils {
 
     iterateProgramMembers(program: Program, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
         Program.iterateMembers(program, callback);
+    }
+
+    iterateInstitutionMembers(institution: Institution, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
+        Institution.iterateMembers(institution, callback);
+    }
+    
+    iterateInstitutionPrograms(institution: Institution, callback: (key: string, program: Program) => void): void {
+        Institution.iteratePrograms(institution, callback);
+    }
+
+    iterateSystemMembers(system: System, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
+        System.iterateMembers(system, callback);
     }
 
     newTempMember(obj: { [key: string]: any }, callback: (tempMember: TempMembership) => void): void {
