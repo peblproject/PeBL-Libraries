@@ -12,7 +12,7 @@ const PROGRAM_POLL_INTERVAL = 60000;
 const INSTITUTION_POLL_INTERVAL = 60000;
 const SYSTEM_POLL_INTERVAL = 60000;
 
-import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership, ProgramAction } from "./xapi";
+import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership, ProgramAction, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint, TempMembership } from "./models";
 import { PEBL } from "./pebl";
@@ -685,6 +685,7 @@ export class LLSyncAction implements SyncProcess {
                         let annotations: { [key: string]: Annotation } = {};
                         let sharedAnnotations: { [key: string]: SharedAnnotation } = {};
                         let events: { [key: string]: any } = {};
+                        let moduleEvents: { [key: string]: (ModuleRating | ModuleFeedback | ModuleExample | ModuleExampleRating) } = {};
                         let deleted = [];
 
                         for (let i = 0; i < stmts.length; i++) {
@@ -718,6 +719,18 @@ export class LLSyncAction implements SyncProcess {
                                 let r = new Reference(xapi);
                                 events[r.id] = r;
                                 self.pebl.network.queueReference(r);
+                            } else if (ModuleRating.is(xapi)) {
+                                let mr = new ModuleRating(xapi);
+                                moduleEvents[mr.id] = mr;
+                            } else if (ModuleFeedback.is(xapi)) {
+                                let mf = new ModuleFeedback(xapi);
+                                moduleEvents[mf.id] = mf;
+                            } else if (ModuleExample.is(xapi)) {
+                                let me = new ModuleExample(xapi);
+                                moduleEvents[me.id] = me;
+                            } else if (ModuleExampleRating.is(xapi)) {
+                                let mer = new ModuleExampleRating(xapi);
+                                moduleEvents[mer.id] = mer;
                             } else {
                                 new Error("Unknown Statement type");
                             }
@@ -769,6 +782,16 @@ export class LLSyncAction implements SyncProcess {
                             cleanEvents.sort();
                             self.pebl.storage.saveEvent(userProfile, cleanEvents);
                             self.pebl.emitEvent(self.pebl.events.incomingEvents, cleanEvents);
+                        }
+
+                        let cleanModuleEvents = [];
+                        for (let id of Object.keys(moduleEvents))
+                            cleanModuleEvents.push(moduleEvents[id]);
+
+                        if (cleanModuleEvents.length > 0) {
+                            cleanModuleEvents.sort();
+                            self.pebl.storage.saveModuleEvent(userProfile, cleanModuleEvents);
+                            self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, cleanModuleEvents);
                         }
 
                         self.pebl.storage.saveUserProfile(userProfile);

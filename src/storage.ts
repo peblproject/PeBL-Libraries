@@ -1,5 +1,5 @@
 import { StorageAdapter } from "./adapters";
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction, ModuleEvent, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating } from "./xapi";
 import { UserProfile } from "./models";
 import { Activity, toActivity } from "./activity";
 
@@ -43,8 +43,12 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let activityStore = db.createObjectStore("activity", { keyPath: ["identity", "type", "id"] });
             let activityEventStore = db.createObjectStore("activityEvents", { keyPath: ["id", "programId"] });
 
+            let moduleEventStore = db.createObjectStore("moduleEvents", {keyPath: ["id", "idref"] });
+
             activityStore.createIndex(MASTER_INDEX, ["identity", "type"]);
             activityEventStore.createIndex(MASTER_INDEX, ["programId"]);
+
+            moduleEventStore.createIndex(MASTER_INDEX, ["idref"]);
 
             eventStore.createIndex(MASTER_INDEX, ["identity", "book"]);
             annotationStore.createIndex(MASTER_INDEX, ["identity", "book"]);
@@ -1121,6 +1125,72 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let self = this;
             this.invocationQueue.push(function() {
                 self.saveActivityEvent(userProfile, stmts, callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    getModuleEvent(idref: string, callback: (events: ModuleRating[] | ModuleFeedback[] | ModuleExample[] | ModuleExampleRating[]) => void): void {
+        if (this.db) {
+            let os = this.db.transaction(["moduleEvents"], "readonly").objectStore("moduleEvents");
+            let index = os.index(MASTER_INDEX);
+            let param = idref;
+            let self = this;
+            this.getAll(index,
+                IDBKeyRange.only(param),
+                function(arr) {
+                    if (arr.length == 0)
+                        self.getAll(index,
+                            IDBKeyRange.only([param]),
+                            callback);
+                    else
+                        callback(arr);
+                });
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getModuleEvent(idref, callback);
+            });
+        }
+    }
+
+    saveModuleEvent(userProfile: UserProfile, stmts: (ModuleEvent | ModuleEvent[]), callback?: (() => void)): void {
+        if (this.db) {
+            if (stmts instanceof ModuleEvent) {
+                let ga = stmts;
+                ga.identity = ga.actor.account.name;
+                let request = this.db.transaction(["moduleEvents"], "readwrite").objectStore("moduleEvents").put(ga);
+                request.onerror = function(e) {
+                    console.log(e);
+                };
+                request.onsuccess = function() {
+                    if (callback)
+                        callback();
+                };
+            } else {
+                let objectStore = this.db.transaction(["moduleEvents"], "readwrite").objectStore("moduleEvents");
+                let stmtsCopy: ModuleEvent[] = stmts.slice(0);
+                let self: IndexedDBStorageAdapter = this;
+                let processCallback = function() {
+                    let record: (ModuleEvent | undefined) = stmtsCopy.pop();
+                    if (record) {
+                        let clone = record;
+                        clone.identity = clone.actor.account.name;
+                        let request = objectStore.put(self.cleanRecord(clone));
+                        request.onerror = processCallback;
+                        request.onsuccess = processCallback;
+                    } else {
+                        if (callback)
+                            callback();
+                    }
+                };
+                processCallback();
+            }
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveModuleEvent(userProfile, stmts, callback);
             });
         }
     }

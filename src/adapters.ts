@@ -1,4 +1,4 @@
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction, ModuleEvent } from "./xapi";
 import { UserProfile } from "./models";
 import { Activity } from "./activity";
 
@@ -150,6 +150,11 @@ export interface StorageAdapter {
     saveActivityEvent(userProfile: UserProfile, stmts: (ProgramAction | ProgramAction[]), callback?: (() => void)): void;
 
     getActivityEvent(programId: string, callback: (events: ProgramAction[]) => void): void;
+
+
+    saveModuleEvent(userProfile: UserProfile, stmts: (ModuleEvent | ModuleEvent[]), callback?: (() => void)): void;
+
+    getModuleEvent(idref: string, callback: (events: ModuleEvent[]) => void): void;
 
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;

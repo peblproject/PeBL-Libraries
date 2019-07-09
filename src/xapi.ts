@@ -521,7 +521,13 @@ export class CompatibilityTest extends XApiStatement {
 
 // -------------------------------
 
-export class ModuleRating extends XApiStatement {
+export class ModuleEvent extends XApiStatement {
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+    }
+}
+
+export class ModuleRating extends ModuleEvent {
     readonly rating: string;
     readonly idref: string;
     readonly programId?: string;
@@ -543,7 +549,7 @@ export class ModuleRating extends XApiStatement {
     }
 }
 
-export class ModuleFeedback extends XApiStatement {
+export class ModuleFeedback extends ModuleEvent {
     readonly feedback: string;
     readonly willingToDiscuss: string;
     readonly idref: string;
@@ -564,5 +570,50 @@ export class ModuleFeedback extends XApiStatement {
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "moduleFeedback")
+    }
+}
+
+export class ModuleExample extends ModuleEvent {
+    readonly example: string;
+    readonly description: string;
+    readonly idref: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.example = this.object.definition.name["en-US"];
+
+        this.description = this.object.definition.description["en-US"];
+
+        this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "moduleExample");
+    }
+}
+
+export class ModuleExampleRating extends ModuleEvent {
+    readonly rating: string;
+    readonly idref: string;
+    readonly programId?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.rating = this.object.definition.name["en-US"];
+
+        this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
+        this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "moduleExampleRating")
     }
 }
