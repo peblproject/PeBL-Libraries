@@ -14,6 +14,7 @@ export class EventSet {
     incomingArtifact = "incomingArtifact";
     incomingMembership = "incomingMembership";
     incomingActivityEvents = "incomingActivityEvents";
+    incomingModuleEvents = "incomingModuleEvents";
 
     incomingErrors = "incomingErrors";
 
