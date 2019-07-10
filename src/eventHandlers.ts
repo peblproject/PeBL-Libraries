@@ -1588,7 +1588,8 @@ export class PEBLEventHandlers {
 
         let exts = {
             idref: payload.idref,
-            programId: payload.programId
+            programId: payload.programId,
+            exampleId: payload.exampleId
         }
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentActivity(function(activity) {

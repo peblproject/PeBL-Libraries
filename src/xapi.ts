@@ -610,6 +610,7 @@ export class ModuleExampleRating extends ModuleEvent {
     readonly rating: string;
     readonly idref: string;
     readonly programId?: string;
+    readonly exampleId?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -620,6 +621,7 @@ export class ModuleExampleRating extends ModuleEvent {
 
         this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
         this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
+        this.exampleId = extension[PREFIX_PEBL_EXTENSION + "exampleId"];
     }
 
     static is(x: XApiStatement): boolean {
