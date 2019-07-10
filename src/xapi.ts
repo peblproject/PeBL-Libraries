@@ -577,6 +577,11 @@ export class ModuleExample extends ModuleEvent {
     readonly example: string;
     readonly description: string;
     readonly idref: string;
+    readonly youtubeUrl?: string;
+    readonly imageUrl?: string;
+    readonly websiteUrl?: string;
+    readonly quotedPerson?: string;
+    readonly quotedTeam?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -588,6 +593,11 @@ export class ModuleExample extends ModuleEvent {
         this.description = this.object.definition.description["en-US"];
 
         this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
+        this.youtubeUrl = extensions[PREFIX_PEBL_EXTENSION + "youtubeUrl"];
+        this.imageUrl = extensions[PREFIX_PEBL_EXTENSION + "imageUrl"];
+        this.websiteUrl = extensions[PREFIX_PEBL_EXTENSION + "websiteUrl"];
+        this.quotedPerson = extension[PREFIX_PEBL_EXTENSION + "quotedPerson"];
+        this.quotedTeam = extension[PREFIX_PEBL_EXTENSION + "quotedTeam"];
     }
 
     static is(x: XApiStatement): boolean {

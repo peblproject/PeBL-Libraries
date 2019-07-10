@@ -1554,7 +1554,12 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            idref: payload.idref
+            idref: payload.idref,
+            youtubeUrl: payload.youtubeUrl,
+            imageUrl: payload.imageUrl,
+            websiteUrl: payload.websiteUrl,
+            quotedPerson: payload.quotedPerson,
+            quotedTeam: payload.quotedTeam
         }
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentActivity(function(activity) {
