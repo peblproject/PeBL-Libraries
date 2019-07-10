@@ -147,6 +147,16 @@ export class Utils {
         return mergedProgram;
     }
 
+    mergeInstitutions(oldInstitution: Institution, newInstitution: Institution): Institution {
+        let mergedInstitution = Institution.merge(oldInstitution, newInstitution) as Institution;
+        return mergedInstitution;
+    }
+
+    mergeSystems(oldSystem: System, newSystem: System): System {
+        let mergedSystem = System.merge(oldSystem, newSystem) as System;
+        return mergedSystem;
+    }
+
     getProgram(programId: string, callback: (program?: Program) => void): void {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
