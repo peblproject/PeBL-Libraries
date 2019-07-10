@@ -596,8 +596,8 @@ export class ModuleExample extends ModuleEvent {
         this.youtubeUrl = extensions[PREFIX_PEBL_EXTENSION + "youtubeUrl"];
         this.imageUrl = extensions[PREFIX_PEBL_EXTENSION + "imageUrl"];
         this.websiteUrl = extensions[PREFIX_PEBL_EXTENSION + "websiteUrl"];
-        this.quotedPerson = extension[PREFIX_PEBL_EXTENSION + "quotedPerson"];
-        this.quotedTeam = extension[PREFIX_PEBL_EXTENSION + "quotedTeam"];
+        this.quotedPerson = extensions[PREFIX_PEBL_EXTENSION + "quotedPerson"];
+        this.quotedTeam = extensions[PREFIX_PEBL_EXTENSION + "quotedTeam"];
     }
 
     static is(x: XApiStatement): boolean {
@@ -621,7 +621,7 @@ export class ModuleExampleRating extends ModuleEvent {
 
         this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
         this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
-        this.exampleId = extension[PREFIX_PEBL_EXTENSION + "exampleId"];
+        this.exampleId = extensions[PREFIX_PEBL_EXTENSION + "exampleId"];
     }
 
     static is(x: XApiStatement): boolean {
