@@ -1,5 +1,5 @@
 import { PEBL } from "./pebl";
-import { XApiStatement, Membership, ProgramAction, Message } from "./xapi";
+import { XApiStatement, Membership, ProgramAction, Message, ModuleEvent } from "./xapi";
 import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
 
@@ -448,6 +448,23 @@ export class Utils {
             if (userProfile) {
                 self.pebl.storage.getMessages(userProfile, thread, function(messages) {
                     callback(messages);
+                });
+            } else {
+                callback([]);
+            }
+        });
+    }
+
+    getModuleEvents(idref: string, callback: (events: ModuleEvent[]) => void, type?: string): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getModuleEvent(idref, function(moduleEvents) {
+                    if (type) {
+                        callback(moduleEvents.filter(event => event.verb.display['en-US'] === type));
+                    } else {
+                        callback(moduleEvents);
+                    }
                 });
             } else {
                 callback([]);
