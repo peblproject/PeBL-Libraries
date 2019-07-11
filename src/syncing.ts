@@ -650,7 +650,12 @@ export class LLSyncAction implements SyncProcess {
                             "statement.stored": {
                                 "$gt": lastSynced.toISOString()
                             },
-                            "statement.verb.id": "http://adlnet.gov/expapi/verbs/shared"
+                            "statement.verb.id": {
+                                "$in": [
+                                    "http://adlnet.gov/expapi/verbs/shared",
+                                    "http://www.peblproject.com/definitions.html#moduleExample"
+                                ]
+                            }
                         }
                     ]
                 }
