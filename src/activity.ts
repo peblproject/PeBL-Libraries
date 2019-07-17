@@ -74,6 +74,11 @@ export class Activity {
             mergedActivity.delete = true;
         }
 
+        // If either is flagged as completed, that should not be changed.
+        if ((oldActivity.completed && oldActivity.completed == true) || (newActivity.completed && newActivity.completed == true)) {
+            mergedActivity.completed = true;
+        }
+
         return mergedActivity as Activity;
     }
 }
@@ -159,6 +164,7 @@ export class Program extends Activity {
     programAvatar?: string;
     programTeamName?: string;
     programFocus?: string;
+    completed?: boolean;
     members?: Membership[];
 
 
@@ -200,6 +206,7 @@ export class Program extends Activity {
         this.programAvatar = raw.programAvatar;
         this.programTeamName = raw.programTeamName;
         this.programFocus = raw.programFocus;
+        this.completed = raw.completed;
         this.members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
     }
 
@@ -233,6 +240,7 @@ export class Program extends Activity {
         obj.programFocus = this.programFocus;
         obj.programCommunities = this.programCommunities;
         obj.programInstitutions = this.programInstitutions;
+        obj.completed = this.completed;
         obj.members = encodeURIComponent(JSON.stringify(this.members));
         return obj;
     }

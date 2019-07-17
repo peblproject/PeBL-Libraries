@@ -478,7 +478,7 @@ export class ProgramAction extends XApiStatement {
         return (verb == "programLevelUp") || (verb == "programLevelDown") || (verb == "programInvited") || (verb == "programUninvited")
                 || (verb == "programExpelled") || (verb == "programJoined") || (verb == "programActivityLaunched")
                 || (verb == "programActivityCompleted") || (verb == "programActivityTeamCompleted") || (verb == "programModified")
-                || (verb == "programDeleted")
+                || (verb == "programDeleted") || (verb == "programCompleted")
     }
 }
 
