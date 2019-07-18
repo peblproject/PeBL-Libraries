@@ -6,7 +6,7 @@ const PEBL_THREAD_GROUP_PREFIX = "peblThread://group-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback } from "./xapi";
 import { UserProfile } from "./models";
 import { Learnlet, Program, Institution, System } from "./activity";
 
@@ -1628,6 +1628,37 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mer = new ModuleExampleRating(xapi);
                         self.pebl.storage.saveOutgoingXApi(userProfile, mer);
+                    }
+                });
+            });
+        });
+    }
+
+    eventModuleExampleFeedback(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            willingToDiscuss: payload.willingToDiscuss,
+            idref: payload.idref,
+            programId: payload.programId,
+            exampleId: payload.exampleId
+        }
+        this.pebl.storage.getCurrentBook(function(book) {
+            self.pebl.storage.getCurrentActivity(function(activity) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#moduleExampleFeedback", "moduleExampleFeedback");
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.feedback, payload.description, self.xapiGen.addExtensions(exts));
+                        if (activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+                        let mef = new ModuleExampleFeedback(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, mef);
                     }
                 });
             });

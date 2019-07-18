@@ -1,5 +1,5 @@
 import { StorageAdapter } from "./adapters";
-import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction, ModuleEvent, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating } from "./xapi";
+import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction, ModuleEvent, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback } from "./xapi";
 import { UserProfile } from "./models";
 import { Activity, toActivity } from "./activity";
 
@@ -1131,7 +1131,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    getModuleEvent(idref: string, callback: (events: ModuleRating[] | ModuleFeedback[] | ModuleExample[] | ModuleExampleRating[]) => void): void {
+    getModuleEvent(idref: string, callback: (events: ModuleRating[] | ModuleFeedback[] | ModuleExample[] | ModuleExampleRating[] | ModuleExampleFeedback[]) => void): void {
         if (this.db) {
             let os = this.db.transaction(["moduleEvents"], "readonly").objectStore("moduleEvents");
             let index = os.index(MASTER_INDEX);

@@ -629,3 +629,29 @@ export class ModuleExampleRating extends ModuleEvent {
         return (verb == "moduleExampleRating")
     }
 }
+
+export class ModuleExampleFeedback extends ModuleEvent {
+    readonly feedback: string;
+    readonly willingToDiscuss: string;
+    readonly idref: string;
+    readonly programId?: string;
+    readonly exampleId?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.feedback = this.object.definition.name["en-US"];
+
+        this.willingToDiscuss = extensions[PREFIX_PEBL_EXTENSION + "willingToDiscuss"];
+        this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
+        this.programId = extensions[PREFIX_PEBL_EXTENSION + "programId"];
+        this.exampleId = extensions[PREFIX_PEBL_EXTENSION + "exampleId"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "moduleExampleFeedback");
+    }
+}
