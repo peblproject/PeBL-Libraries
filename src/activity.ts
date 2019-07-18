@@ -164,7 +164,7 @@ export class Program extends Activity {
     programAvatar?: string;
     programTeamName?: string;
     programFocus?: string;
-    completed?: boolean;
+    completed?: string; // Timestamp of when it was completed
     members?: Membership[];
 
 
