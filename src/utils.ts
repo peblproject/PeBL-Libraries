@@ -241,6 +241,10 @@ export class Utils {
         callback(new Institution({}));
     }
 
+    newEmptySystem(callback: (system?: System) => void): void {
+        callback(new System({}));
+    }
+
     getGroupMemberships(callback: (memberships: Membership[]) => void): void {
         let self = this;
 
