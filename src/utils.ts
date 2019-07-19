@@ -407,6 +407,10 @@ export class Utils {
         Program.iterateMembers(program, callback);
     }
 
+    getProgramMembers(program: Program): Array<Membership> {
+        return Program.getMembers(program);
+    }
+
     iterateInstitutionMembers(institution: Institution, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
         Institution.iterateMembers(institution, callback);
     }
