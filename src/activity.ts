@@ -57,17 +57,21 @@ export class Activity {
 
     static merge(oldActivity: any, newActivity: any): Activity {
         let mergedActivity = {} as any;
-        Object.keys(oldActivity).forEach(function(key) {
+        let oldKeys = Object.keys(oldActivity);
+        let newKeys = Object.keys(newActivity);
+
+        for (let key of oldKeys) {
             mergedActivity[key] = oldActivity[key];
-        });
-        Object.keys(newActivity).forEach(function(key) {
+        }
+
+        for (let key of newKeys) {
             // Null properties were set for a reason and should not be changed.
             if (mergedActivity[key] == null) {
                 // Leave it
             } else {
                 mergedActivity[key] = newActivity[key];
             }
-        });
+        }
 
         // If either is flagged for deletion, that should not be changed.
         if ((oldActivity.delete && oldActivity.delete == true) || (newActivity.delete && newActivity.delete == true)) {
@@ -164,7 +168,8 @@ export class Program extends Activity {
     programAvatar?: string;
     programTeamName?: string;
     programFocus?: string;
-    completed?: string; // Timestamp of when it was completed
+    completed?: Date; // Timestamp of when it was completed
+    created?: Date; // Timestamp of when it was created
     members?: Membership[];
 
 
@@ -177,7 +182,7 @@ export class Program extends Activity {
         // Translate legacy member format to new format
         let members = [];
         if (raw.members)
-            members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
+            members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members ? raw.members : []);
 
         if (members.length > 0) {
             for (let member of members) {
@@ -185,14 +190,16 @@ export class Program extends Activity {
             }
         }
 
-        Object.keys(raw).forEach(function(key) {
-            if(key.indexOf('member-') !== -1) {
-                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
+        let rawKeys = Object.keys(raw);
+
+        for (let key of rawKeys) {
+            if (key.indexOf('member-') !== -1) {
+                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key] ? raw[key] : null);
                 if (member == null || (XApiStatement.is(member) && Membership.is(member as XApiStatement)) || TempMembership.is(member)) {
                     self[key] = member;
                 }
             }
-        });
+        }
 
         this.programLevelStepsComplete = raw.programLevelStepsComplete || 0;
         this.programLevels = raw.programLevels || [];
@@ -206,8 +213,30 @@ export class Program extends Activity {
         this.programAvatar = raw.programAvatar;
         this.programTeamName = raw.programTeamName;
         this.programFocus = raw.programFocus;
-        this.completed = raw.completed;
-        this.members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members) ? raw.members : [];
+        this.completed = raw.completed ? new Date(raw.completed) : undefined;
+        this.created = raw.created ? new Date(raw.created) : undefined;
+        // Estimate created time to backfill older programs, find oldest member and use their timestamp
+        if (!this.created) {
+            if (this.isNew) {
+                this.created = new Date();
+            } else {
+                let oldestMember = null as Membership | null;
+                let keys = Object.keys(this);
+                for (let key of keys) {
+                    if (key.indexOf('member-') !== -1) {
+                        let member = typeof (this[key]) === "string" ? JSON.parse(decodeURIComponent(this[key])) : (this[key] ? this[key] : null);
+                        if (member && XApiStatement.is(member) && Membership.is(member as XApiStatement)) {
+                            if (!oldestMember || (new Date(member.timestamp) < new Date(oldestMember.timestamp)))
+                                oldestMember = member;
+                        }
+                    }
+                }
+
+                if (oldestMember)
+                    this.created = new Date(oldestMember.timestamp);
+            }
+        }
+        this.members = typeof (raw.members) === "string" ? JSON.parse(decodeURIComponent(raw.members)) : (raw.members ? raw.members : []);
     }
 
     static is(raw: { [key: string]: any }): boolean {
@@ -218,7 +247,9 @@ export class Program extends Activity {
         let obj = super.toTransportFormat();
         let self = this;
 
-        Object.keys(this).forEach(function(key) {
+        let keys = Object.keys(this);
+
+        for (let key of keys) {
             if(key.indexOf('member-') !== -1) {
                 if (self[key] == null) {
                     obj[key] = self[key];
@@ -226,7 +257,7 @@ export class Program extends Activity {
                     obj[key] = encodeURIComponent(JSON.stringify(self[key]));
                 }
             }
-        });
+        }
 
         obj.programLevelStepsComplete = this.programLevelStepsComplete;
         obj.programLevels = this.programLevels;
@@ -240,7 +271,8 @@ export class Program extends Activity {
         obj.programFocus = this.programFocus;
         obj.programCommunities = this.programCommunities;
         obj.programInstitutions = this.programInstitutions;
-        obj.completed = this.completed;
+        obj.completed = this.completed ? this.completed.toISOString() : undefined,
+        obj.created = this.created ? this.created.toISOString() : undefined,
         obj.members = encodeURIComponent(JSON.stringify(this.members));
         return obj;
     }
@@ -250,7 +282,8 @@ export class Program extends Activity {
     }
 
     static iterateMembers(program: Program, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
-        Object.keys(program).forEach(function(key) {
+        let keys = Object.keys(program);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1 && program[key]) {
                 if (XApiStatement.is(program[key]) && Membership.is(program[key] as XApiStatement)) {
                     callback(key, program[key] as Membership);
@@ -258,28 +291,43 @@ export class Program extends Activity {
                     callback(key, program[key] as TempMembership);
                 }
             }
-        });
+        }
+    }
+
+    static getMembers(program: Program): Array<Membership> {
+        let members = [] as Array<Membership>;
+        let keys = Object.keys(program);
+        for (let key of keys) {
+            if (key.indexOf('member-') !== -1 && program[key]) {
+                if (XApiStatement.is(program[key]) && Membership.is(program[key] as XApiStatement)) {
+                    members.push(program[key]);
+                }
+            }
+        }
+        return members;
     }
 
     static isMember(program: Program, userIdentity: string): boolean {
         let isMember = false;
-        Object.keys(program).forEach(function(key) {
+        let keys = Object.keys(program);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1 && program[key]) {
                 if (program[key].identity === userIdentity) {
                     isMember = true;
                 }
             }
-        });
+        }
         return isMember;
     }
 
     static isNew(program: Program): boolean {
         let isNew = true;
-        Object.keys(program).forEach(function(key) {
+        let keys = Object.keys(program);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1) {
                 isNew = false;
             }
-        });
+        }
         return isNew;
     }
 }
@@ -296,19 +344,20 @@ export class Institution extends Activity {
 
         let self = this;
 
-        Object.keys(raw).forEach(function(key) {
+        let rawKeys = Object.keys(raw);
+        for (let key of rawKeys) {
             if (key.indexOf('member-') !== -1) {
-                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
+                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key] ? raw[key] : null);
                 if (member == null || (XApiStatement.is(member) && Membership.is(member as XApiStatement)) || TempMembership.is(member)) {
                     self[key] = member;
                 }
             } else if (key.indexOf('program-') !== -1) {
-                let program = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ?  raw[key] : null;
+                let program = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key] ?  raw[key] : null);
                 if (program == null || (Program.is(program))) {
                     self[key] = program;
                 }
             }
-        });
+        }
 
         this.institutionName = raw.institutionName || "";
         this.institutionDescription = raw.institutionDescription || "";
@@ -323,7 +372,8 @@ export class Institution extends Activity {
         let obj = super.toTransportFormat();
         let self = this;
 
-        Object.keys(this).forEach(function(key) {
+        let keys = Object.keys(this);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1) {
                 if (self[key] == null) {
                     obj[key] = self[key];
@@ -337,7 +387,7 @@ export class Institution extends Activity {
                     obj[key] = encodeURIComponent(JSON.stringify(self[key]));
                 }
             }
-        });
+        }
 
         obj.institutionName = this.institutionName;
         obj.institutionDescription = this.institutionDescription;
@@ -354,7 +404,8 @@ export class Institution extends Activity {
     }
 
     static iterateMembers(institution: Institution, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
-        Object.keys(institution).forEach(function(key) {
+        let keys = Object.keys(institution);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1 && institution[key]) {
                 if (XApiStatement.is(institution[key]) && Membership.is(institution[key] as XApiStatement)) {
                     callback(key, institution[key] as Membership);
@@ -362,50 +413,54 @@ export class Institution extends Activity {
                     callback(key, institution[key] as TempMembership);
                 }
             }
-        });
+        }
     }
 
     static isMember(institution: Institution, userIdentity: string): boolean {
         let isMember = false;
-        Object.keys(institution).forEach(function(key) {
+        let keys = Object.keys(institution);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1 && institution[key]) {
                 if (institution[key].identity === userIdentity) {
                     isMember = true;
                 }
             }
-        });
+        }
         return isMember;
     }
 
     static iteratePrograms(institution: Institution, callback: (key: string, program: Program) => void): void {
-        Object.keys(institution).forEach(function(key) {
+        let keys = Object.keys(institution);
+        for (let key of keys) {
             if (key.indexOf('program-') !== -1 && institution[key]) {
                 if (Program.is(institution[key])) {
                     callback(key, institution[key] as Program);
                 }
             }
-        })
+        }
     }
 
     static isProgram(institution: Institution, programId: string): boolean {
         let isProgram = false;
-        Object.keys(institution).forEach(function(key) {
+        let keys = Object.keys(institution);
+        for (let key of keys) {
             if (key.indexOf('program-') !== -1 && institution[key]) {
                 if (institution[key].id === programId) {
                     isProgram = true;
                 }
             }
-        });
+        }
         return isProgram;
     }
 
     static isNew(institution: Institution): boolean {
         let isNew = true;
-        Object.keys(institution).forEach(function(key) {
+        let keys = Object.keys(institution);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1) {
                 isNew = false;
             }
-        });
+        }
         return isNew;
     }
 }
@@ -421,14 +476,15 @@ export class System extends Activity {
 
         let self = this;
 
-        Object.keys(raw).forEach(function(key) {
+        let rawKeys = Object.keys(raw);
+        for (let key of rawKeys) {
             if (key.indexOf('member-') !== -1) {
-                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key]) ? raw[key] : null;
+                let member = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key] ? raw[key] : null);
                 if (member == null || (XApiStatement.is(member) && Membership.is(member as XApiStatement)) || TempMembership.is(member)) {
                     self[key] = member;
                 }
             }
-        });
+        }
 
         this.systemName = raw.systemName || "";
         this.systemDescription = raw.systemDescription || "";
@@ -442,7 +498,8 @@ export class System extends Activity {
         let obj = super.toTransportFormat();
         let self = this;
 
-        Object.keys(this).forEach(function(key) {
+        let keys = Object.keys(this);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1) {
                 if (self[key] == null) {
                     obj[key] = self[key];
@@ -450,7 +507,7 @@ export class System extends Activity {
                     obj[key] = encodeURIComponent(JSON.stringify(self[key]));
                 }
             }
-        });
+        }
 
         obj.systemName = this.systemName;
         obj.systemDescription = this.systemDescription;
@@ -462,7 +519,8 @@ export class System extends Activity {
     }
 
     static iterateMembers(system: System, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
-        Object.keys(system).forEach(function(key) {
+        let keys = Object.keys(system);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1 && system[key]) {
                 if (XApiStatement.is(system[key]) && Membership.is(system[key] as XApiStatement)) {
                     callback(key, system[key] as Membership);
@@ -470,28 +528,30 @@ export class System extends Activity {
                     callback(key, system[key] as TempMembership);
                 }
             }
-        });
+        }
     }
 
     static isMember(system: System, userIdentity: string): boolean {
         let isMember = false;
-        Object.keys(system).forEach(function(key) {
+        let keys = Object.keys(system);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1 && system[key]) {
                 if (system[key].identity === userIdentity) {
                     isMember = true;
                 }
             }
-        });
+        }
         return isMember;
     }
 
     static isNew(system: System): boolean {
         let isNew = true;
-        Object.keys(system).forEach(function(key) {
+        let keys = Object.keys(system);
+        for (let key of keys) {
             if (key.indexOf('member-') !== -1) {
                 isNew = false;
             }
-        });
+        }
         return isNew;
     }
 }
