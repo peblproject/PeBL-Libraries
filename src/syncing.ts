@@ -103,9 +103,10 @@ export class LLSyncAction implements SyncProcess {
     //     presence.send();
     // }
 
-    pullActivity(activity: string, profileId: string, callback?: ((activity?: Activity) => void)): void {
+    pullActivity(activity: string, profileId?: string | Array<string>, callback?: ((activity?: Activity) => void)): void {
         let self = this;
         let presence = new XMLHttpRequest();
+        let profileIdToUse;
 
         presence.addEventListener("load", function() {
             if ((presence.status >= 200) && (presence.status <= 209)) {
@@ -120,6 +121,16 @@ export class LLSyncAction implements SyncProcess {
                         p.etag = s;
                     }
                     activityObj = [p];
+                    // If passed an array of profileIds, pull them one by one.
+                    if (profileId && Array.isArray(profileId) && profileId.length > 0) {
+                        self.pullActivity(activity, profileId, callback);
+                    }
+                } else if (activity == "program" && Array.isArray(jsonObj)) {
+                    // First call without a profileId returns an array of all profileIds, use that to start getting them one by one.
+                    self.pullActivity(activity, jsonObj, callback);
+                    if (callback)
+                        callback(jsonObj as any);
+                    return;
                 } else if (activity == "learnlet" && Learnlet.is(jsonObj)) {
                     activityEvent = self.pebl.events.incomingLearnlet;
                     let l = new Learnlet(jsonObj);
@@ -202,7 +213,15 @@ export class LLSyncAction implements SyncProcess {
             }
         });
 
-        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + "&profileId=" + encodeURIComponent(profileId) + "&t=" + Date.now(), true);
+        if (profileId) {
+            if (Array.isArray(profileId)) {
+                profileIdToUse = profileId.pop();
+            } else {
+                profileIdToUse = profileId;
+            }
+        }
+
+        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + (profileIdToUse ?  ("&profileId=" + encodeURIComponent(profileIdToUse)) : '') + "&t=" + Date.now(), true);
         presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
         presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
 
