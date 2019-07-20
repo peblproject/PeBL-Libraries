@@ -479,4 +479,13 @@ export class Utils {
             }
         });
     }
+
+    removeModuleEvent(idref: string, id: string): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.removeModuleEvent(idref, id);
+            }
+        });
+    }
 }

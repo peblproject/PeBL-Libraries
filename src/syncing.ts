@@ -672,7 +672,11 @@ export class LLSyncAction implements SyncProcess {
                             "statement.verb.id": {
                                 "$in": [
                                     "http://adlnet.gov/expapi/verbs/shared",
-                                    "http://www.peblproject.com/definitions.html#moduleExample"
+                                    "http://www.peblproject.com/definitions.html#moduleRating",
+                                    "http://www.peblproject.com/definitions.html#moduleFeedback",
+                                    "http://www.peblproject.com/definitions.html#moduleExample",
+                                    "http://www.peblproject.com/definitions.html#moduleExampleRating",
+                                    "http://www.peblproject.com/definitions.html#moduleExampleFeedback"
                                 ]
                             }
                         }

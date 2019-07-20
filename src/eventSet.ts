@@ -45,6 +45,7 @@ export class EventSet {
     removedLearnlet = "removedLearnlet";
     removedProgram = "removedProgram";
     removedMessage = "removedMessage";
+    removedModuleEvent = "removedModuleEvent";
 
     eventLoggedIn = "eventLoggedIn";
     eventLoggedOut = "eventLoggedOut";

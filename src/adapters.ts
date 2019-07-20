@@ -156,6 +156,8 @@ export interface StorageAdapter {
 
     getModuleEvent(idref: string, callback: (events: ModuleEvent[]) => void): void;
 
+    removeModuleEvent(idref: string, id: string, callback?: (() => void)): void;
+
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;
 

@@ -1664,4 +1664,30 @@ export class PEBLEventHandlers {
             });
         });
     }
+
+    removedModuleEvent(event: CustomEvent) {
+        let xId = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/voided", "voided");
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addStatementRef(xapi, xId);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        if (activity)
+                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+
+                        let voided = new Voided(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, voided);
+                    });
+                });
+            }
+        });
+    }
 }

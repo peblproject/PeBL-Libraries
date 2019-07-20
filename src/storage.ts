@@ -1195,6 +1195,24 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
+    removeModuleEvent(idref: string, xId: string, callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["moduleEvents"], "readwrite").objectStore("moduleEvents").delete(IDBKeyRange.only([xId, idref]));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.removeModuleEvent(idref, xId, callback);
+            });
+        }
+    }
+
     // -------------------------------
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void {
