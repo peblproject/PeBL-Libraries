@@ -336,7 +336,7 @@ export class Institution extends Activity {
     [key: string]: (Membership | TempMembership | Program | any);
     institutionName: string;
     institutionDescription: string;
-    instititionAvatar?: string;
+    institutionAvatar?: string;
 
     constructor(raw: { [key: string]: any }) {
         raw.type = "institution";
@@ -391,7 +391,7 @@ export class Institution extends Activity {
 
         obj.institutionName = this.institutionName;
         obj.institutionDescription = this.institutionDescription;
-        obj.instititionAvatar = this.institutionAvatar;
+        obj.institutionAvatar = this.institutionAvatar;
         return obj;
     }
 
