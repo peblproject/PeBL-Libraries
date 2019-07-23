@@ -6,8 +6,8 @@ const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
 const PEBL_THREAD_GROUP_PREFIX = "peblThread://" + GROUP_PREFIX;
 const THREAD_POLL_INTERVAL = 4000;
 const BOOK_POLL_INTERVAL = 6000;
-const PRESENCE_POLL_INTERVAL = 120000;
-const LEARNLET_POLL_INTERVAL = 60000;
+// const PRESENCE_POLL_INTERVAL = 120000;
+// const LEARNLET_POLL_INTERVAL = 60000;
 const PROGRAM_POLL_INTERVAL = 60000;
 const INSTITUTION_POLL_INTERVAL = 60000;
 const SYSTEM_POLL_INTERVAL = 60000;
@@ -221,7 +221,7 @@ export class LLSyncAction implements SyncProcess {
             }
         }
 
-        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + (profileIdToUse ?  ("&profileId=" + encodeURIComponent(profileIdToUse)) : '') + "&t=" + Date.now(), true);
+        presence.open("GET", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity + "s") + (profileIdToUse ? ("&profileId=" + encodeURIComponent(profileIdToUse)) : '') + "&t=" + Date.now(), true);
         presence.setRequestHeader("X-Experience-API-Version", "1.0.3");
         presence.setRequestHeader("Authorization", "Basic " + self.endpoint.token);
 
@@ -310,7 +310,7 @@ export class LLSyncAction implements SyncProcess {
         });
 
         xhr.open("DELETE", self.endpoint.url + "data/xapi/activities/profile?activityId=" + encodeURIComponent(PEBL_THREAD_PREFIX + activity.type + "s") + "&profileId=" + activity.id, true);
-    
+
         if (activity.etag) {
             xhr.setRequestHeader("If-Match", activity.etag);
         }
@@ -505,145 +505,149 @@ export class LLSyncAction implements SyncProcess {
             let array = arrays.pop();
 
             let pipeline: { [key: string]: any }[] = [
-                    {
-                        "$match": { "$or": array }
-                    },
-                    {
-                        "$project": {
-                            "statement": 1,
-                            "_id": 0,
-                            "voided": 1
-                        }
-                    },
-                    {
-                        "$sort": {
-                            "stored": -1,
-                            "_id": 1
-                        }
-                    },
-                    {
-                        "$limit": 1500
+                {
+                    "$match": { "$or": array }
+                },
+                {
+                    "$project": {
+                        "statement": 1,
+                        "_id": 0,
+                        "voided": 1
                     }
-                ];
+                },
+                {
+                    "$sort": {
+                        "stored": -1,
+                        "_id": 1
+                    }
+                },
+                {
+                    "$limit": 1500
+                }
+            ];
 
             self.pullHelper(pipeline,
-                    function(stmts: XApiStatement[]): void {
-                        let buckets: { [thread: string]: { [id: string]: (Message | Reference | ProgramAction) } } = {};
-                        let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
-                        let deleteIds: Voided[] = [];
-                        self.pebl.user.getUser(function(userProfile) {
-                            if (userProfile) {
-                                for (let i = 0; i < stmts.length; i++) {
-                                    let xapi = stmts[i];
-                                    let thread: (string | null) = null;
-                                    let tsd: (Message | Reference | Membership | ProgramAction | null) = null;
+                function(stmts: XApiStatement[]): void {
+                    let buckets: { [thread: string]: { [id: string]: (Message | Reference | ProgramAction) } } = {};
+                    let memberships: { [thread: string]: { [id: string]: (Membership) } } = {};
+                    let deleteIds: Voided[] = [];
+                    self.pebl.user.getUser(function(userProfile) {
+                        if (userProfile) {
+                            for (let i = 0; i < stmts.length; i++) {
+                                let xapi = stmts[i];
+                                let thread: (string | null) = null;
+                                let tsd: (Message | Reference | Membership | ProgramAction | null) = null;
 
-                                    if (Message.is(xapi)) {
-                                        let m = new Message(xapi);
-                                        thread = m.thread;
-                                        tsd = m;
-                                    } else if (Reference.is(xapi)) {
-                                        let r = new Reference(xapi);
-                                        self.pebl.network.queueReference(r);
-                                        tsd = r;
-                                        thread = r.thread;
-                                    } else if (Voided.is(xapi)) {
-                                        let v = new Voided(xapi);
-                                        deleteIds.push(v);
-                                        thread = v.thread;
-                                    } else if (Membership.is(xapi)) {
-                                        let m = new Membership(xapi);
-                                        thread = m.thread;
-                                        tsd = m;
-                                    } else if (ProgramAction.is(xapi)) {
-                                        let pa = new ProgramAction(xapi);
-                                        thread = 'group-user-' + userProfile.identity;
-                                        tsd = pa;
-                                    }
+                                if (Message.is(xapi)) {
+                                    let m = new Message(xapi);
+                                    thread = m.thread;
+                                    tsd = m;
+                                } else if (Reference.is(xapi)) {
+                                    let r = new Reference(xapi);
+                                    self.pebl.network.queueReference(r);
+                                    tsd = r;
+                                    thread = r.thread;
+                                } else if (Voided.is(xapi)) {
+                                    let v = new Voided(xapi);
+                                    deleteIds.push(v);
+                                    thread = v.thread;
+                                } else if (Membership.is(xapi)) {
+                                    let m = new Membership(xapi);
+                                    thread = m.thread;
+                                    tsd = m;
+                                } else if (ProgramAction.is(xapi)) {
+                                    let pa = new ProgramAction(xapi);
+                                    thread = 'group-user-' + userProfile.identity;
+                                    tsd = pa;
+                                }
 
-                                    if (thread != null) {
-                                        if (tsd != null) {
-                                            let container = tsd instanceof Membership ? memberships : buckets;
-                                            let stmts = container[thread];
-                                            if (stmts == null) {
-                                                stmts = {};
-                                                container[thread] = stmts;
-                                            }
-                                            stmts[tsd.id] = tsd;
+                                if (thread != null) {
+                                    if (tsd != null) {
+                                        let container = tsd instanceof Membership ? memberships : buckets;
+                                        let stmts = container[thread];
+                                        if (stmts == null) {
+                                            stmts = {};
+                                            container[thread] = stmts;
                                         }
-
-                                        let temp = new Date(xapi.stored);
-                                        let lastSyncedDate = self.endpoint.lastSyncedThreads[thread];
-                                        if (lastSyncedDate.getTime() < temp.getTime())
-                                            self.endpoint.lastSyncedThreads[thread] = temp;
-                                    }
-                                }
-
-                                for (let i = 0; i < deleteIds.length; i++) {
-                                    let v = deleteIds[i];
-                                    let thread = v.thread;
-                                    let bucket = buckets[thread];
-                                    if (bucket != null) {
-                                        delete bucket[v.target];
+                                        stmts[tsd.id] = tsd;
                                     }
 
-                                    self.pebl.storage.removeMessage(userProfile, v.target);
-                                    self.pebl.storage.removeGroupMembership(userProfile, v.target);
-                                }
-
-                                for (let thread of Object.keys(memberships)) {
-                                    let membership = memberships[thread];
-                                    let cleanMemberships: Membership[] = [];
-
-                                    for (let messageId of Object.keys(membership)) {
-                                        let rec = membership[messageId];
-                                        cleanMemberships.push(rec);
-                                    }
-                                    if (cleanMemberships.length > 0) {
-                                        cleanMemberships.sort();
-                                        self.pebl.storage.saveGroupMembership(userProfile, cleanMemberships);
-
-                                        self.pebl.emitEvent(thread, cleanMemberships);
-                                    }
-                                }
-
-                                for (let thread of Object.keys(buckets)) {
-                                    let bucket = buckets[thread];
-                                    let cleanMessages: Message[] = [];
-                                    let cleanProgramActions: ProgramAction[] = [];
-
-                                    for (let messageId of Object.keys(bucket)) {
-                                        let rec: (Message | Reference | ProgramAction) = bucket[messageId];
-                                        if (rec instanceof Message)
-                                            cleanMessages.push(rec);
-                                        else if (rec instanceof ProgramAction)
-                                            cleanProgramActions.push(rec);
-                                    }
-                                    if (cleanMessages.length > 0) {
-                                        cleanMessages.sort();
-                                        self.pebl.storage.saveMessages(userProfile, cleanMessages);
-
-                                        self.pebl.emitEvent(thread, cleanMessages);
-                                    }
-                                    if (cleanProgramActions.length > 0) {
-                                        cleanProgramActions.sort();
-                                        self.pebl.storage.saveActivityEvent(userProfile, cleanProgramActions);
-
-                                        self.pebl.emitEvent(self.pebl.events.incomingActivityEvents, cleanProgramActions);
-                                    }
-                                }
-
-                                self.pebl.storage.saveUserProfile(userProfile);
-
-                                if (arrays.length > 0) {
-                                    chunkIterator(arrays);
-                                } else {
-                                    if (self.running)
-                                        self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+                                    let temp = new Date(xapi.stored);
+                                    let lastSyncedDate = self.endpoint.lastSyncedThreads[thread];
+                                    if (lastSyncedDate.getTime() < temp.getTime())
+                                        self.endpoint.lastSyncedThreads[thread] = temp;
                                 }
                             }
-                        });
+
+                            for (let i = 0; i < deleteIds.length; i++) {
+                                let v = deleteIds[i];
+                                let thread = v.thread;
+                                let bucket = buckets[thread];
+                                if (bucket != null) {
+                                    delete bucket[v.target];
+                                }
+
+                                self.pebl.storage.removeMessage(userProfile, v.target);
+                                self.pebl.storage.removeGroupMembership(userProfile, v.target);
+                            }
+
+                            for (let thread of Object.keys(memberships)) {
+                                let membership = memberships[thread];
+                                let cleanMemberships: Membership[] = [];
+
+                                for (let messageId of Object.keys(membership)) {
+                                    let rec = membership[messageId];
+                                    cleanMemberships.push(rec);
+                                }
+                                if (cleanMemberships.length > 0) {
+                                    cleanMemberships.sort();
+                                    self.pebl.storage.saveGroupMembership(userProfile, cleanMemberships);
+
+                                    self.pebl.emitEvent(thread, cleanMemberships);
+
+                                    self.pullActivitiesFromMemberships("program", cleanMemberships);
+                                    self.pullActivitiesFromMemberships("institution", cleanMemberships);
+                                    self.pullActivitiesFromMemberships("system", cleanMemberships);
+                                }
+                            }
+
+                            for (let thread of Object.keys(buckets)) {
+                                let bucket = buckets[thread];
+                                let cleanMessages: Message[] = [];
+                                let cleanProgramActions: ProgramAction[] = [];
+
+                                for (let messageId of Object.keys(bucket)) {
+                                    let rec: (Message | Reference | ProgramAction) = bucket[messageId];
+                                    if (rec instanceof Message)
+                                        cleanMessages.push(rec);
+                                    else if (rec instanceof ProgramAction)
+                                        cleanProgramActions.push(rec);
+                                }
+                                if (cleanMessages.length > 0) {
+                                    cleanMessages.sort();
+                                    self.pebl.storage.saveMessages(userProfile, cleanMessages);
+
+                                    self.pebl.emitEvent(thread, cleanMessages);
+                                }
+                                if (cleanProgramActions.length > 0) {
+                                    cleanProgramActions.sort();
+                                    self.pebl.storage.saveActivityEvent(userProfile, cleanProgramActions);
+
+                                    self.pebl.emitEvent(self.pebl.events.incomingActivityEvents, cleanProgramActions);
+                                }
+                            }
+
+                            self.pebl.storage.saveUserProfile(userProfile);
+
+                            if (arrays.length > 0) {
+                                chunkIterator(arrays);
+                            } else {
+                                if (self.running)
+                                    self.threadPoll = setTimeout(self.threadPollingCallback.bind(self), THREAD_POLL_INTERVAL);
+                            }
+                        }
                     });
+                });
         }
 
         chunkIterator(arrayChunks);
@@ -841,11 +845,33 @@ export class LLSyncAction implements SyncProcess {
         this.bookPollingCallback();
         this.threadPollingCallback();
 
-        this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
+        // this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
+        // this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
         this.startActivityPull("program", PROGRAM_POLL_INTERVAL);
-        this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
         this.startActivityPull("institution", INSTITUTION_POLL_INTERVAL);
         this.startActivityPull("system", SYSTEM_POLL_INTERVAL);
+    }
+
+    private pullActivitiesFromMemberships(activityType: string, memberships: Membership[]): void {
+        let self = this;
+        let queuedMembership: Membership[] = [];
+        if (memberships) {
+            for (let membership of memberships) {
+                if (membership.activityType == activityType)
+                    queuedMembership.push(membership);
+            }
+        }
+
+        let callbackProcessor = function(): void {
+            if (queuedMembership.length > 0) {
+                let member = queuedMembership.pop();
+                if (member) {
+                    self.pullActivity(activityType, member.membershipId, callbackProcessor);
+                }
+            }
+        };
+
+        callbackProcessor();
     }
 
     private startActivityPull(activityType: string, interval: number): void {
@@ -877,29 +903,7 @@ export class LLSyncAction implements SyncProcess {
             })
         }
 
-        this.pebl.utils.getGroupMemberships(function(memberships) {
-            let queuedMembership: Membership[] = [];
-            if (memberships) {
-                for (let membership of memberships) {
-                    if (membership.activityType == activityType)
-                        queuedMembership.push(membership);
-                }
-            }
-
-            let callbackProcessor = function(): void {
-                if (queuedMembership.length == 0) {
-                    if (self.running)
-                        self.activityPolls[activityType] = setTimeout(groupGetter.bind(self), interval);
-                } else {
-                    let member = queuedMembership.pop();
-                    if (member) {
-                        self.pullActivity(activityType, member.membershipId, callbackProcessor);
-                    }
-                }
-            };
-
-            callbackProcessor();
-        })
+        groupGetter();
     }
 
     push(outgoing: XApiStatement[], callback: (result: boolean) => void): void {
@@ -992,7 +996,7 @@ export class LLSyncAction implements SyncProcess {
                                         });
                                     }
                                 } //typechecker
-                                    
+
 
                                 if (outgoing.length == 0)
                                     callback();
@@ -1021,43 +1025,43 @@ export class LLSyncAction implements SyncProcess {
                         });
                 } else {
                     self.postActivity(activity,
-                    function(success: boolean, oldActivity?: Activity, newActivity?: Activity): void {
-                        if (success) {
-                            if (activity) { //typechecker
-                                self.pebl.storage.removeOutgoingActivity(userProfile, activity);
-                                self.pebl.emitEvent(self.pebl.events.eventProgramModified, {
-                                    programId: activity.id,
-                                    action: 'modified',
-                                    previousValue: null,
-                                    newValue: null
-                                });
-                            }
+                        function(success: boolean, oldActivity?: Activity, newActivity?: Activity): void {
+                            if (success) {
+                                if (activity) { //typechecker
+                                    self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+                                    self.pebl.emitEvent(self.pebl.events.eventProgramModified, {
+                                        programId: activity.id,
+                                        action: 'modified',
+                                        previousValue: null,
+                                        newValue: null
+                                    });
+                                }
 
-                            if (outgoing.length == 0)
-                                callback();
-                            else {
-                                self.pushActivity(outgoing, callback);
-                            }
-                        } else {
-                            if (activity) //typechecker
-                                self.pebl.storage.removeOutgoingActivity(userProfile, activity);
+                                if (outgoing.length == 0)
+                                    callback();
+                                else {
+                                    self.pushActivity(outgoing, callback);
+                                }
+                            } else {
+                                if (activity) //typechecker
+                                    self.pebl.storage.removeOutgoingActivity(userProfile, activity);
 
-                            if (oldActivity && newActivity) {
-                                let mergedActivity = Activity.merge(oldActivity, newActivity) as Activity;
-                                outgoing.push(mergedActivity);
-                            }
+                                if (oldActivity && newActivity) {
+                                    let mergedActivity = Activity.merge(oldActivity, newActivity) as Activity;
+                                    outgoing.push(mergedActivity);
+                                }
 
-                            if (outgoing.length == 0)
-                                callback();
-                            else {
-                                self.pebl.emitEvent(self.pebl.events.incomingErrors, {
-                                    error: xhr.status,
-                                    obj: activity
-                                });
-                                self.pushActivity(outgoing, callback);
+                                if (outgoing.length == 0)
+                                    callback();
+                                else {
+                                    self.pebl.emitEvent(self.pebl.events.incomingErrors, {
+                                        error: xhr.status,
+                                        obj: activity
+                                    });
+                                    self.pushActivity(outgoing, callback);
+                                }
                             }
-                        }
-                    });
+                        });
                 }
             } else
                 callback();
