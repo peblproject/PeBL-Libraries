@@ -15,7 +15,8 @@
   },
   "scripts": {
     "test": "echo \"No Tests\" && exit 1",
-    "build": "webpack"
+    "buildDev": "webpack --mode=development",
+    "build": "webpack --mode=production"
   },
   "author": "Eduworks",
   "license": "Apache 2"
