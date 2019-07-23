@@ -25,6 +25,8 @@ export class EventSet {
     saveInstitution = "saveInstitution";
     saveSystem = "saveSystem";
 
+    newBookNoReset = "newBookNoReset";
+
     newLearnlet = "newLearnlet";
     newBook = "newBook";
     newMessage = "newMessage";

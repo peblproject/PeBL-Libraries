@@ -48,6 +48,28 @@ export class PEBLEventHandlers {
         });
     }
 
+    newBookNoReset(event: CustomEvent) {
+        let book: string = event.detail;
+        let self = this;
+        if (book.indexOf("/") != -1)
+            book = book.substring(book.lastIndexOf("/") + 1);
+
+        this.pebl.storage.getCurrentBook(function(currentBook) {
+            if (currentBook != book) {
+                if (currentBook)
+                    self.pebl.emitEvent(self.pebl.events.eventTerminated, currentBook);
+                self.pebl.storage.removeCurrentActivity();
+                self.pebl.emitEvent(self.pebl.events.eventInteracted, {
+                    activity: book
+                });
+
+                self.pebl.storage.saveCurrentBook(book);
+            } else {
+                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
+            }
+        });
+    }
+
     newActivity(event: CustomEvent) {
         let payload = event.detail;
         let self = this;
@@ -411,7 +433,7 @@ export class PEBLEventHandlers {
                 self.pebl.emitEvent(self.pebl.events.incomingMembership, [m]);
 
                 // Then send out a new one
-                
+
                 if (newMembership) {
                     let exts = {
                         role: newMembership.role,
@@ -1183,7 +1205,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
@@ -1209,7 +1231,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
@@ -1235,7 +1257,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
@@ -1261,7 +1283,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
@@ -1287,7 +1309,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
@@ -1345,7 +1367,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
-            
+
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
             }
@@ -1370,7 +1392,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
-            
+
                 let pa = new ProgramAction(xapi);
                 self.pebl.storage.saveOutgoingXApi(userProfile, pa);
             }
@@ -1388,7 +1410,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
@@ -1414,7 +1436,7 @@ export class PEBLEventHandlers {
             newValue: payload.newValue,
             action: payload.action
         }
-        
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
