@@ -156,6 +156,18 @@ export class LLSyncAction implements SyncProcess {
                     if (s) {
                         i.etag = s;
                     }
+                    activityObj = [i];
+                    // If passed an array of profileIds, pull them one by one.
+                    if (profileId && Array.isArray(profileId) && profileId.length > 0) {
+                        self.pullActivity(activity, profileId, callback);
+                    }
+                } else if (activity == "institution" && Array.isArray(jsonObj)) {
+                    // First call without a profileId returns an array of all profileIds, use that to start getting them one by one.
+                    // FIXME: this should be a separate code path
+                    self.pullActivity(activity, jsonObj, callback);
+                    if (callback)
+                        callback(jsonObj as any);
+                    return;
                 } else if (activity == "system" && System.is(jsonObj)) {
                     activityEvent = self.pebl.events.incomingSystem;
                     let sys = new System(jsonObj);
@@ -849,7 +861,7 @@ export class LLSyncAction implements SyncProcess {
         // this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
         // this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
         this.startActivityPull("program", PROGRAM_POLL_INTERVAL);
-        this.startActivityPull("institution", INSTITUTION_POLL_INTERVAL);
+        this.startActivityPull("institution", INSTITUTION_POLL_INTERVAL, true);
         this.startActivityPull("system", SYSTEM_POLL_INTERVAL);
     }
 
@@ -875,33 +887,38 @@ export class LLSyncAction implements SyncProcess {
         callbackProcessor();
     }
 
-    private startActivityPull(activityType: string, interval: number): void {
+    private startActivityPull(activityType: string, interval: number, all?: boolean): void {
         let self = this;
 
         let groupGetter = function(): void {
-            self.pebl.utils.getGroupMemberships(function(memberships) {
-                let queuedMembership: Membership[] = [];
-                if (memberships) {
-                    for (let membership of memberships) {
-                        if (membership.activityType == activityType)
-                            queuedMembership.push(membership);
-                    }
-                }
-
-                let callbackProcessor = function(): void {
-                    if (queuedMembership.length == 0) {
-                        if (self.running)
-                            self.activityPolls[activityType] = setTimeout(groupGetter.bind(self), interval);
-                    } else {
-                        let member = queuedMembership.pop();
-                        if (member) {
-                            self.pullActivity(activityType, member.membershipId, callbackProcessor);
+            if (all) {
+                self.pullActivity(activityType, undefined, undefined);
+            } else {
+                self.pebl.utils.getGroupMemberships(function(memberships) {
+                    let queuedMembership: Membership[] = [];
+                    if (memberships) {
+                        for (let membership of memberships) {
+                            if (membership.activityType == activityType)
+                                queuedMembership.push(membership);
                         }
                     }
-                };
 
-                callbackProcessor();
-            })
+                    let callbackProcessor = function(): void {
+                        if (queuedMembership.length == 0) {
+                            if (self.running)
+                                self.activityPolls[activityType] = setTimeout(groupGetter.bind(self), interval);
+                        } else {
+                            let member = queuedMembership.pop();
+                            if (member) {
+                                self.pullActivity(activityType, member.membershipId, callbackProcessor);
+                            }
+                        }
+                    };
+
+                    callbackProcessor();
+                });
+            }
+            
         }
 
         groupGetter();

@@ -254,7 +254,7 @@ export class PEBLEventHandlers {
     }
 
     saveInstitution(event: CustomEvent) {
-        let inst: Institution = event.detail;
+        let inst = new Institution(event.detail);
 
         let xapi = {};
         let self = this;
@@ -292,7 +292,7 @@ export class PEBLEventHandlers {
     }
 
     saveSystem(event: CustomEvent) {
-        let system: System = event.detail;
+        let system = new System(event.detail);
 
         let xapi = {};
         let self = this;
@@ -372,7 +372,9 @@ export class PEBLEventHandlers {
 
                 let exts = {
                     role: payload.role,
-                    activityType: payload.activityType
+                    activityType: payload.activityType,
+                    organization: payload.organization,
+                    organizationName: payload.organizationName
                 };
 
                 self.pebl.storage.getCurrentActivity(function(activity) {
@@ -437,7 +439,9 @@ export class PEBLEventHandlers {
                 if (newMembership) {
                     let exts = {
                         role: newMembership.role,
-                        activityType: newMembership.activityType
+                        activityType: newMembership.activityType,
+                        organization: newMembership.organization,
+                        organizationName: newMembership.organizationName
                     }
 
                     self.pebl.storage.getCurrentActivity(function(activity) {

@@ -376,6 +376,8 @@ export class Membership extends XApiStatement {
     readonly activityType: string;
     readonly description?: string;
     readonly role: string;
+    readonly organization?: string;
+    readonly organizationName?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -391,6 +393,8 @@ export class Membership extends XApiStatement {
 
         this.role = extensions[PREFIX_PEBL_EXTENSION + "role"];
         this.activityType = extensions[PREFIX_PEBL_EXTENSION + "activityType"];
+        this.organization = extensions[PREFIX_PEBL_EXTENSION + "organization"];
+        this.organizationName = extensions[PREFIX_PEBL_EXTENSION + "organizationName"];
     }
 
     static is(x: XApiStatement): boolean {
