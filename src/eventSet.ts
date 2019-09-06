@@ -91,4 +91,6 @@ export class EventSet {
     eventModuleExample = "eventModuleExample";
     eventModuleExampleRating = "eventModuleExampleRating";
     eventModuleExampleFeedback = "eventModuleExampleFeedback";
+
+    totalInstitutionActivities = "totalInstitutionActivities";
 }
