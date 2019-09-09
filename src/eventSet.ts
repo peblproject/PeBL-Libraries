@@ -85,6 +85,7 @@ export class EventSet {
     eventProgramModified = "eventProgramModified";
     eventProgramDeleted = "eventProgramDeleted";
     eventProgramCompleted = "eventProgramCompleted";
+    eventProgramCopied = "eventProgramCopied";
 
     eventModuleRating = "eventModuleRating";
     eventModuleFeedback = "eventModuleFeedback";
