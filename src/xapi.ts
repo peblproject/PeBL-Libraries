@@ -659,3 +659,26 @@ export class ModuleExampleFeedback extends ModuleEvent {
         return (verb == "moduleExampleFeedback");
     }
 }
+
+export class ModuleRemovedEvent extends ModuleEvent {
+    readonly idref: string;
+    readonly eventId: string;
+    readonly type?: string;
+
+    constructor(raw: { [key: string]: any }) {
+        super(raw);
+
+        let extensions = this.object.definition.extensions;
+
+        this.idref = this.object.definition.name["en-US"];
+
+        this.eventId = this.object.definition.description["en-US"];
+
+        this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+    }
+
+    static is(x: XApiStatement): boolean {
+        let verb = x.verb.display["en-US"];
+        return (verb == "moduleRemovedEvent");
+    }
+}

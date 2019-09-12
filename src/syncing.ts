@@ -12,7 +12,7 @@ const PROGRAM_POLL_INTERVAL = 60000;
 const INSTITUTION_POLL_INTERVAL = 60000;
 const SYSTEM_POLL_INTERVAL = 60000;
 
-import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership, ProgramAction, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback } from "./xapi";
+import { XApiStatement, Reference, Message, Voided, Annotation, SharedAnnotation, Session, Navigation, Quiz, Question, Action, Membership, ProgramAction, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback, ModuleRemovedEvent } from "./xapi";
 import { SyncProcess } from "./adapters";
 import { Endpoint, TempMembership } from "./models";
 import { PEBL } from "./pebl";
@@ -700,7 +700,8 @@ export class LLSyncAction implements SyncProcess {
                                     "http://www.peblproject.com/definitions.html#moduleFeedback",
                                     "http://www.peblproject.com/definitions.html#moduleExample",
                                     "http://www.peblproject.com/definitions.html#moduleExampleRating",
-                                    "http://www.peblproject.com/definitions.html#moduleExampleFeedback"
+                                    "http://www.peblproject.com/definitions.html#moduleExampleFeedback",
+                                    "http://www.peblproject.com/definitions.html#moduleRemovedEvent"
                                 ]
                             }
                         }
@@ -737,7 +738,7 @@ export class LLSyncAction implements SyncProcess {
                         let annotations: { [key: string]: Annotation } = {};
                         let sharedAnnotations: { [key: string]: SharedAnnotation } = {};
                         let events: { [key: string]: any } = {};
-                        let moduleEvents: { [key: string]: (ModuleRating | ModuleFeedback | ModuleExample | ModuleExampleRating | ModuleExampleFeedback) } = {};
+                        let moduleEvents: { [key: string]: (ModuleRating | ModuleFeedback | ModuleExample | ModuleExampleRating | ModuleExampleFeedback | ModuleRemovedEvent) } = {};
                         let deleted = [];
 
                         for (let i = 0; i < stmts.length; i++) {
@@ -786,6 +787,9 @@ export class LLSyncAction implements SyncProcess {
                             } else if (ModuleExampleFeedback.is(xapi)) {
                                 let mef = new ModuleExampleFeedback(xapi);
                                 moduleEvents[mef.id] = mef;
+                            } else if (ModuleRemovedEvent.is(xapi)) {
+                                let mre = new ModuleRemovedEvent(xapi);
+                                moduleEvents[mre.id] = mre;
                             } else {
                                 new Error("Unknown Statement type");
                             }

@@ -47,7 +47,6 @@ export class EventSet {
     removedLearnlet = "removedLearnlet";
     removedProgram = "removedProgram";
     removedMessage = "removedMessage";
-    removedModuleEvent = "removedModuleEvent";
 
     eventLoggedIn = "eventLoggedIn";
     eventLoggedOut = "eventLoggedOut";
@@ -92,6 +91,7 @@ export class EventSet {
     eventModuleExample = "eventModuleExample";
     eventModuleExampleRating = "eventModuleExampleRating";
     eventModuleExampleFeedback = "eventModuleExampleFeedback";
+    moduleRemovedEvent = "moduleRemovedEvent";
 
     totalInstitutionActivities = "totalInstitutionActivities";
 }

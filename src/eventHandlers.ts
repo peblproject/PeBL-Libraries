@@ -6,7 +6,7 @@ const PEBL_THREAD_GROUP_PREFIX = "peblThread://group-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback, ModuleRemovedEvent } from "./xapi";
 import { UserProfile } from "./models";
 import { Learnlet, Program, Institution, System } from "./activity";
 
@@ -1717,29 +1717,58 @@ export class PEBLEventHandlers {
         });
     }
 
-    removedModuleEvent(event: CustomEvent) {
-        let xId = event.detail;
+    moduleRemovedEvent(event: CustomEvent) {
+        let payload = event.detail;
 
-        let xapi = {};
+        let voidXapi = {};
+        let eventXapi = {};
         let self = this;
+
+        let exts = {
+            type: payload.type
+        }
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.getCurrentActivity(function(activity) {
                     self.pebl.storage.getCurrentBook(function(book) {
-                        self.xapiGen.addId(xapi);
-                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/voided", "voided");
-                        self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addStatementRef(xapi, xId);
-                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addId(voidXapi);
+                        self.xapiGen.addVerb(voidXapi, "http://adlnet.gov/expapi/verbs/voided", "voided");
+                        self.xapiGen.addTimestamp(voidXapi);
+                        self.xapiGen.addStatementRef(voidXapi, payload.eventId);
+                        self.xapiGen.addActorAccount(voidXapi, userProfile);
                         if (activity)
-                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+                            self.xapiGen.addParentActivity(voidXapi, PEBL_PREFIX + activity);
 
-                        let voided = new Voided(xapi);
+                        let voided = new Voided(voidXapi);
                         self.pebl.storage.saveOutgoingXApi(userProfile, voided);
+
+                        // Send event to everyone to remove that module event from their local storage
+
+                        self.xapiGen.addId(eventXapi);
+                        self.xapiGen.addVerb(eventXapi, "http://www.peblproject.com/definitions.html#moduleRemovedEvent", "moduleRemovedEvent");
+                        self.xapiGen.addTimestamp(eventXapi);
+                        self.xapiGen.addActorAccount(eventXapi, userProfile);
+                        self.xapiGen.addObject(eventXapi, PEBL_PREFIX + book, payload.idref, payload.eventId, self.xapiGen.addExtensions(exts));
+                        if (activity)
+                            self.xapiGen.addParentActivity(eventXapi, PEBL_PREFIX + activity);
+                        let mre = new ModuleRemovedEvent(eventXapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, mre);
+                        self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, [mre]);
                     });
                 });
             }
         });
+    }
+
+    incomingModuleEvents(event: CustomEvent) {
+        let self = this;
+        let events = event.detail;
+        
+        for (let event of events) {
+            if (event.verb.display['en-US'] === 'moduleRemovedEvent') {
+                self.pebl.storage.removeModuleEvent(event.idref, event.eventId);
+            }
+        }
     }
 }
