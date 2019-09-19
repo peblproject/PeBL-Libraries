@@ -1505,6 +1505,32 @@ export class PEBLEventHandlers {
         });
     }
 
+    eventProgramDiscussed(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            previousValue: payload.previousValue,
+            newValue: payload.newValue,
+            action: payload.action
+        }
+
+        this.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.xapiGen.addId(xapi);
+                self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#programDiscussed", "programDiscussed");
+                self.xapiGen.addTimestamp(xapi);
+                self.xapiGen.addActorAccount(xapi, userProfile);
+                self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
+
+                let pa = new ProgramAction(xapi);
+                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+            }
+        });
+    }
+
     // -------------------------------
 
     eventLogin(event: CustomEvent) {
@@ -1650,6 +1676,7 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let me = new ModuleExample(xapi);
                         self.pebl.storage.saveOutgoingXApi(userProfile, me);
+                        self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, [me]);
                     }
                 });
             });
@@ -1764,7 +1791,7 @@ export class PEBLEventHandlers {
     incomingModuleEvents(event: CustomEvent) {
         let self = this;
         let events = event.detail;
-        
+
         for (let event of events) {
             if (event.verb.display['en-US'] === 'moduleRemovedEvent') {
                 self.pebl.storage.removeModuleEvent(event.idref, event.eventId);
