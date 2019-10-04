@@ -128,7 +128,9 @@ export class LLSyncAction implements SyncProcess {
                 } else if (activity == "program" && Array.isArray(jsonObj)) {
                     // First call without a profileId returns an array of all profileIds, use that to start getting them one by one.
                     // FIXME: this should be a separate code path
-                    self.pullActivity(activity, jsonObj, callback);
+                    if (jsonObj.length > 0)
+                        self.pullActivity(activity, jsonObj, callback);
+                    
                     if (callback)
                         callback(jsonObj as any);
                     return;
@@ -165,7 +167,9 @@ export class LLSyncAction implements SyncProcess {
                     // First call without a profileId returns an array of all profileIds, use that to start getting them one by one.
                     // FIXME: this should be a separate code path
                     self.pebl.emitEvent(self.pebl.events.totalInstitutionActivities, jsonObj);
-                    self.pullActivity(activity, jsonObj, callback);
+                    if (jsonObj.length > 0)
+                        self.pullActivity(activity, jsonObj, callback);
+
                     if (callback)
                         callback(jsonObj as any);
                     return;
