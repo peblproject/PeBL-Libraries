@@ -123,7 +123,7 @@ export class LLSyncAction implements SyncProcess {
                     activityObj = [p];
                     // If passed an array of profileIds, pull them one by one.
                     if (profileId && Array.isArray(profileId) && profileId.length > 0) {
-                        self.pullActivity(activity, profileId, callback);
+                        self.pullActivity(activity, jsonObj.id, callback);
                     }
                 } else if (activity == "program" && Array.isArray(jsonObj)) {
                     // First call without a profileId returns an array of all profileIds, use that to start getting them one by one.
@@ -159,7 +159,7 @@ export class LLSyncAction implements SyncProcess {
                     activityObj = [i];
                     // If passed an array of profileIds, pull them one by one.
                     if (profileId && Array.isArray(profileId) && profileId.length > 0) {
-                        self.pullActivity(activity, profileId, callback);
+                        self.pullActivity(activity, jsonObj.id, callback);
                     }
                 } else if (activity == "institution" && Array.isArray(jsonObj)) {
                     // First call without a profileId returns an array of all profileIds, use that to start getting them one by one.
