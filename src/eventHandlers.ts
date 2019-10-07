@@ -640,7 +640,9 @@ export class PEBLEventHandlers {
                 if (userP.identity != currentIdentity) {
                     self.pebl.emitEvent(self.pebl.events.eventLogin, userP);
                 }
-                self.pebl.network.activate();
+                self.pebl.network.activate(function () {
+                    self.pebl.emitEvent(self.pebl.events.eventFinishedLogin, userP);
+                });
             });
         });
     }

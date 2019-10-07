@@ -52,6 +52,7 @@ export class EventSet {
     eventLoggedOut = "eventLoggedOut";
     eventLogin = "eventLogin";
     eventLogout = "eventLogout";
+    eventFinishedLogin = "eventFinishedLogin";
     eventSessionStart = "eventSessionStart";
     eventSessionStop = "eventSessionStop";
     eventNextPage = "eventNextPage";
