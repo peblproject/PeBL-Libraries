@@ -135,6 +135,11 @@ export class PEBLEventHandlers {
         let xapi = {};
         let self = this;
 
+        let exts = {
+            access: payload.access,
+            type: payload.type
+        };
+
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.getCurrentActivity(function(activity) {
@@ -144,7 +149,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/responded", "responded");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text);
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text, self.xapiGen.addExtensions(exts));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);

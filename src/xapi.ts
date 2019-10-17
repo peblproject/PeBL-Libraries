@@ -210,6 +210,8 @@ export class Message extends XApiStatement {
     readonly prompt: string;
     readonly name: string;
     readonly direct: boolean;
+    readonly access?: "private" | "team" | "class" | "all";
+    readonly type?: "written" | "table" | "checkboxes" | "radioboxes" | "buttons"
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -222,6 +224,11 @@ export class Message extends XApiStatement {
         this.name = this.actor.name;
         this.direct = this.thread == (NAMESPACE_USER_MESSAGES + this.getActorId());
         this.text = this.object.definition.description["en-US"];
+
+        let extensions = this.object.definition.extensions;
+
+        this.access = extensions[PREFIX_PEBL_EXTENSION + "access"];
+        this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
     }
 
     static is(x: XApiStatement): boolean {
