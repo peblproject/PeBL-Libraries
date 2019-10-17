@@ -162,6 +162,39 @@ export class PEBLEventHandlers {
         });
     }
 
+    eventNoted(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            access: payload.access,
+            type: payload.type
+        };
+
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
+
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/noted", "noted");
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+
+                        let message = new Message(xapi);
+                        self.pebl.storage.saveMessages(userProfile, message);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, message);
+                        self.pebl.emitEvent(message.thread, [message]);
+                    });
+                });
+            }
+        });
+    }
+
     removedMessage(event: CustomEvent) {
         let xId = event.detail;
 

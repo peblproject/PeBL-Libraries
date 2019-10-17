@@ -235,7 +235,7 @@ export class Message extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "responded");
+        return (verb == "responded") || (verb == "noted");
     }
 }
 

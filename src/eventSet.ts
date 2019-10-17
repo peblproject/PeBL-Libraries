@@ -76,6 +76,7 @@ export class EventSet {
     eventUndisplayed = "eventUndisplayed";
     eventBookmarked = "eventBookmarked";
     eventAnnotated = "eventAnnotated";
+    eventNoted = "eventNoted";
     eventSearched = "eventSearched";
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
