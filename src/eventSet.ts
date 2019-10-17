@@ -73,6 +73,7 @@ export class EventSet {
     eventHid = "eventHid";
     eventShowed = "eventShowed";
     eventDisplayed = "eventDisplayed";
+    eventUndisplayed = "eventUndisplayed";
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
