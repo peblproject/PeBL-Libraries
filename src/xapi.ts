@@ -169,7 +169,7 @@ export class Action extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "preferred") || (verb == "morphed") || (verb == "interacted") || (verb == "experienced") || (verb == "disliked") || (verb == "liked") || (verb == "accessed") || (verb == "hid");
+        return (verb == "preferred") || (verb == "morphed") || (verb == "interacted") || (verb == "experienced") || (verb == "disliked") || (verb == "liked") || (verb == "accessed") || (verb == "hid") || (verb == "showed");
     }
 }
 

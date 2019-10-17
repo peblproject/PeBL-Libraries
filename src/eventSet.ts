@@ -71,6 +71,7 @@ export class EventSet {
     eventLiked = "eventLiked";
     eventAccessed = "eventAccessed";
     eventHid = "eventHid";
+    eventShowed = "eventShowed";
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
