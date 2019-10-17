@@ -70,6 +70,7 @@ export class EventSet {
     eventDisliked = "eventDisliked";
     eventLiked = "eventLiked";
     eventAccessed = "eventAccessed";
+    eventHid = "eventHid";
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
