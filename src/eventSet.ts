@@ -67,6 +67,7 @@ export class EventSet {
     eventPreferred = "eventPreferred";
     eventContentMorphed = "eventContentMorphed";
     eventExperienced = "eventExperienced";
+    eventDisliked = "eventDisliked";
     eventCompleted = "eventCompleted";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
