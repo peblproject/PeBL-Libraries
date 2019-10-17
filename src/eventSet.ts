@@ -80,6 +80,7 @@ export class EventSet {
     eventNoted = "eventNoted";
     eventSearched = "eventSearched";
     eventCompleted = "eventCompleted";
+    eventLaunched = "eventLaunched";
     eventCompatibilityTested = "eventCompatibilityTested";
     eventChecklisted = "eventChecklisted";
     eventHelped = "eventHelped";

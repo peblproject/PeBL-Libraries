@@ -372,7 +372,7 @@ export class Session extends XApiStatement {
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "entered") || (verb == "exited") || (verb == "logged-in") ||
-            (verb == "logged-out") || (verb == "terminated") || (verb == "initialized");
+            (verb == "logged-out") || (verb == "terminated") || (verb == "initialized") || (verb == "launched");
     }
 }
 
