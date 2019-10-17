@@ -534,6 +534,42 @@ export class PEBLEventHandlers {
         });
     }
 
+    eventBookmarked(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+
+                let exts = {
+                    type: payload.type,
+                    cfi: payload.cfi,
+                    idRef: payload.idRef,
+                    style: payload.style
+                };
+
+                self.pebl.storage.getCurrentActivity(function(activity) {
+                    self.pebl.storage.getCurrentBook(function(book) {
+                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
+
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#bookmarked", "bookmarked");
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+
+                        let annotation = new Annotation(xapi);
+                        self.pebl.storage.saveAnnotations(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [annotation]);
+                    });
+                });
+            }
+        });
+    }
+
     newSharedAnnotation(event: CustomEvent) {
         let payload = event.detail;
 
