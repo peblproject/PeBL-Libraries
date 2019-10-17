@@ -74,6 +74,7 @@ export class EventSet {
     eventShowed = "eventShowed";
     eventDisplayed = "eventDisplayed";
     eventUndisplayed = "eventUndisplayed";
+    eventSelected = "eventSelected";
     eventBookmarked = "eventBookmarked";
     eventAnnotated = "eventAnnotated";
     eventNoted = "eventNoted";
