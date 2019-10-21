@@ -302,7 +302,7 @@ export class Question extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "answered");
+        return (verb == "attempted");
     }
 
 }

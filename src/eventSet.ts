@@ -61,7 +61,7 @@ export class EventSet {
     eventInitialized = "eventInitialized";
     eventTerminated = "eventTerminated";
     eventInteracted = "eventInteracted";
-    eventAnswered = "eventAnswered";
+    eventAttempted = "eventAttempted";
     eventPassed = "eventPassed";
     eventFailed = "eventFailed";
     eventPreferred = "eventPreferred";

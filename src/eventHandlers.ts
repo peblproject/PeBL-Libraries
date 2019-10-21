@@ -983,7 +983,7 @@ export class PEBLEventHandlers {
 
     // -------------------------------
 
-    eventAnswered(event: CustomEvent) {
+    eventAttempted(event: CustomEvent) {
         let payload = event.detail;
 
         let xapi = {};
@@ -998,7 +998,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addActorAccount(xapi, userProfile);
                         self.xapiGen.addObjectInteraction(xapi, PEBL_PREFIX + book, payload.name, payload.prompt, "choice", payload.answers, payload.correctAnswers);
                         self.xapiGen.addResult(xapi, payload.score, payload.minScore, payload.maxScore, payload.complete, payload.success, payload.answered);
-                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/answered", "answered");
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#attempted", "attempted");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
                         let s = new Question(xapi);
