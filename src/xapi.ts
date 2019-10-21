@@ -121,7 +121,7 @@ export class Annotation extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "commented") || (verb == "bookmarked") || (verb == "annotated");
+        return (verb == "commented") || (verb == "bookmarked") || (verb == "unbookmarked") || (verb == "annotated");
     }
 }
 
