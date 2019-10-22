@@ -609,33 +609,28 @@ export class PEBLEventHandlers {
         let xapi = {};
         let self = this;
 
-        self.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
+        let exts = {
+            idref: payload.idref,
+            cfi: payload.cfi
+        }
 
-                let exts = {
-                    type: payload.type,
-                    cfi: payload.cfi,
-                    idRef: payload.idRef,
-                    style: payload.style
-                };
-
-                self.pebl.storage.getCurrentActivity(function(activity) {
-                    self.pebl.storage.getCurrentBook(function(book) {
-                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
-
+        this.pebl.storage.getCurrentActivity(function(activity) {
+            self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
                         self.xapiGen.addId(xapi);
-                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#unbookmarked", "unbookmarked");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(exts));
                         self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#unbookmarked", "unbookmarked");
+                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
-                        let annotation = new Annotation(xapi);
-                        self.pebl.storage.saveAnnotations(userProfile, annotation);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
-                        self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [annotation]);
-                    });
+                        let s = new Action(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveEvent(userProfile, s);
+                    }
                 });
-            }
+            });
         });
     }
 
