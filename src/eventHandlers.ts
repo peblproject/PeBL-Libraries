@@ -1227,7 +1227,8 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            target: payload.target,
+            idref: payload.idref,
+            cfi: payload.cfi,
             type: payload.type
         }
 

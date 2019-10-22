@@ -143,6 +143,8 @@ export class SharedAnnotation extends Annotation {
 export class Action extends XApiStatement {
     readonly activityId: string;
     readonly target?: string;
+    readonly idref?: string;
+    readonly cfi?: string;
     readonly type?: string;
     readonly name?: string;
     readonly description?: string;
@@ -163,6 +165,8 @@ export class Action extends XApiStatement {
             if (extensions) {
                 this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
                 this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+                this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
+                this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
             }
         }
     }
@@ -228,9 +232,10 @@ export class Message extends XApiStatement {
         this.text = this.object.definition.description["en-US"];
 
         let extensions = this.object.definition.extensions;
-
-        this.access = extensions[PREFIX_PEBL_EXTENSION + "access"];
-        this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+        if (extensions) {
+            this.access = extensions[PREFIX_PEBL_EXTENSION + "access"];
+            this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
