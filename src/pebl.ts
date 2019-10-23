@@ -14,6 +14,9 @@ export class PEBL {
 
     readonly subscribedEventHandlers: { [eventName: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
+    // Limited to 1 handler per event, as opposed to an array of handlers
+    readonly subscribedSingularEventHandlers: { [eventName: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener } } = {};
+
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
     readonly teacher: boolean;
@@ -107,6 +110,11 @@ export class PEBL {
                 document.removeEventListener(key, pack.modifiedFn);
             delete this.subscribedEventHandlers[key];
         }
+
+        for (let key of Object.keys(this.subscribedSingularEventHandlers)) {
+            document.removeEventListener(key, this.subscribedSingularEventHandlers[key].modifiedFn);
+            delete this.subscribedSingularEventHandlers[key];
+        }
     }
 
     unsubscribeAllThreads(): void {
@@ -128,6 +136,13 @@ export class PEBL {
                 }
                 i++;
             }
+        }
+    }
+
+    unsubscribeSingularEvent(eventName: string): void {
+        if (this.subscribedSingularEventHandlers[eventName]) {
+            document.removeEventListener(eventName, this.subscribedSingularEventHandlers[eventName].modifiedFn);
+            delete this.subscribedSingularEventHandlers[eventName];
         }
     }
 
@@ -182,6 +197,45 @@ export class PEBL {
             self.utils.getGroupMemberships(function(groups) {
                 callback(groups);
             })
+        }
+    }
+
+    subscribeSingularEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
+        this.unsubscribeSingularEvent(eventName);
+
+        let self = this;
+
+        if (once) {
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) {
+                self.unsubscribeSingularEvent(eventName);
+                callback(e.detail);
+            }
+            document.addEventListener(eventName, modifiedHandler, <any>{ once: once });
+            this.subscribedSingularEventHandlers[eventName] = { once: once, fn: callback, modifiedFn: modifiedHandler };
+        } else {
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) { callback(e.detail); };
+            document.addEventListener(eventName, modifiedHandler);
+            this.subscribedSingularEventHandlers[eventName] = { once: once, fn: callback, modifiedFn: modifiedHandler };
+        }
+
+        if (eventName == self.events.incomingAnnotations) {
+            self.utils.getAnnotations(function(annotations) {
+                callback(annotations);
+            });
+        } else if (eventName == self.events.incomingSharedAnnotations) {
+            self.utils.getSharedAnnotations(function(annotations) {
+                callback(annotations);
+            });
+        } else if (eventName == self.events.incomingPresence) {
+            self.network.retrievePresence();
+        } else if (eventName == self.events.incomingProgram) {
+            self.utils.getPrograms(function(programs) {
+                callback(programs);
+            });
+        } else if (eventName == self.events.incomingMembership) {
+            self.utils.getGroupMemberships(function(groups) {
+                callback(groups);
+            });
         }
     }
 
