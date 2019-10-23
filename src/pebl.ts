@@ -14,8 +14,7 @@ export class PEBL {
 
     readonly subscribedEventHandlers: { [eventName: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
-    // Limited to 1 handler per event, as opposed to an array of handlers
-    readonly subscribedSingularEventHandlers: { [eventName: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener } } = {};
+    readonly subscribedSingularEventHandlers: { [eventName: string]: { [id: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener } } } = {};
 
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
@@ -112,7 +111,10 @@ export class PEBL {
         }
 
         for (let key of Object.keys(this.subscribedSingularEventHandlers)) {
-            document.removeEventListener(key, this.subscribedSingularEventHandlers[key].modifiedFn);
+            for (let pack of Object.keys(this.subscribedSingularEventHandlers[key])) {
+                document.removeEventListener(key, this.subscribedSingularEventHandlers[key][pack].modifiedFn);
+            }
+            
             delete this.subscribedSingularEventHandlers[key];
         }
     }
@@ -139,10 +141,10 @@ export class PEBL {
         }
     }
 
-    unsubscribeSingularEvent(eventName: string): void {
-        if (this.subscribedSingularEventHandlers[eventName]) {
-            document.removeEventListener(eventName, this.subscribedSingularEventHandlers[eventName].modifiedFn);
-            delete this.subscribedSingularEventHandlers[eventName];
+    unsubscribeSingularEvent(eventName: string, id: string): void {
+        if (this.subscribedSingularEventHandlers[eventName] && this.subscribedSingularEventHandlers[eventName][id]) {
+            document.removeEventListener(eventName, this.subscribedSingularEventHandlers[eventName][id].modifiedFn);
+            delete this.subscribedSingularEventHandlers[eventName][id];
         }
     }
 
@@ -196,26 +198,29 @@ export class PEBL {
         } else if (eventName == self.events.incomingMembership) {
             self.utils.getGroupMemberships(function(groups) {
                 callback(groups);
-            })
+            });
         }
     }
 
-    subscribeSingularEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
-        this.unsubscribeSingularEvent(eventName);
+    subscribeSingularEvent(eventName: string, id: string, once: boolean, callback: PEBLHandler): void {
+        this.unsubscribeSingularEvent(eventName, id);
+
+        if (!this.subscribedSingularEventHandlers[eventName])
+            this.subscribedSingularEventHandlers[eventName] = {};
 
         let self = this;
 
         if (once) {
             var modifiedHandler = <PEBLHandler>function(e: CustomEvent) {
-                self.unsubscribeSingularEvent(eventName);
+                self.unsubscribeSingularEvent(eventName, id);
                 callback(e.detail);
             }
             document.addEventListener(eventName, modifiedHandler, <any>{ once: once });
-            this.subscribedSingularEventHandlers[eventName] = { once: once, fn: callback, modifiedFn: modifiedHandler };
+            this.subscribedSingularEventHandlers[eventName][id] = { once: once, fn: callback, modifiedFn: modifiedHandler };
         } else {
             var modifiedHandler = <PEBLHandler>function(e: CustomEvent) { callback(e.detail); };
             document.addEventListener(eventName, modifiedHandler);
-            this.subscribedSingularEventHandlers[eventName] = { once: once, fn: callback, modifiedFn: modifiedHandler };
+            this.subscribedSingularEventHandlers[eventName][id] = { once: once, fn: callback, modifiedFn: modifiedHandler };
         }
 
         if (eventName == self.events.incomingAnnotations) {
