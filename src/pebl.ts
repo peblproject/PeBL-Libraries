@@ -14,6 +14,8 @@ export class PEBL {
 
     readonly subscribedEventHandlers: { [eventName: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
+    readonly subscribedSingularEventHandlers: { [eventName: string]: { [id: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener } } } = {};
+
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
     readonly teacher: boolean;
@@ -107,6 +109,14 @@ export class PEBL {
                 document.removeEventListener(key, pack.modifiedFn);
             delete this.subscribedEventHandlers[key];
         }
+
+        for (let key of Object.keys(this.subscribedSingularEventHandlers)) {
+            for (let pack of Object.keys(this.subscribedSingularEventHandlers[key])) {
+                document.removeEventListener(key, this.subscribedSingularEventHandlers[key][pack].modifiedFn);
+            }
+            
+            delete this.subscribedSingularEventHandlers[key];
+        }
     }
 
     unsubscribeAllThreads(): void {
@@ -128,6 +138,13 @@ export class PEBL {
                 }
                 i++;
             }
+        }
+    }
+
+    unsubscribeSingularEvent(eventName: string, id: string): void {
+        if (this.subscribedSingularEventHandlers[eventName] && this.subscribedSingularEventHandlers[eventName][id]) {
+            document.removeEventListener(eventName, this.subscribedSingularEventHandlers[eventName][id].modifiedFn);
+            delete this.subscribedSingularEventHandlers[eventName][id];
         }
     }
 
@@ -181,7 +198,49 @@ export class PEBL {
         } else if (eventName == self.events.incomingMembership) {
             self.utils.getGroupMemberships(function(groups) {
                 callback(groups);
-            })
+            });
+        }
+    }
+
+    subscribeSingularEvent(eventName: string, id: string, once: boolean, callback: PEBLHandler): void {
+        this.unsubscribeSingularEvent(eventName, id);
+
+        if (!this.subscribedSingularEventHandlers[eventName])
+            this.subscribedSingularEventHandlers[eventName] = {};
+
+        let self = this;
+
+        if (once) {
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) {
+                self.unsubscribeSingularEvent(eventName, id);
+                callback(e.detail);
+            }
+            document.addEventListener(eventName, modifiedHandler, <any>{ once: once });
+            this.subscribedSingularEventHandlers[eventName][id] = { once: once, fn: callback, modifiedFn: modifiedHandler };
+        } else {
+            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) { callback(e.detail); };
+            document.addEventListener(eventName, modifiedHandler);
+            this.subscribedSingularEventHandlers[eventName][id] = { once: once, fn: callback, modifiedFn: modifiedHandler };
+        }
+
+        if (eventName == self.events.incomingAnnotations) {
+            self.utils.getAnnotations(function(annotations) {
+                callback(annotations);
+            });
+        } else if (eventName == self.events.incomingSharedAnnotations) {
+            self.utils.getSharedAnnotations(function(annotations) {
+                callback(annotations);
+            });
+        } else if (eventName == self.events.incomingPresence) {
+            self.network.retrievePresence();
+        } else if (eventName == self.events.incomingProgram) {
+            self.utils.getPrograms(function(programs) {
+                callback(programs);
+            });
+        } else if (eventName == self.events.incomingMembership) {
+            self.utils.getGroupMemberships(function(groups) {
+                callback(groups);
+            });
         }
     }
 

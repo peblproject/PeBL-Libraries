@@ -121,7 +121,7 @@ export class Annotation extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "commented");
+        return (verb == "commented") || (verb == "bookmarked") || (verb == "annotated");
     }
 }
 
@@ -143,6 +143,8 @@ export class SharedAnnotation extends Annotation {
 export class Action extends XApiStatement {
     readonly activityId: string;
     readonly target?: string;
+    readonly idref?: string;
+    readonly cfi?: string;
     readonly type?: string;
     readonly name?: string;
     readonly description?: string;
@@ -163,13 +165,17 @@ export class Action extends XApiStatement {
             if (extensions) {
                 this.target = extensions[PREFIX_PEBL_EXTENSION + "target"];
                 this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+                this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
+                this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
             }
         }
     }
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "preferred") || (verb == "morphed") || (verb == "interacted");
+        return (verb == "preferred") || (verb == "morphed") || (verb == "interacted") || (verb == "experienced") || (verb == "disliked") || 
+            (verb == "liked") || (verb == "accessed") || (verb == "hid") || (verb == "showed") || (verb == "displayed") || (verb == "undisplayed") ||
+            (verb == "searched") || (verb == "selected") || (verb == "unbookmarked");
     }
 }
 
@@ -210,6 +216,8 @@ export class Message extends XApiStatement {
     readonly prompt: string;
     readonly name: string;
     readonly direct: boolean;
+    readonly access?: "private" | "team" | "class" | "all";
+    readonly type?: "written" | "table" | "checkboxes" | "radioboxes" | "buttons"
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -222,11 +230,17 @@ export class Message extends XApiStatement {
         this.name = this.actor.name;
         this.direct = this.thread == (NAMESPACE_USER_MESSAGES + this.getActorId());
         this.text = this.object.definition.description["en-US"];
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            this.access = extensions[PREFIX_PEBL_EXTENSION + "access"];
+            this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "responded");
+        return (verb == "responded") || (verb == "noted");
     }
 }
 
@@ -293,7 +307,7 @@ export class Question extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "answered");
+        return (verb == "attempted");
     }
 
 }
@@ -363,7 +377,7 @@ export class Session extends XApiStatement {
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "entered") || (verb == "exited") || (verb == "logged-in") ||
-            (verb == "logged-out") || (verb == "terminated") || (verb == "initialized");
+            (verb == "logged-out") || (verb == "terminated") || (verb == "initialized") || (verb == "launched");
     }
 }
 
