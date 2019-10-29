@@ -109,6 +109,7 @@ export class Endpoint {
     readonly lastSyncedBooksMine: { [key: string]: Date }
     readonly lastSyncedBooksShared: { [key: string]: Date }
     readonly lastSyncedActivityEvents: { [key: string]: Date }
+    readonly lastSyncedModules: { [key: string]: Date }
 
     constructor(raw: { [key: string]: any }) {
         this.url = raw.url;
@@ -124,6 +125,7 @@ export class Endpoint {
         this.lastSyncedBooksShared = {};
         this.lastSyncedThreads = {};
         this.lastSyncedActivityEvents = {};
+        this.lastSyncedModules = {};
     }
 
     toObject(urlPrefix: string = ""): { [key: string]: any } {
@@ -135,7 +137,8 @@ export class Endpoint {
             lastSyncedThreads: this.lastSyncedThreads,
             lastSyncedBooksMine: this.lastSyncedBooksMine,
             lastSyncedBooksShared: this.lastSyncedBooksMine,
-            lastSyncedActivityEvents: this.lastSyncedActivityEvents
+            lastSyncedActivityEvents: this.lastSyncedActivityEvents,
+            lastSyncedModules: this.lastSyncedModules
         };
     }
 }

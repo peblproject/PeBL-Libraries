@@ -6,6 +6,7 @@ const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
 const PEBL_THREAD_GROUP_PREFIX = "peblThread://" + GROUP_PREFIX;
 const THREAD_POLL_INTERVAL = 4000;
 const BOOK_POLL_INTERVAL = 6000;
+const MODULE_POLL_INTERVAL = 6000;
 // const PRESENCE_POLL_INTERVAL = 120000;
 // const LEARNLET_POLL_INTERVAL = 60000;
 const PROGRAM_POLL_INTERVAL = 60000;
@@ -21,6 +22,7 @@ import { Activity, Program, Learnlet, Presence, Institution, System } from "./ac
 export class LLSyncAction implements SyncProcess {
 
     private bookPoll: (number | null) = null;
+    private modulePoll: (number | null) = null;
     private threadPoll: (number | null) = null;
     private activityPolls: { [key: string]: number } = {};
 
@@ -40,6 +42,10 @@ export class LLSyncAction implements SyncProcess {
         if (this.bookPoll)
             clearTimeout(this.bookPoll);
         this.bookPoll = null;
+
+        if (this.modulePoll)
+            clearTimeout(this.modulePoll);
+        this.modulePoll = null;
 
         if (this.threadPoll)
             clearTimeout(this.threadPoll);
@@ -423,6 +429,21 @@ export class LLSyncAction implements SyncProcess {
         });
     }
 
+    private modulePollingCallback(): void {
+        let self = this;
+        this.pebl.storage.getCurrentBook(function(book) {
+            if (book) {
+                let lastSynced = self.endpoint.lastSyncedModules[book];
+                if (lastSynced == null) {
+                    lastSynced = new Date("2017-06-05T21:07:49-07:00");
+                    self.endpoint.lastSyncedModules[book] = lastSynced;
+                }
+                self.pullModules(lastSynced, book);
+            } else if (self.running)
+                self.modulePoll = setTimeout(self.modulePollingCallback.bind(self), MODULE_POLL_INTERVAL);
+        });
+    }
+
     private threadPollingCallback(): void {
         let self = this;
         let threadPairs: { [key: string]: any }[] = [];
@@ -688,6 +709,108 @@ export class LLSyncAction implements SyncProcess {
         chunkIterator(arrayChunks);
     }
 
+    private pullModules(lastSynced: Date, book: string): void {
+        let self = this;
+
+        let pipeline: { [key: string]: any }[] = [
+            {
+                "$match": {
+                    "$or": [
+                        {
+                            "statement.object.id": "pebl://" + book,
+                            "statement.stored": {
+                                "$gt": lastSynced.toISOString()
+                            },
+                            "statement.verb.id": {
+                                "$in": [
+                                    "http://www.peblproject.com/definitions.html#moduleRating",
+                                    "http://www.peblproject.com/definitions.html#moduleFeedback",
+                                    "http://www.peblproject.com/definitions.html#moduleExample",
+                                    "http://www.peblproject.com/definitions.html#moduleExampleRating",
+                                    "http://www.peblproject.com/definitions.html#moduleExampleFeedback",
+                                    "http://www.peblproject.com/definitions.html#moduleRemovedEvent"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "$project": {
+                    "statement": 1,
+                    "_id": 0,
+                    "voided": 1
+                }
+            },
+            {
+                "$sort": {
+                    "stored": -1,
+                    "_id": 1
+                }
+            },
+            {
+                "$limit": 1500
+            }
+        ];
+
+        this.pebl.user.getUser(function(userProfile) {
+
+            if (userProfile) {
+
+                self.pullHelper(pipeline,
+                    function(stmts) {
+                        let moduleEvents: { [key: string]: (ModuleRating | ModuleFeedback | ModuleExample | ModuleExampleRating | ModuleExampleFeedback | ModuleRemovedEvent) } = {};
+
+                        for (let i = 0; i < stmts.length; i++) {
+                            let xapi = stmts[i];
+
+                            if (ModuleRating.is(xapi)) {
+                                let mr = new ModuleRating(xapi);
+                                moduleEvents[mr.id] = mr;
+                            } else if (ModuleFeedback.is(xapi)) {
+                                let mf = new ModuleFeedback(xapi);
+                                moduleEvents[mf.id] = mf;
+                            } else if (ModuleExample.is(xapi)) {
+                                let me = new ModuleExample(xapi);
+                                moduleEvents[me.id] = me;
+                            } else if (ModuleExampleRating.is(xapi)) {
+                                let mer = new ModuleExampleRating(xapi);
+                                moduleEvents[mer.id] = mer;
+                            } else if (ModuleExampleFeedback.is(xapi)) {
+                                let mef = new ModuleExampleFeedback(xapi);
+                                moduleEvents[mef.id] = mef;
+                            } else if (ModuleRemovedEvent.is(xapi)) {
+                                let mre = new ModuleRemovedEvent(xapi);
+                                moduleEvents[mre.id] = mre;
+                            } else {
+                                new Error("Unknown Statement type");
+                            }
+
+
+                            let temp = new Date(xapi.stored);
+                            let lastSyncedDate = self.endpoint.lastSyncedModules[book];
+                            if (lastSyncedDate.getTime() < temp.getTime())
+                                self.endpoint.lastSyncedModules[book] = temp;
+                        }
+
+                        let cleanModuleEvents = [];
+                        for (let id of Object.keys(moduleEvents))
+                            cleanModuleEvents.push(moduleEvents[id]);
+
+                        if (cleanModuleEvents.length > 0) {
+                            cleanModuleEvents.sort();
+                            self.pebl.storage.saveModuleEvent(userProfile, cleanModuleEvents);
+                            self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, cleanModuleEvents);
+                        }
+
+                        self.pebl.storage.saveUserProfile(userProfile);
+                        if (self.running)
+                            self.modulePoll = setTimeout(self.modulePollingCallback.bind(self), MODULE_POLL_INTERVAL);
+                    });
+            }
+        });
+    }
+
     private pullBook(lastSynced: Date, book: string): void {
         let teacherPack: { [key: string]: any } = {
             "statement.object.id": "pebl://" + book,
@@ -710,13 +833,7 @@ export class LLSyncAction implements SyncProcess {
                             },
                             "statement.verb.id": {
                                 "$in": [
-                                    "http://adlnet.gov/expapi/verbs/shared",
-                                    "http://www.peblproject.com/definitions.html#moduleRating",
-                                    "http://www.peblproject.com/definitions.html#moduleFeedback",
-                                    "http://www.peblproject.com/definitions.html#moduleExample",
-                                    "http://www.peblproject.com/definitions.html#moduleExampleRating",
-                                    "http://www.peblproject.com/definitions.html#moduleExampleFeedback",
-                                    "http://www.peblproject.com/definitions.html#moduleRemovedEvent"
+                                    "http://adlnet.gov/expapi/verbs/shared"
                                 ]
                             }
                         }
@@ -883,6 +1000,7 @@ export class LLSyncAction implements SyncProcess {
 
         this.bookPollingCallback();
         this.threadPollingCallback();
+        this.modulePollingCallback();
 
         // this.startActivityPull("presence", PRESENCE_POLL_INTERVAL);
         // this.startActivityPull("learnlet", LEARNLET_POLL_INTERVAL);
