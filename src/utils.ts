@@ -488,4 +488,21 @@ export class Utils {
             }
         });
     }
+
+    getEvents(callback: (events: XApiStatement[]) => void): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getCurrentBook(function(book) {
+                    if (book) {
+                        self.pebl.storage.getEvents(userProfile, book, callback);
+                    } else {
+                        callback([]);
+                    }
+                });
+            } else {
+                callback([]);
+            }
+        });
+    }
 }

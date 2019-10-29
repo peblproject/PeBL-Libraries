@@ -142,6 +142,7 @@ export class SharedAnnotation extends Annotation {
 
 export class Action extends XApiStatement {
     readonly activityId: string;
+    readonly book: string;
     readonly target?: string;
     readonly idref?: string;
     readonly cfi?: string;
@@ -155,6 +156,12 @@ export class Action extends XApiStatement {
         this.activityId = this.object.id;
 
         this.action = this.verb.display["en-US"];
+
+        this.book = this.object.id;
+        if (this.book.indexOf(PREFIX_PEBL) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL) + PREFIX_PEBL.length);
+        else if (this.book.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         if (this.object.definition) {
             this.name = this.object.definition.name && this.object.definition.name["en-US"];
@@ -183,6 +190,7 @@ export class Action extends XApiStatement {
 
 export class Navigation extends XApiStatement {
     readonly activityId: string;
+    readonly book: string;
     readonly firstCfi?: string;
     readonly lastCfi?: string;
 
@@ -192,6 +200,12 @@ export class Navigation extends XApiStatement {
         super(raw);
         this.type = this.verb.display["en-US"];
         this.activityId = this.object.id;
+
+        this.book = this.object.id;
+        if (this.book.indexOf(PREFIX_PEBL) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL) + PREFIX_PEBL.length);
+        else if (this.book.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         let extensions = this.object.definition.extensions;
 
@@ -269,6 +283,8 @@ export class Voided extends XApiStatement {
 
 export class Question extends XApiStatement {
 
+    readonly book: string;
+
     readonly score: number;
     readonly min: number;
     readonly max: number;
@@ -285,6 +301,12 @@ export class Question extends XApiStatement {
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
+
+        this.book = this.object.id;
+        if (this.book.indexOf(PREFIX_PEBL) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL) + PREFIX_PEBL.length);
+        else if (this.book.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         this.score = this.result.score.raw;
         this.min = this.result.score.min;
@@ -316,6 +338,8 @@ export class Question extends XApiStatement {
 
 export class Quiz extends XApiStatement {
 
+    readonly book: string;
+
     readonly score: number;
     readonly min: number;
     readonly max: number;
@@ -330,6 +354,12 @@ export class Quiz extends XApiStatement {
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
+
+        this.book = this.object.id;
+        if (this.book.indexOf(PREFIX_PEBL) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL) + PREFIX_PEBL.length);
+        else if (this.book.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         this.score = this.result.score.raw;
         this.min = this.result.score.min;
@@ -357,6 +387,7 @@ export class Quiz extends XApiStatement {
 export class Session extends XApiStatement {
 
     readonly activityId: string;
+    readonly book: string;
     readonly activityName?: string;
     readonly activityDescription?: string;
 
@@ -370,6 +401,12 @@ export class Session extends XApiStatement {
             this.activityName = this.object.definition.name && this.object.definition.name["en-US"];
             this.activityDescription = this.object.definition.description && this.object.definition.description["en-US"];
         }
+
+        this.book = this.object.id;
+        if (this.book.indexOf(PREFIX_PEBL) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL) + PREFIX_PEBL.length);
+        else if (this.book.indexOf(PREFIX_PEBL_THREAD) != -1)
+            this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         this.type = this.verb.display["en-US"];
     }
