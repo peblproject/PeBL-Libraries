@@ -14,7 +14,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 22);
+        let request = window.indexedDB.open("pebl", 23);
         let self: IndexedDBStorageAdapter = this;
 
         request.onupgradeneeded = function() {
