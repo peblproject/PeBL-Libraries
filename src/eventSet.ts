@@ -80,6 +80,7 @@ export class EventSet {
     eventUnbookmarked = "eventUnbookmarked";
     eventUnsharedAnnotation = "eventUnsharedAnnotation";
     eventAnnotated = "eventAnnotated";
+    eventUnannotated = "eventUnannotated";
     eventNoted = "eventNoted";
     eventSearched = "eventSearched";
     eventCompleted = "eventCompleted";
