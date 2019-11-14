@@ -138,7 +138,8 @@ export class PEBLEventHandlers {
 
         let exts = {
             access: payload.access,
-            type: payload.type
+            type: payload.type,
+            masterThread: payload.masterThread
         };
 
         self.pebl.user.getUser(function(userProfile) {

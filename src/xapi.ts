@@ -231,7 +231,8 @@ export class Message extends XApiStatement {
     readonly name: string;
     readonly direct: boolean;
     readonly access?: "private" | "team" | "class" | "all";
-    readonly type?: "written" | "table" | "checkboxes" | "radioboxes" | "buttons"
+    readonly type?: "written" | "table" | "checkboxes" | "radioboxes" | "buttons";
+    readonly masterThread?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -249,6 +250,7 @@ export class Message extends XApiStatement {
         if (extensions) {
             this.access = extensions[PREFIX_PEBL_EXTENSION + "access"];
             this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
+            this.masterThread = extensions[PREFIX_PEBL_EXTENSION + "masterThread"];
         }
     }
 
