@@ -1314,6 +1314,39 @@ export class PEBLEventHandlers {
         });
     }
 
+    eventSubmitted(event: CustomEvent) {
+        let payload = event.detail;
+
+        let xapi = {};
+        let self = this;
+
+        let exts = {
+            idref: payload.idref,
+            cfi: payload.cfi,
+            target: payload.target,
+            type: payload.type
+        }
+
+        this.pebl.storage.getCurrentActivity(function(activity) {
+            self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.user.getUser(function(userProfile) {
+                    if (userProfile) {
+                        self.xapiGen.addId(xapi);
+                        self.xapiGen.addTimestamp(xapi);
+                        self.xapiGen.addActorAccount(xapi, userProfile);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#submitted", "submitted");
+                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
+
+                        let s = new Action(xapi);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveEvent(userProfile, s);
+                    }
+                });
+            });
+        });
+    }
+
     eventHid(event: CustomEvent) {
         let payload = event.detail;
 
