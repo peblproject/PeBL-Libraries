@@ -37,7 +37,7 @@ export class Network implements NetworkAdapter {
 
                     self.push();
                     self.pushActivity();
-                    self.pullAsset();
+                    // self.pullAsset();
                     self.running = true;
                 }
                 if (callback)
@@ -184,9 +184,9 @@ export class Network implements NetworkAdapter {
                                 // to fix pass an object with the results to selectively delete outside the sync process for
                                 // a single endpoing
                                 self.syncingProcess[0].pushActivity(stmts,
-                                    function() {
-                                        // if (success)
-                                        //     self.pebl.storage.removeOutgoingActivity(userProfile, stmts);
+                                    function(success) {
+                                        if (success)
+                                            self.pebl.storage.removeOutgoingActivity(userProfile, stmts);
                                         if (self.running)
                                             self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
 

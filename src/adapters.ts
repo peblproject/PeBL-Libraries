@@ -21,13 +21,9 @@ export interface UserAdapter {
 // -------------------------------
 
 export interface SyncProcess {
-    pull(): void;
+    push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void;
 
-    push(outgoing: XApiStatement[], callback: (result: boolean) => void): void;
-
-    pushActivity(outgoing: Activity[], callback: () => void): void;
-
-    terminate(): void;
+    pushActivity(outgoing: { [key: string]: any }[], callback: (success: boolean) => void): void;
 }
 
 // -------------------------------
@@ -93,18 +89,18 @@ export interface StorageAdapter {
     saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoingActivity(userProfile: UserProfile, stmt: Activity, callback?: (() => void)): void;
+    saveOutgoingActivity(userProfile: UserProfile, stmt: { [key:string]: any }, callback?: (() => void)): void;
 
-    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: Activity[]) => void): void;
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: { [key:string]: any }[]) => void): void;
 
-    removeOutgoingActivity(userProfile: UserProfile, toClear: Activity, callback?: (() => void)): void;
+    removeOutgoingActivity(userProfile: UserProfile, toClear: { [key:string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoingXApi(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void;
+    saveOutgoingXApi(userProfile: UserProfile, stmt: { [key:string]: any }, callback?: (() => void)): void;
 
-    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void;
+    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void;
 
-    removeOutgoingXApi(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void;
+    removeOutgoingXApi(userProfile: UserProfile, toClear: { [key: string]: any }[], callback?: (() => void)): void;
 
 
     saveMessages(userProfile: UserProfile, stmts: (Message | Message[]), callback?: (() => void)): void;

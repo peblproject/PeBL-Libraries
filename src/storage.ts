@@ -611,11 +611,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveOutgoingXApi(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void {
+    saveOutgoingXApi(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void {
         if (this.db) {
-            let clone = stmt.toXAPI();
+            let clone = stmt;
             clone.identity = userProfile.identity;
-            let request = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi").put(this.cleanRecord(clone));
+            let request = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi").put(clone);
             request.onerror = function(e) {
                 console.log(e);
             };
@@ -631,7 +631,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void {
+    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void {
         if (this.db) {
             let os = this.db.transaction(["outgoingXApi"], "readonly").objectStore("outgoingXApi");
             let index = os.index(MASTER_INDEX);
@@ -655,7 +655,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeOutgoingXApi(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void {
+    removeOutgoingXApi(userProfile: UserProfile, toClear: { [key: string]: any }[], callback?: (() => void)): void {
         if (this.db) {
             let objectStore = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi");
             let toClearCopy = toClear.slice(0);
@@ -1314,11 +1314,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveOutgoingActivity(userProfile: UserProfile, stmt: Activity, callback?: (() => void)): void {
+    saveOutgoingActivity(userProfile: UserProfile, stmt: { [key:string]: any }, callback?: (() => void)): void {
         if (this.db) {
             let clone = stmt;
             clone.identity = userProfile.identity;
-            let request = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity").put(this.cleanRecord(clone));
+            let request = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity").put(clone);
             request.onerror = function(e) {
                 console.log(e);
             };
@@ -1334,7 +1334,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: Activity[]) => void): void {
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: { [key:string]: any }[]) => void): void {
         if (this.db) {
             let os = this.db.transaction(["outgoingActivity"], "readonly").objectStore("outgoingActivity");
             let index = os.index(MASTER_INDEX);
@@ -1358,7 +1358,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeOutgoingActivity(userProfile: UserProfile, toClear: Activity, callback?: (() => void)): void {
+    removeOutgoingActivity(userProfile: UserProfile, toClear: { [key:string]: any }, callback?: (() => void)): void {
         if (this.db) {
             let objectStore = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity");
             let request = objectStore.delete(IDBKeyRange.only([userProfile.identity, toClear.id]));

@@ -1,12 +1,12 @@
 const PEBL_PREFIX = "pebl://";
 const PEBL_THREAD_PREFIX = "peblThread://";
 const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
-const PEBL_THREAD_ARTIFACT_PREFIX = "peblThread://artifact-";
+// const PEBL_THREAD_ARTIFACT_PREFIX = "peblThread://artifact-";
 const PEBL_THREAD_GROUP_PREFIX = "peblThread://group-";
 
 import { PEBL } from "./pebl";
 import { XApiGenerator } from "./xapiGenerator";
-import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Artifact, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback, ModuleRemovedEvent } from "./xapi";
+import { SharedAnnotation, Annotation, Voided, Session, Navigation, Action, Reference, Message, Question, Quiz, Membership, Invitation, ProgramAction, CompatibilityTest, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback } from "./xapi";
 import { UserProfile } from "./models";
 import { Learnlet, Program, Institution, System } from "./activity";
 
@@ -120,7 +120,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
                         let s = new Reference(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveReferences",
+                            references: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                         if (pulled)
                             self.pebl.emitEvent(PEBL_THREAD_USER_PREFIX + payload.target, [s]);
@@ -156,7 +161,12 @@ export class PEBLEventHandlers {
 
                         let message = new Message(xapi);
                         self.pebl.storage.saveMessages(userProfile, message);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, message);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: message.id,
+                            requestType: "storeThreadedMessage",
+                            message: message,
+                        });
                         self.pebl.emitEvent(message.thread, [message]);
                     });
                 });
@@ -189,7 +199,12 @@ export class PEBLEventHandlers {
 
                         let message = new Message(xapi);
                         self.pebl.storage.saveMessages(userProfile, message);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, message);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: message.id,
+                            requestType: "saveMessages",
+                            messages: [message]
+                        });
                         self.pebl.emitEvent(message.thread, [message]);
                     });
                 });
@@ -200,23 +215,20 @@ export class PEBLEventHandlers {
     removedMessage(event: CustomEvent) {
         let xId = event.detail;
 
-        let xapi = {};
         let self = this;
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.getCurrentActivity(function(activity) {
                     self.pebl.storage.getCurrentBook(function(book) {
-                        self.xapiGen.addId(xapi);
-                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/voided", "voided");
-                        self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addStatementRef(xapi, xId);
-                        self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + xId);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: xId,
+                            xId: xId,
+                            requestType: "deleteMessage"
+                        });
 
-                        let m = new Voided(xapi);
                         self.pebl.storage.removeMessage(userProfile, xId);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, m);
                     });
                 });
             }
@@ -247,7 +259,12 @@ export class PEBLEventHandlers {
                         //     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
                         let m = new Learnlet(xapi);
-                        self.pebl.storage.saveOutgoingActivity(userProfile, m);
+                        self.pebl.storage.saveOutgoingActivity(userProfile, {
+                            identity: userProfile.identity,
+                            id: m.id,
+                            requestType: "saveActivities",
+                            activities: [m]
+                        });
                         // self.pebl.storage.saveEvent(userProfile, m);
                     });
                 });
@@ -282,9 +299,19 @@ export class PEBLEventHandlers {
                             let m = new Membership(xapi);
                             prog.addMember(m);
                             self.pebl.storage.saveGroupMembership(userProfile, m);
-                            self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                identity: userProfile.identity,
+                                id: m.id,
+                                requestType: "saveMemberships",
+                                memberships: [m]
+                            });
                         }
-                        self.pebl.storage.saveOutgoingActivity(userProfile, prog);
+                        self.pebl.storage.saveOutgoingActivity(userProfile, {
+                            identity: userProfile.identity,
+                            id: prog.id,
+                            requestType: "saveActivities",
+                            activities: [prog]
+                        });
                         self.pebl.storage.saveActivity(userProfile, prog);
                         self.pebl.emitEvent(self.pebl.events.incomingProgram, [prog]);
                     });
@@ -320,9 +347,19 @@ export class PEBLEventHandlers {
                             let m = new Membership(xapi);
                             inst.addMember(m);
                             self.pebl.storage.saveGroupMembership(userProfile, m);
-                            self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                identity: userProfile.identity,
+                                id: m.id,
+                                requestType: "saveMemberships",
+                                memberships: [m]
+                            });
                         }
-                        self.pebl.storage.saveOutgoingActivity(userProfile, inst);
+                        self.pebl.storage.saveOutgoingActivity(userProfile, {
+                            identity: userProfile.identity,
+                            id: inst.id,
+                            requestType: "saveActivities",
+                            activities: [inst]
+                        });
                         self.pebl.storage.saveActivity(userProfile, inst);
                         self.pebl.emitEvent(self.pebl.events.incomingInstitition, [inst]);
                     });
@@ -358,9 +395,19 @@ export class PEBLEventHandlers {
                             let m = new Membership(xapi);
                             system.addMember(m);
                             self.pebl.storage.saveGroupMembership(userProfile, m);
-                            self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                identity: userProfile.identity,
+                                id: m.id,
+                                requestType: "saveMemberships",
+                                memberships: [m]
+                            });
                         }
-                        self.pebl.storage.saveOutgoingActivity(userProfile, system);
+                        self.pebl.storage.saveOutgoingActivity(userProfile, {
+                            identity: userProfile.identity,
+                            id: system.id,
+                            requestType: "saveActivities",
+                            activities: [system]
+                        });
                         self.pebl.storage.saveActivity(userProfile, system);
                         self.pebl.emitEvent(self.pebl.events.incomingSystem, [system]);
                     });
@@ -369,37 +416,37 @@ export class PEBLEventHandlers {
         });
     }
 
-    newArtifact(event: CustomEvent) {
-        let payload = event.detail;
+    // newArtifact(event: CustomEvent) {
+    //     let payload = event.detail;
 
-        let xapi = {};
-        let self = this;
+    //     let xapi = {};
+    //     let self = this;
 
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
+    //     this.pebl.user.getUser(function(userProfile) {
+    //         if (userProfile) {
 
-                let exts = {
-                    role: payload.role
-                };
+    //             let exts = {
+    //                 role: payload.role
+    //             };
 
-                self.pebl.storage.getCurrentActivity(function(activity) {
-                    self.pebl.storage.getCurrentBook(function(book) {
-                        self.xapiGen.addId(xapi);
-                        self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_ARTIFACT_PREFIX + payload.thread, payload.artifactId, payload.artifactDescription, self.xapiGen.addExtensions(exts));
-                        self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#artifactCreated", "artifactCreated");
-                        if (book || activity)
-                            self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
+    //             self.pebl.storage.getCurrentActivity(function(activity) {
+    //                 self.pebl.storage.getCurrentBook(function(book) {
+    //                     self.xapiGen.addId(xapi);
+    //                     self.xapiGen.addTimestamp(xapi);
+    //                     self.xapiGen.addActorAccount(xapi, userProfile);
+    //                     self.xapiGen.addObject(xapi, PEBL_THREAD_ARTIFACT_PREFIX + payload.thread, payload.artifactId, payload.artifactDescription, self.xapiGen.addExtensions(exts));
+    //                     self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#artifactCreated", "artifactCreated");
+    //                     if (book || activity)
+    //                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
-                        let m = new Artifact(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, m);
-                        self.pebl.storage.saveEvent(userProfile, m);
-                    });
-                });
-            }
-        });
-    }
+    //                     let m = new Artifact(xapi);
+    //                     self.pebl.storage.saveOutgoingXApi(userProfile, m);
+    //                     self.pebl.storage.saveEvent(userProfile, m);
+    //                 });
+    //             });
+    //         }
+    //     });
+    // }
 
     newMembership(event: CustomEvent) {
         let payload = event.detail;
@@ -428,7 +475,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
                         let m = new Membership(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: m.id,
+                            requestType: "saveMemberships",
+                            memberships: [m]
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingMembership, [m]);
                         if (payload.thread == userProfile.identity)
                             self.pebl.storage.saveGroupMembership(userProfile, m);
@@ -468,7 +520,12 @@ export class PEBLEventHandlers {
 
                 let m = new Voided(xapiVoided);
                 // If modifying my own membership
-                self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: m.id,
+                    xId: oldMembership.id,
+                    requestType: "deleteMembership"
+                });
                 if (newUserProfile.identity === userProfile.identity)
                     self.pebl.storage.removeGroupMembership(newUserProfile, oldMembership.id);
 
@@ -495,7 +552,12 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addParentActivity(xapiNew, PEBL_PREFIX + (book || activity));
 
                             let n = new Membership(xapiNew);
-                            self.pebl.storage.saveOutgoingXApi(userProfile, n);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                identity: userProfile.identity,
+                                id: n.id,
+                                requestType: "saveMemberships",
+                                memberships: [n]
+                            });
                             self.pebl.emitEvent(self.pebl.events.incomingMembership, [n]);
                             if (newUserProfile.identity === userProfile.identity)
                                 self.pebl.storage.saveGroupMembership(userProfile, n);
@@ -525,7 +587,12 @@ export class PEBLEventHandlers {
 
                         let m = new Voided(xapi);
                         self.pebl.storage.removeGroupMembership(userProfile, xId);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, m);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: m.id,
+                            xId: xId,
+                            requestType: "deleteMembership"
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingMembership, [m]);
                     });
                 });
@@ -561,7 +628,12 @@ export class PEBLEventHandlers {
 
                         let annotation = new Annotation(xapi);
                         self.pebl.storage.saveAnnotations(userProfile, annotation);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: annotation.id,
+                            requestType: "saveAnnotations",
+                            stmts: [annotation]
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [annotation]);
                     });
                 });
@@ -597,7 +669,12 @@ export class PEBLEventHandlers {
 
                         let annotation = new Annotation(xapi);
                         self.pebl.storage.saveAnnotations(userProfile, annotation);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: annotation.id,
+                            requestType: "saveAnnotations",
+                            stmts: [annotation]
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [annotation]);
                     });
                 });
@@ -628,7 +705,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -664,7 +746,12 @@ export class PEBLEventHandlers {
 
                         let annotation = new Annotation(xapi);
                         self.pebl.storage.saveAnnotations(userProfile, annotation);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: annotation.id,
+                            requestType: "saveAnnotations",
+                            stmts: [annotation]
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [annotation]);
                     });
                 });
@@ -701,7 +788,12 @@ export class PEBLEventHandlers {
 
                         let annotation = new SharedAnnotation(xapi);
                         self.pebl.storage.saveSharedAnnotations(userProfile, annotation);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: annotation.id,
+                            requestType: "saveSharedAnnotations",
+                            stmts: [annotation]
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
                     });
                 });
@@ -733,7 +825,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     });
                 });
@@ -765,7 +862,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     });
                 });
@@ -796,7 +898,12 @@ export class PEBLEventHandlers {
 
                         let annotation = new Voided(xapi);
                         self.pebl.storage.removeAnnotation(userProfile, xId);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: annotation.id,
+                            xId: xId,
+                            requestType: "deleteAnnotation"
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [annotation]);
                     });
                 });
@@ -827,7 +934,12 @@ export class PEBLEventHandlers {
 
                         let annotation = new Voided(xapi);
                         self.pebl.storage.removeSharedAnnotation(userProfile, xId);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, annotation);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: annotation.id,
+                            xId: xId,
+                            requestType: "deleteSharedAnnotation"
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
 
                     });
@@ -880,7 +992,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
                         let s = new Session(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveSessions",
+                            sessions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
 
                     });
@@ -906,7 +1023,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
                         let s = new Session(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveSessions",
+                            sessions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
 
                     });
@@ -932,7 +1054,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
 
                         let s = new Session(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveSessions",
+                            sessions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
 
                     });
@@ -959,7 +1086,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload);
 
                 let s = new Session(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: s.id,
+                    requestType: "saveSessions",
+                    sessions: [s]
+                });
                 self.pebl.storage.saveEvent(userProfile, s);
             }
         });
@@ -982,7 +1114,12 @@ export class PEBLEventHandlers {
                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
 
                     let s = new Session(xapi);
-                    self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                    self.pebl.storage.saveOutgoingXApi(userProfile, {
+                        identity: userProfile.identity,
+                        id: s.id,
+                        requestType: "saveSessions",
+                        sessions: [s]
+                    });
                     self.pebl.storage.saveEvent(userProfile, s);
                 }
             });
@@ -1010,7 +1147,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
 
                 let s = new Action(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: s.id,
+                    requestType: "saveActions",
+                    actions: [s]
+                });
                 self.pebl.storage.saveEvent(userProfile, s);
             }
         });
@@ -1034,7 +1176,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Navigation(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveNavigations",
+                            navigations: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1063,7 +1210,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
                         let s = new Question(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveQuestions",
+                            questions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1090,7 +1242,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
                         let s = new Quiz(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveQuizes",
+                            quizes: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1117,7 +1274,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
                         let s = new Quiz(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveQuizes",
+                            quizes: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1149,7 +1311,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1180,7 +1347,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1211,7 +1383,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1242,7 +1419,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1273,7 +1455,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1306,7 +1493,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1339,7 +1531,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1370,7 +1567,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1401,7 +1603,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1432,7 +1639,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1463,7 +1675,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1494,7 +1711,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1525,7 +1747,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1556,7 +1783,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveActions",
+                            actions: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1588,7 +1820,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Navigation(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveNavigations",
+                            navigations: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1620,7 +1857,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Navigation(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveNavigations",
+                            navigations: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1647,7 +1889,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Navigation(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveNavigations",
+                            navigations: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1687,7 +1934,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let test = new CompatibilityTest(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, test);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: test.id,
+                            requestType: "saveCompatibilityTests",
+                            tests: [test]
+                        });
                     }
                 });
             });
@@ -1717,7 +1969,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let s = new Navigation(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, s);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: s.id,
+                            requestType: "saveNavigations",
+                            navigations: [s]
+                        });
                         self.pebl.storage.saveEvent(userProfile, s);
                     }
                 });
@@ -1749,7 +2006,12 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
                         let invite = new Invitation(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, invite);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: invite.id,
+                            requestType: "saveInvites",
+                            invites: [invite]
+                        }); //TODO
                     }
                 });
             });
@@ -1774,7 +2036,12 @@ export class PEBLEventHandlers {
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + 'Harness');
 
                         let uninvite = new Voided(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, uninvite);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: uninvite.id,
+                            xId: xId,
+                            requestType: "deleteInvite"
+                        });
                     });
                 });
             }
@@ -1802,7 +2069,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1828,7 +2100,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1854,7 +2131,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1880,7 +2162,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1906,7 +2193,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1932,7 +2224,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1957,7 +2254,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -1982,7 +2284,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2007,7 +2314,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2033,7 +2345,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2059,7 +2376,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2083,7 +2405,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2109,7 +2436,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2135,7 +2467,12 @@ export class PEBLEventHandlers {
                 self.xapiGen.addObject(xapi, PEBL_THREAD_GROUP_PREFIX + payload.programId, payload.programId, payload.description, self.xapiGen.addExtensions(exts));
 
                 let pa = new ProgramAction(xapi);
-                self.pebl.storage.saveOutgoingXApi(userProfile, pa);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: pa.id,
+                    requestType: "saveActivityEvents",
+                    events: [pa]
+                });
             }
         });
     }
@@ -2163,7 +2500,12 @@ export class PEBLEventHandlers {
 
                     let session = new Session(xapi);
                     self.pebl.storage.saveEvent(userProfile, session);
-                    self.pebl.storage.saveOutgoingXApi(userProfile, session);
+                    self.pebl.storage.saveOutgoingXApi(userProfile, {
+                        identity: userProfile.identity,
+                        id: session.id,
+                        requestType: "saveSessions",
+                        sessions: [session]
+                    });
 
                 });
             }
@@ -2189,7 +2531,12 @@ export class PEBLEventHandlers {
 
                     let session = new Session(xapi);
                     self.pebl.storage.saveEvent(userProfile, session);
-                    self.pebl.storage.saveOutgoingXApi(userProfile, session);
+                    self.pebl.storage.saveOutgoingXApi(userProfile, {
+                        identity: userProfile.identity,
+                        id: session.id,
+                        requestType: "saveSessions",
+                        sessions: [session]
+                    });
 
                     self.pebl.storage.removeCurrentUser();
                 });
@@ -2221,7 +2568,12 @@ export class PEBLEventHandlers {
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mr = new ModuleRating(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, mr);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: mr.id,
+                            requestType: "saveModuleEvents",
+                            events: [mr]
+                        });
                     }
                 });
             });
@@ -2251,7 +2603,12 @@ export class PEBLEventHandlers {
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mf = new ModuleFeedback(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, mf);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: mf.id,
+                            requestType: "saveModuleEvents",
+                            events: [mf]
+                        });
                     }
                 });
             });
@@ -2284,7 +2641,12 @@ export class PEBLEventHandlers {
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let me = new ModuleExample(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, me);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: me.id,
+                            requestType: "saveModuleEvents",
+                            events: [me]
+                        });
                         self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, [me]);
                     }
                 });
@@ -2315,7 +2677,12 @@ export class PEBLEventHandlers {
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mer = new ModuleExampleRating(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, mer);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: mer.id,
+                            requestType: "saveModuleEvents",
+                            events: [mer]
+                        });
                     }
                 });
             });
@@ -2346,7 +2713,12 @@ export class PEBLEventHandlers {
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mef = new ModuleExampleFeedback(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, mef);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: mef.id,
+                            requestType: "saveModuleEvents",
+                            events: [mef]
+                        });
                     }
                 });
             });
@@ -2357,12 +2729,12 @@ export class PEBLEventHandlers {
         let payload = event.detail;
 
         let voidXapi = {};
-        let eventXapi = {};
+        // let eventXapi = {};
         let self = this;
 
-        let exts = {
-            type: payload.type
-        }
+        // let exts = {
+        //     type: payload.type
+        // }
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
@@ -2377,20 +2749,25 @@ export class PEBLEventHandlers {
                             self.xapiGen.addParentActivity(voidXapi, PEBL_PREFIX + activity);
 
                         let voided = new Voided(voidXapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, voided);
+                        self.pebl.storage.saveOutgoingXApi(userProfile, {
+                            identity: userProfile.identity,
+                            id: voided.id,
+                            xId: payload.eventId,
+                            requestType: "deleteModuleEvent"
+                        });
 
                         // Send event to everyone to remove that module event from their local storage
 
-                        self.xapiGen.addId(eventXapi);
-                        self.xapiGen.addVerb(eventXapi, "http://www.peblproject.com/definitions.html#moduleRemovedEvent", "moduleRemovedEvent");
-                        self.xapiGen.addTimestamp(eventXapi);
-                        self.xapiGen.addActorAccount(eventXapi, userProfile);
-                        self.xapiGen.addObject(eventXapi, PEBL_PREFIX + book, payload.idref, payload.eventId, self.xapiGen.addExtensions(exts));
-                        if (activity)
-                            self.xapiGen.addParentActivity(eventXapi, PEBL_PREFIX + activity);
-                        let mre = new ModuleRemovedEvent(eventXapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, mre);
-                        self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, [mre]);
+                        // self.xapiGen.addId(eventXapi);
+                        // self.xapiGen.addVerb(eventXapi, "http://www.peblproject.com/definitions.html#moduleRemovedEvent", "moduleRemovedEvent");
+                        // self.xapiGen.addTimestamp(eventXapi);
+                        // self.xapiGen.addActorAccount(eventXapi, userProfile);
+                        // self.xapiGen.addObject(eventXapi, PEBL_PREFIX + book, payload.idref, payload.eventId, self.xapiGen.addExtensions(exts));
+                        // if (activity)
+                        //     self.xapiGen.addParentActivity(eventXapi, PEBL_PREFIX + activity);
+                        // let mre = new ModuleRemovedEvent(eventXapi);
+                        // self.pebl.storage.saveOutgoingXApi(userProfile, mre);
+                        // self.pebl.emitEvent(self.pebl.events.incomingModuleEvents, [mre]); //TODO
                     });
                 });
             }
