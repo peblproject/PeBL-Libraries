@@ -231,6 +231,7 @@ export class Message extends XApiStatement {
     readonly prompt: string;
     readonly name: string;
     readonly direct: boolean;
+    groupId?: string;
     readonly access?: "private" | "team" | "class" | "all";
     readonly type?: "written" | "table" | "checkboxes" | "radioboxes" | "buttons";
     readonly masterThread?: string;
@@ -252,6 +253,7 @@ export class Message extends XApiStatement {
             this.access = extensions[PREFIX_PEBL_EXTENSION + "access"];
             this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
             this.masterThread = extensions[PREFIX_PEBL_EXTENSION + "masterThread"];
+            this.groupId = extensions[PREFIX_PEBL_EXTENSION + "groupId"];
         }
     }
 
@@ -735,4 +737,8 @@ export class ModuleRemovedEvent extends ModuleEvent {
         let verb = x.verb.display["en-US"];
         return (verb == "moduleRemovedEvent");
     }
+}
+
+export class Notification extends XApiStatement {
+    //TODO
 }

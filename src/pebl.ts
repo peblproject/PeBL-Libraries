@@ -18,6 +18,9 @@ export class PEBL {
 
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
+    readonly subscribedThreads: { [thread: string]: boolean };
+    readonly subscribedGroupThreads: { [group: string]: { [thread: string]: boolean} };
+
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
     readonly useIndexedDB: boolean;
@@ -36,6 +39,9 @@ export class PEBL {
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
         this.extension = {};
         // this.extension.shared = {};
+
+        this.subscribedThreads = {};
+        this.subscribedGroupThreads = {};
 
         if (config) {
             this.teacher = config.teacher;
@@ -148,7 +154,27 @@ export class PEBL {
         }
     }
 
-    unsubscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
+    unsubscribeThread(baseThread: string, once: boolean, callback: PEBLHandler, groupId?: string): void {
+        let thread = baseThread;
+        if (groupId) {
+            thread = baseThread + '_group:' + groupId;
+            delete this.subscribedGroupThreads[groupId][baseThread];
+        } else {
+            delete this.subscribedThreads[thread];
+        }
+        
+        this.user.getUser((userProfile) => {
+            if (userProfile) {
+                let message = {
+                    identity: userProfile.identity,
+                    requestType: "unsubscribeThread",
+                    thread: baseThread,
+                    groupId: groupId
+                }
+                this.storage.saveOutgoingXApi(userProfile, message);
+            }
+        });
+
         let i = 0;
         if (this.subscribedThreadHandlers[thread]) {
             for (let pack of this.subscribedThreadHandlers[thread]) {
@@ -245,7 +271,15 @@ export class PEBL {
     }
 
     //fix once for return of getMessages
-    subscribeThread(thread: string, once: boolean, callback: PEBLHandler): void {
+    subscribeThread(baseThread: string, once: boolean, callback: PEBLHandler, groupId?: string): void {
+        let thread = baseThread;
+        if (groupId) {
+            thread = thread + '_group:' + groupId;
+            this.subscribedGroupThreads[groupId][baseThread] = true;
+        } else {
+            this.subscribedThreads[thread] = true;
+        }
+
         let threadCallbacks = this.subscribedThreadHandlers[thread];
         if (!threadCallbacks) {
             threadCallbacks = [];
@@ -266,11 +300,19 @@ export class PEBL {
         }
 
         let self = this;
-        this.user.getUser(function(userProfile) {
-            if (userProfile)
+        this.user.getUser((userProfile) => {
+            if (userProfile) {
                 self.storage.getMessages(userProfile, thread, callback);
-            else
+                let message = {
+                    identity: userProfile.identity,
+                    requestType: "subscribeThread",
+                    thread: baseThread,
+                    groupId: groupId
+                }
+                this.storage.saveOutgoingXApi(userProfile, message);
+            } else {
                 callback([]);
+            }
         });
     }
 

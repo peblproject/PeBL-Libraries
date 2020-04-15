@@ -144,7 +144,8 @@ export class PEBLEventHandlers {
         let exts = {
             access: payload.access,
             type: payload.type,
-            masterThread: payload.masterThread
+            masterThread: payload.masterThread,
+            groupId: payload.groupId
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -202,7 +203,7 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveOutgoingXApi(userProfile, {
                             identity: userProfile.identity,
                             id: message.id,
-                            requestType: "saveMessages",
+                            requestType: "storeThreadedMessage",
                             messages: [message]
                         });
                         self.pebl.emitEvent(message.thread, [message]);
