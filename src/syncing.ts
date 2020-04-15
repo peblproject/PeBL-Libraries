@@ -121,7 +121,7 @@ export class LLSyncAction implements SyncProcess {
             });
             let thread = payload.additionalData.thread;
             if (payload.additionalData.groupId)
-                thread = thread + '_group:' + groupId;
+                thread = thread + '_group:' + payload.additionalData.groupId;
             self.pebl.emitEvent(thread, stmts);
         }
 
