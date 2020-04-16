@@ -23,7 +23,6 @@ export class Network implements NetworkAdapter {
     }
 
     activate(callback?: (() => void)): void {
-        debugger;
         if (!this.running) {
             this.running = true;
             this.syncingProcess.activate(() => {
