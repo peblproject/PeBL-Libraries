@@ -1,7 +1,6 @@
 import { PEBL } from "./pebl";
 import { LLSyncAction } from "./syncing";
 import { NetworkAdapter, SyncProcess } from "./adapters";
-import { Endpoint } from "./models";
 import { Reference } from "./xapi";
 // import { Activity } from "./activity";
 
@@ -15,35 +14,29 @@ export class Network implements NetworkAdapter {
     private pullAssetTimeout?: number = undefined;
 
     private pebl: PEBL;
-    private syncingProcess: SyncProcess[];
+    private syncingProcess: SyncProcess;
 
     constructor(pebl: PEBL) {
         this.pebl = pebl;
         this.running = false;
-        this.syncingProcess = [];
+        this.syncingProcess = new LLSyncAction(pebl);
     }
 
     activate(callback?: (() => void)): void {
-        let self = this;
-
-        self.pebl.user.getUser(function(userProfile) {
-            if (userProfile) {
-                let endpoints: Endpoint[] = userProfile.endpoints;
-
-                if (!self.running) {
-                    self.syncingProcess = [];
-                    for (let e of endpoints)
-                        self.syncingProcess.push(new LLSyncAction(self.pebl, e));
-
-                    self.push();
-                    self.pushActivity();
-                    // self.pullAsset();
-                    self.running = true;
-                }
+        debugger;
+        if (!this.running) {
+            this.running = true;
+            this.syncingProcess.activate(() => {
+                this.push();
+                this.pushActivity();
+                // this.pullAsset();
                 if (callback)
                     callback();
-            }
-        })
+            });
+        } else {
+            if (callback)
+                callback();
+        }
     }
 
     queueReference(ref: Reference): void {
@@ -60,17 +53,16 @@ export class Network implements NetworkAdapter {
     }
 
     private pullAsset(): void {
-        let self = this;
-        self.pebl.user.getUser(function(userProfile) {
+        this.pebl.user.getUser((userProfile) => {
             if (userProfile && userProfile.registryEndpoint) {
-                self.pebl.storage.getCurrentBook(function(currentBook) {
+                this.pebl.storage.getCurrentBook((currentBook) => {
                     if (currentBook) {
-                        self.pebl.storage.getQueuedReference(userProfile, currentBook, function(ref) {
+                        this.pebl.storage.getQueuedReference(userProfile, currentBook, (ref) => {
                             if (ref) {
-                                self.pebl.storage.getToc(userProfile, ref.book, function(toc) {
+                                this.pebl.storage.getToc(userProfile, ref.book, (toc) => {
                                     //Wait to add resources until the static TOC has been initialized, otherwise it never gets intialized
                                     if (toc.length > 0) {
-                                        self.pebl.storage.saveNotification(userProfile, ref);
+                                        this.pebl.storage.saveNotification(userProfile, ref);
                                         let tocEntry: { [key: string]: any } = {
                                             "url": ref.url,
                                             "documentName": ref.name,
@@ -81,20 +73,20 @@ export class Network implements NetworkAdapter {
                                             "externalURL": ref.externalURL
                                         };
 
-                                        self.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
+                                        this.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
 
-                                        self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+                                        this.pebl.emitEvent(this.pebl.events.incomingNotification, ref);
 
-                                        self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+                                        this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
-                                        if (self.running)
-                                            self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                        if (this.running)
+                                            this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
 
                                         // The below requires an API that is currently unavailable and also not needed at this time
                                         // let xhr = new XMLHttpRequest();
 
                                         // xhr.addEventListener("load", function() {
-                                        //     self.pebl.storage.saveNotification(userProfile, ref);
+                                        //     this.pebl.storage.saveNotification(userProfile, ref);
                                         //     let tocEntry: { [key: string]: any } = {
                                         //         "url": ref.url,
                                         //         "documentName": ref.name,
@@ -105,25 +97,25 @@ export class Network implements NetworkAdapter {
                                         //         "externalURL": ref.externalURL
                                         //     };
 
-                                        //     self.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
+                                        //     this.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
 
-                                        //     self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+                                        //     this.pebl.emitEvent(this.pebl.events.incomingNotification, ref);
 
-                                        //     self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+                                        //     this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
-                                        //     if (self.running)
-                                        //         self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                        //     if (this.running)
+                                        //         this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
                                         // });
 
                                         // xhr.addEventListener("error", function() {
-                                        //     self.pebl.storage.saveNotification(userProfile, ref);
+                                        //     this.pebl.storage.saveNotification(userProfile, ref);
 
-                                        //     self.pebl.emitEvent(self.pebl.events.incomingNotification, ref);
+                                        //     this.pebl.emitEvent(this.pebl.events.incomingNotification, ref);
 
-                                        //     self.pebl.storage.removeQueuedReference(userProfile, ref.id);
+                                        //     this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
-                                        //     if (self.running)
-                                        //         self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                        //     if (this.running)
+                                        //         this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
                                         // });
 
                                         // let url = userProfile.registryEndpoint && userProfile.registryEndpoint.url;
@@ -131,117 +123,116 @@ export class Network implements NetworkAdapter {
                                         // if (url) {
                                         //     xhr.open("GET", url + ref.url);
                                         //     xhr.send();
-                                        // } else if (self.running)
-                                        //     self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                        // } else if (this.running)
+                                        //     this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
                                     } else {
-                                        self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                        this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
                                     }
                                 });
-                                
+
                             } else {
-                                if (self.running)
-                                    self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                                if (this.running)
+                                    this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
                             }
                         });
-                    } else if (self.running) {
-                        self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+                    } else if (this.running) {
+                        this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
                     }
                 });
-            } else if (self.running)
-                self.pullAssetTimeout = setTimeout(self.pullAsset.bind(self), 5000);
+            } else if (this.running)
+                this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
         });
     }
 
     disable(callback?: (() => void)): void {
-        this.running = false;
+        if (this.running) {
+            this.running = false;
 
-        if (this.pushTimeout)
-            clearTimeout(this.pushTimeout);
-        this.pushTimeout = undefined;
+            if (this.pushTimeout)
+                clearTimeout(this.pushTimeout);
+            this.pushTimeout = undefined;
 
-        if (this.pullAssetTimeout)
-            clearTimeout(this.pullAssetTimeout);
-        this.pullAssetTimeout = undefined;
+            if (this.pullAssetTimeout)
+                clearTimeout(this.pullAssetTimeout);
+            this.pullAssetTimeout = undefined;
 
-        if (callback)
-            callback();
+            this.syncingProcess.disable(() => {
+                if (callback)
+                    callback();
+            })
+        } else {
+            if (callback) {
+                callback();
+            }
+        }
     }
 
     pushActivity(finished?: (() => void)): void {
-        let self = this;
-        if (self.pushActivityTimeout) {
-            clearTimeout(self.pushActivityTimeout);
-            self.pushActivityTimeout = undefined;
+        if (this.pushActivityTimeout) {
+            clearTimeout(this.pushActivityTimeout);
+            this.pushActivityTimeout = undefined;
         }
 
-        this.pebl.user.getUser(function(userProfile) {
+        this.pebl.user.getUser((userProfile) => {
             if (userProfile) {
-                self.pebl.storage.getOutgoingActivity(userProfile,
-                    function(stmts): void {
-                        if (self.syncingProcess.length == 1) {
-                            if (stmts.length > 0) {
-                                // HACK this assumes a single sync process by deleting outgoing activities on success
-                                // to fix pass an object with the results to selectively delete outside the sync process for
-                                // a single endpoing
-                                self.syncingProcess[0].pushActivity(stmts,
-                                    function(success) {
-                                        if (success)
-                                            self.pebl.storage.removeOutgoingActivity(userProfile, stmts);
-                                        if (self.running)
-                                            self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
+                this.pebl.storage.getOutgoingActivity(userProfile,
+                    (stmts): void => {
+                        if (stmts.length > 0) {
+                            this.syncingProcess.pushActivity(stmts,
+                                (success) => {
+                                    if (success)
+                                        this.pebl.storage.removeOutgoingActivity(userProfile, stmts);
+                                    if (this.running)
+                                        this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), 5000);
 
-                                        if (finished)
-                                            finished();
-                                    });
-                            } else {
-                                if (self.running)
-                                    self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
+                                    if (finished)
+                                        finished();
+                                });
+                        } else {
+                            if (this.running)
+                                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), 5000);
 
-                                if (finished)
-                                    finished();
-                            }
+                            if (finished)
+                                finished();
                         }
                     });
-            } else if (self.running)
-                self.pushActivityTimeout = setTimeout(self.pushActivity.bind(self), 5000);
+            } else if (this.running)
+                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), 5000);
         });
     }
 
     push(finished?: (() => void)): void {
-        let self = this;
-        if (self.pushTimeout) {
-            clearTimeout(self.pushTimeout);
-            self.pushTimeout = undefined;
+        if (this.pushTimeout) {
+            clearTimeout(this.pushTimeout);
+            this.pushTimeout = undefined;
         }
 
-        this.pebl.user.getUser(function(userProfile) {
+        this.pebl.user.getUser((userProfile) => {
             if (userProfile) {
-                self.pebl.storage.getOutgoingXApi(userProfile,
-                    function(stmts): void {
-                        if (self.syncingProcess.length == 1) {
-                            if (stmts.length > 0) {
-                                self.syncingProcess[0].push(stmts,
-                                    function(success) {
-                                        if (success)
-                                            self.pebl.storage.removeOutgoingXApi(userProfile, stmts);
-                                        if (self.running)
-                                            self.pushTimeout = setTimeout(self.push.bind(self), 5000);
+                this.pebl.storage.getOutgoingXApi(userProfile,
+                    (stmts): void => {
+                        if (stmts.length > 0) {
+                            this.syncingProcess.push(stmts,
+                                (success) => {
+                                    if (success)
+                                        this.pebl.storage.removeOutgoingXApi(userProfile, stmts);
+                                    if (this.running)
+                                        this.pushTimeout = setTimeout(this.push.bind(this), 5000);
 
-                                        if (finished)
-                                            finished();
-                                    });
-                            } else {
-                                if (self.running)
-                                    self.pushTimeout = setTimeout(self.push.bind(self), 5000);
+                                    if (finished)
+                                        finished();
+                                });
+                        } else {
+                            if (this.running)
+                                this.pushTimeout = setTimeout(this.push.bind(this), 5000);
 
-                                if (finished)
-                                    finished();
-                            }
+                            if (finished)
+                                finished();
                         }
                     });
             } else {
-                if (self.running)
-                    self.pushTimeout = setTimeout(self.push.bind(self), 5000);
+                if (this.running)
+                    this.pushTimeout = setTimeout(this.push.bind(this), 5000);
 
                 if (finished)
                     finished();

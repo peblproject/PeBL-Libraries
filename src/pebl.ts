@@ -19,7 +19,7 @@ export class PEBL {
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
     readonly subscribedThreads: { [thread: string]: boolean };
-    readonly subscribedGroupThreads: { [group: string]: { [thread: string]: boolean} };
+    readonly subscribedGroupThreads: { [group: string]: { [thread: string]: boolean } };
 
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
@@ -34,12 +34,13 @@ export class PEBL {
     readonly user: UserAdapter;
     readonly network: NetworkAdapter;
     readonly utils: Utils;
+    readonly config?: { [key: string]: any };
     // readonly launcher: LauncherAdapter;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
         this.extension = {};
         // this.extension.shared = {};
-
+        this.config = config;
         this.subscribedThreads = {};
         this.subscribedGroupThreads = {};
 
@@ -120,7 +121,7 @@ export class PEBL {
             for (let pack of Object.keys(this.subscribedSingularEventHandlers[key])) {
                 document.removeEventListener(key, this.subscribedSingularEventHandlers[key][pack].modifiedFn);
             }
-            
+
             delete this.subscribedSingularEventHandlers[key];
         }
     }
@@ -162,7 +163,7 @@ export class PEBL {
         } else {
             delete this.subscribedThreads[thread];
         }
-        
+
         this.user.getUser((userProfile) => {
             if (userProfile) {
                 let message = {

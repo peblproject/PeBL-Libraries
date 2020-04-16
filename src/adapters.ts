@@ -24,6 +24,9 @@ export interface SyncProcess {
     push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void;
 
     pushActivity(outgoing: { [key: string]: any }[], callback: (success: boolean) => void): void;
+
+    activate(callback?: (() => void)): void;
+    disable(callback?: (() => void)): void;
 }
 
 // -------------------------------
@@ -89,14 +92,14 @@ export interface StorageAdapter {
     saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoingActivity(userProfile: UserProfile, stmt: { [key:string]: any }, callback?: (() => void)): void;
+    saveOutgoingActivity(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void;
 
-    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: { [key:string]: any }[]) => void): void;
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void;
 
-    removeOutgoingActivity(userProfile: UserProfile, toClear: { [key:string]: any }, callback?: (() => void)): void;
+    removeOutgoingActivity(userProfile: UserProfile, toClear: { [key: string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoingXApi(userProfile: UserProfile, stmt: { [key:string]: any }, callback?: (() => void)): void;
+    saveOutgoingXApi(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void;
 
     getOutgoingXApi(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void;
 

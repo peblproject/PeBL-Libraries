@@ -957,10 +957,11 @@ export class PEBLEventHandlers {
 
         this.pebl.storage.getCurrentUser(function(currentIdentity) {
             self.pebl.storage.saveUserProfile(userP, function() {
-                if (userP.identity != currentIdentity) {
-                    self.pebl.emitEvent(self.pebl.events.eventLogin, userP);
-                }
-                self.pebl.network.activate();
+                self.pebl.network.activate(() => {
+                    if (userP.identity != currentIdentity) {
+                        self.pebl.emitEvent(self.pebl.events.eventLogin, userP);
+                    }
+                });
             });
         });
     }
@@ -969,7 +970,9 @@ export class PEBLEventHandlers {
         let self = this;
         this.pebl.user.getUser(function(currentUser) {
             self.pebl.network.disable(function() {
-                self.pebl.emitEvent(self.pebl.events.eventLogout, currentUser);
+                self.pebl.storage.removeCurrentUser(() => {
+                    self.pebl.emitEvent(self.pebl.events.eventLogout, currentUser);
+                });
             });
         });
     }
@@ -2538,8 +2541,6 @@ export class PEBLEventHandlers {
                         requestType: "saveSessions",
                         sessions: [session]
                     });
-
-                    self.pebl.storage.removeCurrentUser();
                 });
             }
         });

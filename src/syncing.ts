@@ -14,39 +14,43 @@
 // const SYSTEM_POLL_INTERVAL = 60000;
 
 import { SyncProcess } from "./adapters";
-import { Endpoint } from "./models";
 import { PEBL } from "./pebl";
 import { UserProfile } from "./models";
 import { Voided, Annotation, SharedAnnotation, Message, Notification } from "./xapi";
 
 export class LLSyncAction implements SyncProcess {
 
-    private endpoint: Endpoint;
-    private websocket: any;
+    private websocket?: WebSocket;
 
     private pebl: PEBL;
 
     private messageHandlers: { [key: string]: ((userProfile: UserProfile, payload: { [key: string]: any }) => void) }
+
+    readonly DEFAULT_RECONNECTION_BACKOFF = 1000;
 
     private annotationSyncTimestamp: number;
     private sharedAnnotationSyncTimestamp: number;
     private notificationSyncTimestamp: number;
     private threadSyncTimestamps: { [thread: string]: number };
     private groupThreadSyncTimestamps: { [group: string]: { [thread: string]: number } };
+    private reconnectionTimeoutHandler?: number;
+    private reconnectionBackoff: number;
+    private active: boolean;
 
-    constructor(pebl: PEBL, endpoint: Endpoint) {
+    constructor(pebl: PEBL) {
         var self = this;
 
         this.pebl = pebl;
-        this.endpoint = endpoint;
+        this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
 
         this.annotationSyncTimestamp = 0;
         this.sharedAnnotationSyncTimestamp = 0;
         this.notificationSyncTimestamp = 0;
         this.threadSyncTimestamps = {};
         this.groupThreadSyncTimestamps = {};
+        this.active = false;
 
-        console.log(this.endpoint);
+        console.log(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
         this.messageHandlers = {};
         this.messageHandlers.getNotifications = function(userProfile, payload) {
             let stmts = payload.data.map((stmt: any) => {
@@ -101,7 +105,7 @@ export class LLSyncAction implements SyncProcess {
                         if (stored > self.threadSyncTimestamps[thread])
                             self.threadSyncTimestamps[thread] = stored;
                     }
-                    
+
                     return voided;
                 } else {
                     let m = new Message(stmt);
@@ -221,36 +225,105 @@ export class LLSyncAction implements SyncProcess {
                 self.sharedAnnotationSyncTimestamp = stored;
             self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sa]);
         }
+    }
 
-        this.websocket = new WebSocket("ws://localhost:8081/message");
-        this.websocket.onopen = function() {
-            console.log('websocket opened');
-            self.pullNotifications();
-            self.pullAnnotations();
-            self.pullSharedAnnotations();
-            self.pullThreadedMessages();
-        }
+    activate(callback?: (() => void)): void {
+        if (!this.active) {
+            this.active = true;
+            let makeWebSocketConnection = () => {
+                if (this.pebl.config && this.pebl.config.PeBLServicesWSURL) {
+                    this.websocket = new WebSocket(this.pebl.config.PeBLServicesWSURL);
+                    this.websocket.onopen = () => {
+                        this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
+                        console.log('websocket opened');
+                        this.pullNotifications();
+                        this.pullAnnotations();
+                        this.pullSharedAnnotations();
+                        this.pullThreadedMessages();
+                    }
 
-        this.websocket.onmessage = function(message: any) {
-            self.pebl.user.getUser(function(userProfile) {
-                if (userProfile) {
-                    console.log('message recieved');
-                    var parsedMessage = JSON.parse(message.data);
+                    this.websocket.onclose = () => {
+                        console.log("Web socket closed retrying in " + this.reconnectionBackoff, event);
+                        if (this.active) {
+                            this.reconnectionTimeoutHandler = setTimeout(
+                                () => {
+                                    makeWebSocketConnection();
+                                    this.reconnectionBackoff *= 2;
+                                },
+                                this.reconnectionBackoff
+                            );
+                        }
+                    };
 
-                    if (self.messageHandlers[parsedMessage.payload.requestType])
-                        self.messageHandlers[parsedMessage.payload.requestType](userProfile, parsedMessage.payload);
+                    this.websocket.onerror = (event: Event) => {
+                        console.log("Web socket error retrying in " + this.reconnectionBackoff, event);
+                        if (this.active) {
+                            this.reconnectionTimeoutHandler = setTimeout(
+                                () => {
+                                    makeWebSocketConnection();
+                                    this.reconnectionBackoff *= 2;
+                                },
+                                this.reconnectionBackoff
+                            );
+                        }
+                    };
+
+                    this.websocket.onmessage = (message: any) => {
+                        this.pebl.user.getUser((userProfile) => {
+                            if (userProfile) {
+                                console.log('message recieved');
+                                var parsedMessage = JSON.parse(message.data);
+
+                                if (this.messageHandlers[parsedMessage.payload.requestType])
+                                    this.messageHandlers[parsedMessage.payload.requestType](userProfile, parsedMessage.payload);
+                            }
+                        });
+                    };
                 }
-            });
+            }
+            makeWebSocketConnection();
+        }
+        if (callback) {
+            callback();
+        }
+    }
+
+    disable(callback?: (() => void)): void {
+        if (this.active) {
+            this.active = false;
+            if (this.reconnectionTimeoutHandler) {
+                clearTimeout(this.reconnectionTimeoutHandler);
+                this.reconnectionTimeoutHandler = undefined;
+            }
+            if (this.websocket) {
+                let processDisable = () => {
+                    if (this.websocket) {
+                        if (this.websocket.bufferedAmount > 0) {
+                            setTimeout(processDisable,
+                                50);
+                        } else {
+                            this.websocket.close();
+                            if (callback) {
+                                callback();
+                            }
+                        }
+                    }
+                };
+                processDisable();
+            }
+        } else {
+            if (callback) {
+                callback();
+            }
         }
     }
 
     push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void {
-        let self = this;
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile && self.websocket.readyState === 1) {
+        this.pebl.user.getUser((userProfile) => {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
                 for (let message of outgoing) {
                     console.log(message);
-                    self.websocket.send(JSON.stringify(message));
+                    this.websocket.send(JSON.stringify(message));
                 }
                 callback(true);
             } else {
@@ -260,13 +333,11 @@ export class LLSyncAction implements SyncProcess {
     }
 
     pushActivity(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void {
-        let self = this;
-
-        this.pebl.user.getUser(function(userProfile) {
-            if (userProfile && self.websocket.readyState === 1) {
+        this.pebl.user.getUser((userProfile) => {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
                 for (let message of outgoing) {
                     console.log(message);
-                    self.websocket.send(JSON.stringify(message));
+                    this.websocket.send(JSON.stringify(message));
                 }
                 callback(true);
             } else {
@@ -277,7 +348,7 @@ export class LLSyncAction implements SyncProcess {
 
     pullNotifications(): void {
         this.pebl.user.getUser((userProfile) => {
-            if (userProfile && this.websocket.readyState === 1) {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
                 let message = {
                     identity: userProfile.identity,
                     requestType: "getNotifications",
@@ -290,7 +361,7 @@ export class LLSyncAction implements SyncProcess {
 
     pullAnnotations(): void {
         this.pebl.user.getUser((userProfile) => {
-            if (userProfile && this.websocket.readyState === 1) {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
                 let message = {
                     identity: userProfile.identity,
                     requestType: "getAnnotations",
@@ -303,7 +374,7 @@ export class LLSyncAction implements SyncProcess {
 
     pullSharedAnnotations(): void {
         this.pebl.user.getUser((userProfile) => {
-            if (userProfile && this.websocket.readyState === 1) {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
                 let message = {
                     identity: userProfile.identity,
                     requestType: "getSharedAnnotations",
@@ -316,7 +387,7 @@ export class LLSyncAction implements SyncProcess {
 
     pullThreadedMessages(): void {
         this.pebl.user.getUser((userProfile) => {
-            if (userProfile && this.websocket.readyState === 1) {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
                 for (let thread in this.pebl.subscribedThreads) {
                     let message = {
                         identity: userProfile.identity,
