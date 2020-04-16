@@ -34,6 +34,7 @@ export class LLSyncAction implements SyncProcess {
     private threadSyncTimestamps: { [thread: string]: number };
     private groupThreadSyncTimestamps: { [group: string]: { [thread: string]: number } };
     private reconnectionTimeoutHandler?: number;
+    private reconnectionBackoffResetHandler?: number;
     private reconnectionBackoff: number;
     private active: boolean;
 
@@ -230,25 +231,38 @@ export class LLSyncAction implements SyncProcess {
     activate(callback?: (() => void)): void {
         if (!this.active) {
             this.active = true;
+            this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
             let makeWebSocketConnection = () => {
                 if (this.pebl.config && this.pebl.config.PeBLServicesWSURL) {
                     this.websocket = new WebSocket(this.pebl.config.PeBLServicesWSURL);
                     this.websocket.onopen = () => {
-                        this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
                         console.log('websocket opened');
                         this.pullNotifications();
                         this.pullAnnotations();
                         this.pullSharedAnnotations();
                         this.pullThreadedMessages();
+                        this.reconnectionBackoffResetHandler = setTimeout(
+                            () => {
+                                this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
+                            },
+                            this.DEFAULT_RECONNECTION_BACKOFF
+                        );
                     }
 
                     this.websocket.onclose = () => {
                         console.log("Web socket closed retrying in " + this.reconnectionBackoff, event);
                         if (this.active) {
+                            if (this.reconnectionBackoffResetHandler) {
+                                clearTimeout(this.reconnectionBackoffResetHandler);
+                                this.reconnectionBackoffResetHandler = undefined;
+                            }
                             this.reconnectionTimeoutHandler = setTimeout(
                                 () => {
                                     makeWebSocketConnection();
                                     this.reconnectionBackoff *= 2;
+                                    if (this.reconnectionBackoff > 60000) {
+                                        this.reconnectionBackoff = 60000;
+                                    }
                                 },
                                 this.reconnectionBackoff
                             );
@@ -258,10 +272,17 @@ export class LLSyncAction implements SyncProcess {
                     this.websocket.onerror = (event: Event) => {
                         console.log("Web socket error retrying in " + this.reconnectionBackoff, event);
                         if (this.active) {
+                            if (this.reconnectionBackoffResetHandler) {
+                                clearTimeout(this.reconnectionBackoffResetHandler);
+                                this.reconnectionBackoffResetHandler = undefined;
+                            }
                             this.reconnectionTimeoutHandler = setTimeout(
                                 () => {
                                     makeWebSocketConnection();
                                     this.reconnectionBackoff *= 2;
+                                    if (this.reconnectionBackoff > 60000) {
+                                        this.reconnectionBackoff = 60000;
+                                    }
                                 },
                                 this.reconnectionBackoff
                             );
