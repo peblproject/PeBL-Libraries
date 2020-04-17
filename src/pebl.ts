@@ -174,8 +174,8 @@ export class PEBL {
                     delete this.subscribedThreads[thread];
                 }
 
-            
-                
+
+
                 let message = {
                     identity: userProfile.identity,
                     requestType: "unsubscribeThread",
@@ -317,7 +317,7 @@ export class PEBL {
                     threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
                 }
 
-            
+
                 this.storage.getMessages(userProfile, thread, callback);
                 let message = {
                     identity: userProfile.identity,

@@ -49,7 +49,7 @@ export class LLSyncAction implements SyncProcess {
         this.sharedAnnotationSyncTimestamp = 0;
         this.notificationSyncTimestamp = 0;
         this.threadSyncTimestamps = {};
-        this.privateThreadSyncTimestamps= {};
+        this.privateThreadSyncTimestamps = {};
         this.groupThreadSyncTimestamps = {};
         this.active = false;
 
@@ -241,6 +241,10 @@ export class LLSyncAction implements SyncProcess {
             if (stored > self.annotationSyncTimestamp)
                 self.sharedAnnotationSyncTimestamp = stored;
             self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sa]);
+        }
+
+        this.messageHandlers.loggedOut = (userProfile, payload) => {
+            self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
         }
     }
 
