@@ -1,3 +1,6 @@
+const USER_PREFIX = "_user-";
+const GROUP_PREFIX = "_group-";
+
 import { IndexedDBStorageAdapter } from "./storage";
 // import { Activity } from "./activity";
 import { User } from "./user";
@@ -19,6 +22,7 @@ export class PEBL {
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
     readonly subscribedThreads: { [thread: string]: boolean };
+    readonly subscribedPrivateThreads: { [thread: string]: boolean };
     readonly subscribedGroupThreads: { [group: string]: { [thread: string]: boolean } };
 
     readonly teacher: boolean;
@@ -42,6 +46,7 @@ export class PEBL {
         // this.extension.shared = {};
         this.config = config;
         this.subscribedThreads = {};
+        this.subscribedPrivateThreads = {};
         this.subscribedGroupThreads = {};
 
         if (config) {
@@ -155,38 +160,45 @@ export class PEBL {
         }
     }
 
-    unsubscribeThread(baseThread: string, once: boolean, callback: PEBLHandler, groupId?: string): void {
-        let thread = baseThread;
-        if (groupId) {
-            thread = baseThread + '_group:' + groupId;
-            delete this.subscribedGroupThreads[groupId][baseThread];
-        } else {
-            delete this.subscribedThreads[thread];
-        }
-
+    unsubscribeThread(baseThread: string, once: boolean, callback: PEBLHandler, options?: { [key: string]: any }): void {
         this.user.getUser((userProfile) => {
             if (userProfile) {
+                let thread = baseThread;
+                if (options && options.groupId) {
+                    thread = baseThread + GROUP_PREFIX + options.groupId;
+                    delete this.subscribedGroupThreads[options.groupId][baseThread];
+                } else if (options && options.isPrivate) {
+                    thread = baseThread + USER_PREFIX + userProfile.identity;
+                    delete this.subscribedPrivateThreads[baseThread];
+                } else {
+                    delete this.subscribedThreads[thread];
+                }
+
+            
+                
                 let message = {
                     identity: userProfile.identity,
                     requestType: "unsubscribeThread",
                     thread: baseThread,
-                    groupId: groupId
+                    groupId: options ? options.groupId : undefined,
+                    isPrivate: options ? options.isPrivate : undefined
                 }
                 this.storage.saveOutgoingXApi(userProfile, message);
+
+
+                let i = 0;
+                if (this.subscribedThreadHandlers[thread]) {
+                    for (let pack of this.subscribedThreadHandlers[thread]) {
+                        if ((pack.once == once) && (pack.fn == callback)) {
+                            document.removeEventListener(thread, pack.modifiedFn);
+                            this.subscribedThreadHandlers[thread].splice(i, 1);
+                            return;
+                        }
+                        i++;
+                    }
+                }
             }
         });
-
-        let i = 0;
-        if (this.subscribedThreadHandlers[thread]) {
-            for (let pack of this.subscribedThreadHandlers[thread]) {
-                if ((pack.once == once) && (pack.fn == callback)) {
-                    document.removeEventListener(thread, pack.modifiedFn);
-                    this.subscribedThreadHandlers[thread].splice(i, 1);
-                    return;
-                }
-                i++;
-            }
-        }
     }
 
     subscribeEvent(eventName: string, once: boolean, callback: PEBLHandler): void {
@@ -272,43 +284,47 @@ export class PEBL {
     }
 
     //fix once for return of getMessages
-    subscribeThread(baseThread: string, once: boolean, callback: PEBLHandler, groupId?: string): void {
-        let thread = baseThread;
-        if (groupId) {
-            thread = thread + '_group:' + groupId;
-            this.subscribedGroupThreads[groupId][baseThread] = true;
-        } else {
-            this.subscribedThreads[thread] = true;
-        }
-
-        let threadCallbacks = this.subscribedThreadHandlers[thread];
-        if (!threadCallbacks) {
-            threadCallbacks = [];
-            this.subscribedThreadHandlers[thread] = threadCallbacks;
-        }
-
-        if (once) {
-            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) {
-                self.unsubscribeEvent(thread, once, callback);
-                callback(e.detail);
-            }
-            document.addEventListener(thread, modifiedHandler, <any>{ once: once });
-            threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
-        } else {
-            var modifiedHandler = <PEBLHandler>function(e: CustomEvent) { callback(e.detail); };
-            document.addEventListener(thread, modifiedHandler);
-            threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
-        }
-
-        let self = this;
+    subscribeThread(baseThread: string, once: boolean, callback: PEBLHandler, options?: { [key: string]: any }): void {
         this.user.getUser((userProfile) => {
             if (userProfile) {
-                self.storage.getMessages(userProfile, thread, callback);
+                let thread = baseThread;
+                if (options && options.groupId) {
+                    thread = thread + GROUP_PREFIX + options.groupId;
+                    this.subscribedGroupThreads[options.groupId][baseThread] = true;
+                } else if (options && options.isPrivate) {
+                    thread = thread + USER_PREFIX + userProfile.identity;
+                    this.subscribedPrivateThreads[baseThread] = true;
+                } else {
+                    this.subscribedThreads[thread] = true;
+                }
+
+                let threadCallbacks = this.subscribedThreadHandlers[thread];
+                if (!threadCallbacks) {
+                    threadCallbacks = [];
+                    this.subscribedThreadHandlers[thread] = threadCallbacks;
+                }
+
+                if (once) {
+                    var modifiedHandler = <PEBLHandler>((e: CustomEvent) => {
+                        this.unsubscribeEvent(thread, once, callback);
+                        callback(e.detail);
+                    });
+                    document.addEventListener(thread, modifiedHandler, <any>{ once: once });
+                    threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
+                } else {
+                    var modifiedHandler = <PEBLHandler>((e: CustomEvent) => { callback(e.detail); });
+                    document.addEventListener(thread, modifiedHandler);
+                    threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
+                }
+
+            
+                this.storage.getMessages(userProfile, thread, callback);
                 let message = {
                     identity: userProfile.identity,
                     requestType: "subscribeThread",
                     thread: baseThread,
-                    groupId: groupId
+                    groupId: options ? options.groupId : undefined,
+                    isPrivate: options ? options.isPrivate : undefined
                 }
                 this.storage.saveOutgoingXApi(userProfile, message);
             } else {

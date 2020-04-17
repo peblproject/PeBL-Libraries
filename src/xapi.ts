@@ -232,6 +232,7 @@ export class Message extends XApiStatement {
     readonly name: string;
     readonly direct: boolean;
     groupId?: string;
+    isPrivate?: boolean;
     readonly access?: "private" | "team" | "class" | "all";
     readonly type?: "written" | "table" | "checkboxes" | "radioboxes" | "buttons";
     readonly masterThread?: string;
@@ -254,6 +255,7 @@ export class Message extends XApiStatement {
             this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
             this.masterThread = extensions[PREFIX_PEBL_EXTENSION + "masterThread"];
             this.groupId = extensions[PREFIX_PEBL_EXTENSION + "groupId"];
+            this.isPrivate = extensions[PREFIX_PEBL_EXTENSION + "isPrivate"];
         }
     }
 
