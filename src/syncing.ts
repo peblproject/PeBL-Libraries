@@ -272,6 +272,9 @@ export class LLSyncAction implements SyncProcess {
                                 clearTimeout(this.reconnectionBackoffResetHandler);
                                 this.reconnectionBackoffResetHandler = undefined;
                             }
+                            if (this.reconnectionTimeoutHandler) {
+                                clearTimeout(this.reconnectionTimeoutHandler);
+                            }
                             this.reconnectionTimeoutHandler = setTimeout(
                                 () => {
                                     makeWebSocketConnection();
@@ -292,6 +295,9 @@ export class LLSyncAction implements SyncProcess {
                                 clearTimeout(this.reconnectionBackoffResetHandler);
                                 this.reconnectionBackoffResetHandler = undefined;
                             }
+                            if (this.reconnectionTimeoutHandler) {
+                                clearTimeout(this.reconnectionTimeoutHandler);
+                            }
                             this.reconnectionTimeoutHandler = setTimeout(
                                 () => {
                                     makeWebSocketConnection();
@@ -311,8 +317,11 @@ export class LLSyncAction implements SyncProcess {
                                 console.log('message recieved');
                                 var parsedMessage = JSON.parse(message.data);
 
-                                if (this.messageHandlers[parsedMessage.payload.requestType])
-                                    this.messageHandlers[parsedMessage.payload.requestType](userProfile, parsedMessage.payload);
+                                if (this.messageHandlers[parsedMessage.requestType]) {
+                                    this.messageHandlers[parsedMessage.requestType](userProfile, parsedMessage.payload);
+                                } else {
+                                    console.log("Unknown request type", parsedMessage.requestType, parsedMessage);
+                                }
                             }
                         });
                     };
