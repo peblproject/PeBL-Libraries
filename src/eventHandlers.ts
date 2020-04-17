@@ -165,7 +165,7 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveOutgoingXApi(userProfile, {
                             identity: userProfile.identity,
                             id: message.id,
-                            requestType: "storeThreadedMessage",
+                            requestType: "saveThreadedMessage",
                             message: message,
                         });
                         self.pebl.emitEvent(message.thread, [message]);
@@ -203,7 +203,7 @@ export class PEBLEventHandlers {
                         self.pebl.storage.saveOutgoingXApi(userProfile, {
                             identity: userProfile.identity,
                             id: message.id,
-                            requestType: "storeThreadedMessage",
+                            requestType: "saveThreadedMessage",
                             messages: [message]
                         });
                         self.pebl.emitEvent(message.thread, [message]);

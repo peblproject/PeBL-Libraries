@@ -92,82 +92,56 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.getThreadedMessages = function(userProfile, payload) {
-            let stmts = payload.data.map((stmt: any) => {
-                if (Voided.is(stmt)) {
-                    let voided = new Voided(stmt);
-                    self.pebl.storage.removeMessage(userProfile, voided.target);
-
-                    let stored = new Date(voided.stored).getTime();
-                    let thread = payload.additionalData.thread;
-                    let groupId = payload.additionalData.groupId;
-                    let isPrivate = payload.additionalData.private;
-
-                    if (groupId) {
-                        if (stored > self.groupThreadSyncTimestamps[groupId][thread])
-                            self.groupThreadSyncTimestamps[groupId][thread] = stored;
-                    } else if (isPrivate) {
-                        if (stored > self.privateThreadSyncTimestamps[thread])
-                            self.privateThreadSyncTimestamps[thread] = stored;
-                    } else {
-                        if (stored > self.threadSyncTimestamps[thread])
-                            self.threadSyncTimestamps[thread] = stored;
-                    }
-
-                    return voided;
-                } else {
-                    let m = new Message(stmt);
-                    self.pebl.storage.saveMessages(userProfile, [m]);
-
-                    let stored = new Date(m.stored).getTime();
-                    if (m.groupId) {
-                        if (stored > self.groupThreadSyncTimestamps[m.groupId][m.thread])
-                            self.groupThreadSyncTimestamps[m.groupId][m.thread] = stored;
-                    } else if (m.isPrivate) {
-                        if (stored > self.privateThreadSyncTimestamps[m.thread])
-                            self.privateThreadSyncTimestamps[m.thread] = stored;
-                    } else {
-                        if (stored > self.threadSyncTimestamps[m.thread])
-                            self.threadSyncTimestamps[m.thread] = stored;
-                    }
-
-                    return m;
-                }
-            });
+            let groupId = payload.additionalData.groupId;
+            let isPrivate = payload.additionalData.isPrivate;
             let thread = payload.additionalData.thread;
-            if (payload.additionalData.groupId)
-                thread = thread + GROUP_PREFIX + payload.additionalData.groupId;
-            else if (payload.additionalData.isPrivate)
-                thread = thread + USER_PREFIX + userProfile.identity;
-            self.pebl.emitEvent(thread, stmts);
+            for (let stmt of payload.data) {
+                if (groupId) {
+                    self.handleGroupMessage(userProfile, stmt, thread, groupId);
+                } else if (isPrivate) {
+                    self.handlePrivateMessage(userProfile, stmt, thread);
+                } else {
+                    self.handleMessage(userProfile, stmt, thread);
+                }
+            }
         }
 
         this.messageHandlers.newThreadedMessage = function(userProfile, payload) {
-            let m;
-            if (Voided.is(payload.data)) {
-                m = new Voided(payload.data);
-                self.pebl.storage.removeMessage(userProfile, m.target);
-            } else {
-                m = new Message(payload.data);
-                self.pebl.storage.saveMessages(userProfile, [m]);
-            }
-
-            let stored = new Date(m.stored).getTime();
             let groupId = payload.additionalData.groupId;
             let isPrivate = payload.additionalData.isPrivate;
             let thread = payload.additionalData.thread;
 
             if (groupId) {
-                if (stored > self.groupThreadSyncTimestamps[groupId][thread])
-                    self.groupThreadSyncTimestamps[groupId][thread] = stored;
-                self.pebl.emitEvent(thread + GROUP_PREFIX + groupId, [m]);
+                self.handleGroupMessage(userProfile, payload.data, thread, groupId);
             } else if (isPrivate) {
-                if (stored > self.privateThreadSyncTimestamps[thread])
-                    self.privateThreadSyncTimestamps[thread] = stored;
-                self.pebl.emitEvent(thread + USER_PREFIX + userProfile.identity, [m]);
+                self.handlePrivateMessage(userProfile, payload.data, thread);
             } else {
-                if (stored > self.threadSyncTimestamps[thread])
-                    self.threadSyncTimestamps[thread] = stored;
-                self.pebl.emitEvent(thread, [m]);
+                self.handleMessage(userProfile, payload.data, thread);
+            }
+        }
+
+        this.messageHandlers.getSubscribedThreads = function(userProfile, payload) {
+            if (self.websocket && self.websocket.readyState === 1) {
+                for (let thread of payload.threads) {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getThreadedMessages",
+                        thread: thread,
+                        timestamp: self.threadSyncTimestamps[thread] ? self.threadSyncTimestamps[thread] : 1
+                    }
+                    self.websocket.send(JSON.stringify(message));
+                }
+                for (let thread of payload.privateThreads) {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getThreadedMessages",
+                        thread: thread,
+                        isPrivate: true,
+                        timestamp: self.privateThreadSyncTimestamps[thread] ? self.privateThreadSyncTimestamps[thread] : 1
+                    }
+                    self.websocket.send(JSON.stringify(message));
+                }
+                //TODO: group threads
             }
         }
 
@@ -260,7 +234,7 @@ export class LLSyncAction implements SyncProcess {
                         this.pullNotifications();
                         this.pullAnnotations();
                         this.pullSharedAnnotations();
-                        this.pullThreadedMessages();
+                        this.pullSubscribedThreads();
                         this.reconnectionBackoffResetHandler = setTimeout(
                             () => {
                                 this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
@@ -435,41 +409,78 @@ export class LLSyncAction implements SyncProcess {
         });
     }
 
-    pullThreadedMessages(): void {
+    pullSubscribedThreads(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                for (let thread in this.pebl.subscribedThreads) {
-                    let message = {
-                        identity: userProfile.identity,
-                        requestType: "getThreadedMessages",
-                        thread: thread,
-                        timestamp: this.threadSyncTimestamps[thread]
-                    }
-                    this.websocket.send(JSON.stringify(message));
+                let message = {
+                    identity: userProfile.identity,
+                    requestType: "getSubscribedThreads"
                 }
-                for (let thread in this.pebl.subscribedPrivateThreads) {
-                    let message = {
-                        identity: userProfile.identity,
-                        requestType: "getThreadedMessages",
-                        thread: thread,
-                        isPrivate: true,
-                        timestamp: this.privateThreadSyncTimestamps[thread]
-                    }
-                    this.websocket.send(JSON.stringify(message));
-                }
-                for (let group in this.pebl.subscribedGroupThreads) {
-                    for (let thread in this.pebl.subscribedGroupThreads[group]) {
-                        let message = {
-                            identity: userProfile.identity,
-                            requestType: "getThreadedMessages",
-                            thread: thread,
-                            groupId: group,
-                            timestamp: this.groupThreadSyncTimestamps[group][thread]
-                        }
-                        this.websocket.send(JSON.stringify(message));
-                    }
-                }
+                this.websocket.send(JSON.stringify(message));
             }
         });
+    }
+
+    handlePrivateMessage(userProfile: UserProfile, message: any, thread: string): void {
+        let m;
+        if (Voided.is(message)) {
+            m = new Voided(message);
+            this.pebl.storage.removeMessage(userProfile, m.target);
+        } else {
+            m = new Message(message);
+            this.pebl.storage.saveMessages(userProfile, [m]);
+        }
+
+        let stored = new Date(m.stored).getTime();
+
+        if (!this.privateThreadSyncTimestamps[thread])
+            this.privateThreadSyncTimestamps[thread] = 1;
+
+        if (stored > this.privateThreadSyncTimestamps[thread])
+            this.privateThreadSyncTimestamps[thread] = stored;
+        this.pebl.emitEvent(thread + USER_PREFIX + userProfile.identity, [m]);
+    }
+
+    handleGroupMessage(userProfile: UserProfile, message: any, thread: string, groupId: string): void {
+        let m;
+        if (Voided.is(message)) {
+            m = new Voided(message);
+            this.pebl.storage.removeMessage(userProfile, m.target);
+        } else {
+            m = new Message(message);
+            this.pebl.storage.saveMessages(userProfile, [m]);
+        }
+
+        let stored = new Date(m.stored).getTime();
+
+        if (!this.groupThreadSyncTimestamps[groupId])
+            this.groupThreadSyncTimestamps[groupId] = {};
+        
+        if (!this.groupThreadSyncTimestamps[groupId][thread])
+            this.groupThreadSyncTimestamps[groupId][thread] = 1;
+
+        if (stored > this.groupThreadSyncTimestamps[groupId][thread])
+            this.groupThreadSyncTimestamps[groupId][thread] = stored;
+        this.pebl.emitEvent(thread + GROUP_PREFIX + groupId, [m]);
+    }
+
+    handleMessage(userProfile: UserProfile, message: any, thread: string): void {
+        let m;
+        if (Voided.is(message)) {
+            m = new Voided(message);
+            this.pebl.storage.removeMessage(userProfile, m.target);
+        } else {
+            m = new Message(message);
+            this.pebl.storage.saveMessages(userProfile, [m]);
+        }
+
+        let stored = new Date(m.stored).getTime();
+
+        if (!this.threadSyncTimestamps[thread])
+            this.threadSyncTimestamps[thread] = 1;
+
+        if (stored > this.threadSyncTimestamps[thread])
+            this.threadSyncTimestamps[thread] = stored;
+        this.pebl.emitEvent(thread, [m]);
     }
 }

@@ -21,10 +21,6 @@ export class PEBL {
 
     readonly subscribedThreadHandlers: { [thread: string]: { once: boolean, fn: PEBLHandler, modifiedFn: EventListener }[] } = {};
 
-    readonly subscribedThreads: { [thread: string]: boolean };
-    readonly subscribedPrivateThreads: { [thread: string]: boolean };
-    readonly subscribedGroupThreads: { [group: string]: { [thread: string]: boolean } };
-
     readonly teacher: boolean;
     readonly enableDirectMessages: boolean;
     readonly useIndexedDB: boolean;
@@ -45,9 +41,6 @@ export class PEBL {
         this.extension = {};
         // this.extension.shared = {};
         this.config = config;
-        this.subscribedThreads = {};
-        this.subscribedPrivateThreads = {};
-        this.subscribedGroupThreads = {};
 
         if (config) {
             this.teacher = config.teacher;
@@ -166,17 +159,12 @@ export class PEBL {
                 let thread = baseThread;
                 if (options && options.groupId) {
                     thread = baseThread + GROUP_PREFIX + options.groupId;
-                    delete this.subscribedGroupThreads[options.groupId][baseThread];
                 } else if (options && options.isPrivate) {
                     thread = baseThread + USER_PREFIX + userProfile.identity;
-                    delete this.subscribedPrivateThreads[baseThread];
-                } else {
-                    delete this.subscribedThreads[thread];
                 }
 
-
-
                 let message = {
+                    id: this.utils.getUuid(),
                     identity: userProfile.identity,
                     requestType: "unsubscribeThread",
                     thread: baseThread,
@@ -290,12 +278,8 @@ export class PEBL {
                 let thread = baseThread;
                 if (options && options.groupId) {
                     thread = thread + GROUP_PREFIX + options.groupId;
-                    this.subscribedGroupThreads[options.groupId][baseThread] = true;
                 } else if (options && options.isPrivate) {
                     thread = thread + USER_PREFIX + userProfile.identity;
-                    this.subscribedPrivateThreads[baseThread] = true;
-                } else {
-                    this.subscribedThreads[thread] = true;
                 }
 
                 let threadCallbacks = this.subscribedThreadHandlers[thread];
@@ -320,6 +304,7 @@ export class PEBL {
 
                 this.storage.getMessages(userProfile, thread, callback);
                 let message = {
+                    id: this.utils.getUuid(),
                     identity: userProfile.identity,
                     requestType: "subscribeThread",
                     thread: baseThread,
