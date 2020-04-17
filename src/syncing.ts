@@ -256,6 +256,9 @@ export class LLSyncAction implements SyncProcess {
                                 clearTimeout(this.reconnectionBackoffResetHandler);
                                 this.reconnectionBackoffResetHandler = undefined;
                             }
+                            if (this.reconnectionTimeoutHandler) {
+                                clearTimeout(this.reconnectionTimeoutHandler);
+                            }
                             this.reconnectionTimeoutHandler = setTimeout(
                                 () => {
                                     makeWebSocketConnection();
@@ -275,6 +278,9 @@ export class LLSyncAction implements SyncProcess {
                             if (this.reconnectionBackoffResetHandler) {
                                 clearTimeout(this.reconnectionBackoffResetHandler);
                                 this.reconnectionBackoffResetHandler = undefined;
+                            }
+                            if (this.reconnectionTimeoutHandler) {
+                                clearTimeout(this.reconnectionTimeoutHandler);
                             }
                             this.reconnectionTimeoutHandler = setTimeout(
                                 () => {
