@@ -189,33 +189,49 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.newAnnotation = function(userProfile, payload) {
-            let a;
-            if (Voided.is(payload.data)) {
-                a = new Voided(payload.data);
-                self.pebl.storage.removeAnnotation(userProfile, a.target);
+            let allAnnotations;
+            if (payload.data instanceof Array) {
+                allAnnotations = payload.data;
             } else {
-                a = new Annotation(payload.data);
-                self.pebl.storage.saveAnnotations(userProfile, [a]);
+                allAnnotations = [payload.data];
             }
-            let stored = new Date(a.stored).getTime();
-            if (stored > self.pebl.annotationSyncTimestamp)
-                self.pebl.annotationSyncTimestamp = stored;
-            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [a]);
+            let stmts = allAnnotations.map((a) => {
+                if (Voided.is(a)) {
+                    a = new Voided(a);
+                    self.pebl.storage.removeAnnotation(userProfile, a.target);
+                } else {
+                    a = new Annotation(a);
+                    self.pebl.storage.saveAnnotations(userProfile, [a]);
+                }
+                let stored = new Date(a.stored).getTime();
+                if (stored > self.pebl.annotationSyncTimestamp)
+                    self.pebl.annotationSyncTimestamp = stored;
+                return a;
+            });
+            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, stmts);
         }
 
         this.messageHandlers.newSharedAnnotation = function(userProfile, payload) {
-            let sa;
-            if (Voided.is(payload.data)) {
-                sa = new Voided(payload.data);
-                self.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
+            let allSharedAnnotations;
+            if (payload.data instanceof Array) {
+                allSharedAnnotations = payload.data;
             } else {
-                sa = new SharedAnnotation(payload.data);
-                self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
+                allSharedAnnotations = [payload.data];
             }
-            let stored = new Date(sa.stored).getTime();
-            if (stored > self.pebl.annotationSyncTimestamp)
-                self.pebl.sharedAnnotationSyncTimestamp = stored;
-            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sa]);
+            let stmts = allSharedAnnotations.map((sa) => {
+                if (Voided.is(sa)) {
+                    sa = new Voided(sa);
+                    self.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
+                } else {
+                    sa = new SharedAnnotation(sa);
+                    self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
+                }
+                let stored = new Date(sa.stored).getTime();
+                if (stored > self.pebl.annotationSyncTimestamp)
+                    self.pebl.sharedAnnotationSyncTimestamp = stored;
+                return sa;
+            })
+            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
         }
 
         this.messageHandlers.loggedOut = (userProfile, payload) => {
