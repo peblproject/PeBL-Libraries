@@ -126,7 +126,7 @@ export class PEBLEventHandlers {
                             requestType: "saveReferences",
                             references: [s]
                         });
-                        self.pebl.storage.saveEvent(userProfile, s);
+                        self.pebl.storage.saveQueuedReference(userProfile, s);
                         if (pulled)
                             self.pebl.emitEvent(PEBL_THREAD_USER_PREFIX + payload.target, [s]);
                     }

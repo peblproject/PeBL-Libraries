@@ -42,6 +42,7 @@ export class PEBL {
     threadSyncTimestamps: { [thread: string]: number };
     privateThreadSyncTimestamps: { [thread: string]: number };
     groupThreadSyncTimestamps: { [group: string]: { [thread: string]: number } };
+    referenceSyncTimestamp: number;
     // readonly launcher: LauncherAdapter;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
@@ -52,6 +53,7 @@ export class PEBL {
         this.annotationSyncTimestamp = 0;
         this.sharedAnnotationSyncTimestamp = 0;
         this.notificationSyncTimestamp = 0;
+        this.referenceSyncTimestamp = 0;
         this.threadSyncTimestamps = {};
         this.privateThreadSyncTimestamps= {};
         this.groupThreadSyncTimestamps = {};

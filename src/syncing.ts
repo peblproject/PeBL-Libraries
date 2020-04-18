@@ -16,7 +16,7 @@ const GROUP_PREFIX = "_group-";
 import { SyncProcess } from "./adapters";
 import { PEBL } from "./pebl";
 import { UserProfile } from "./models";
-import { Voided, Annotation, SharedAnnotation, Message, Notification } from "./xapi";
+import { Voided, Annotation, SharedAnnotation, Message, Notification, Reference } from "./xapi";
 
 export class LLSyncAction implements SyncProcess {
 
@@ -44,6 +44,35 @@ export class LLSyncAction implements SyncProcess {
 
         console.log(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
         this.messageHandlers = {};
+
+        this.messageHandlers.getReferences = (userProfile, payload) => {
+            for (let stmt of payload.data) {
+                if (Voided.is(stmt)) {
+                    //TODO
+                    console.log('TODO');
+                } else {
+                    let ref = new Reference(stmt);
+                    self.pebl.storage.saveQueuedReference(userProfile, ref);
+                    let stored = new Date(ref.stored).getTime();
+                    if (stored > self.pebl.referenceSyncTimestamp)
+                        self.pebl.referenceSyncTimestamp = stored;
+                }
+            }
+        }
+
+        this.messageHandlers.newReference = (userProfile, payload) => {
+            if (Voided.is(payload.data)) {
+                //TODO
+                console.log('TODO');
+            } else {
+                let ref = new Reference(payload.data);
+                self.pebl.storage.saveQueuedReference(userProfile, ref);
+                let stored = new Date(ref.stored).getTime();
+                if (stored > self.pebl.referenceSyncTimestamp)
+                    self.pebl.referenceSyncTimestamp = stored;
+            }
+        }
+
         this.messageHandlers.getNotifications = function(userProfile, payload) {
             let stmts = payload.data.map((stmt: any) => {
                 if (Voided.is(stmt)) {
@@ -234,6 +263,7 @@ export class LLSyncAction implements SyncProcess {
                         this.pullNotifications();
                         this.pullAnnotations();
                         this.pullSharedAnnotations();
+                        this.pullReferences();
                         this.pullSubscribedThreads();
                         this.reconnectionBackoffResetHandler = setTimeout(
                             () => {
@@ -296,7 +326,7 @@ export class LLSyncAction implements SyncProcess {
                                 var parsedMessage = JSON.parse(message.data);
 
                                 if (this.messageHandlers[parsedMessage.requestType]) {
-                                    this.messageHandlers[parsedMessage.requestType](userProfile, parsedMessage.payload);
+                                    this.messageHandlers[parsedMessage.requestType](userProfile, parsedMessage);
                                 } else {
                                     console.log("Unknown request type", parsedMessage.requestType, parsedMessage);
                                 }
@@ -403,6 +433,19 @@ export class LLSyncAction implements SyncProcess {
                     identity: userProfile.identity,
                     requestType: "getSharedAnnotations",
                     timestamp: this.pebl.sharedAnnotationSyncTimestamp + 1
+                }
+                this.websocket.send(JSON.stringify(message));
+            }
+        });
+    }
+
+    pullReferences(): void {
+        this.pebl.user.getUser((userProfile) => {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
+                let message = {
+                    identity: userProfile.identity,
+                    requestType: "getReferences",
+                    timestamp: this.pebl.referenceSyncTimestamp + 1
                 }
                 this.websocket.send(JSON.stringify(message));
             }

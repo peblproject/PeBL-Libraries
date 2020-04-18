@@ -615,7 +615,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         if (this.db) {
             let clone = stmt;
             clone.identity = userProfile.identity;
-            let request = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi").put(clone);
+            let request = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi").put(this.cleanRecord(clone));
             request.onerror = function(e) {
                 console.log(e);
             };

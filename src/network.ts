@@ -28,7 +28,7 @@ export class Network implements NetworkAdapter {
             this.syncingProcess.activate(() => {
                 this.push();
                 this.pushActivity();
-                // this.pullAsset();
+                this.pullAsset();
                 if (callback)
                     callback();
             });
