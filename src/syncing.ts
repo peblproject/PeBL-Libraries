@@ -28,7 +28,7 @@ export class LLSyncAction implements SyncProcess {
 
     readonly DEFAULT_RECONNECTION_BACKOFF = 1000;
 
-    
+
     private reconnectionTimeoutHandler?: number;
     private reconnectionBackoffResetHandler?: number;
     private reconnectionBackoff: number;
@@ -154,7 +154,7 @@ export class LLSyncAction implements SyncProcess {
                         identity: userProfile.identity,
                         requestType: "getThreadedMessages",
                         thread: thread,
-                        options: {isPrivate: true},
+                        options: { isPrivate: true },
                         timestamp: self.pebl.privateThreadSyncTimestamps[thread] ? self.pebl.privateThreadSyncTimestamps[thread] : 1
                     }
                     self.websocket.send(JSON.stringify(message));
@@ -165,7 +165,7 @@ export class LLSyncAction implements SyncProcess {
                             identity: userProfile.identity,
                             requestType: "getThreadedMessages",
                             thread: thread,
-                            options: {groupId: groupId},
+                            options: { groupId: groupId },
                             timestamp: self.pebl.groupThreadSyncTimestamps[groupId] ? self.pebl.groupThreadSyncTimestamps[groupId][thread] : 1
                         }
                         self.websocket.send(JSON.stringify(message));
@@ -175,6 +175,7 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.getAnnotations = function(userProfile, payload) {
+            console.log(payload);
             let stmts = payload.data.map((stmt: any) => {
                 if (Voided.is(stmt)) {
                     let voided = new Voided(stmt);
@@ -217,37 +218,59 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.newAnnotation = function(userProfile, payload) {
-            let a;
-            if (Voided.is(payload.data)) {
-                a = new Voided(payload.data);
-                self.pebl.storage.removeAnnotation(userProfile, a.target);
+            let allAnnotations;
+            if (payload.data instanceof Array) {
+                allAnnotations = payload.data;
             } else {
-                a = new Annotation(payload.data);
-                self.pebl.storage.saveAnnotations(userProfile, [a]);
+                allAnnotations = [payload.data];
             }
-            let stored = new Date(a.stored).getTime();
-            if (stored > self.pebl.annotationSyncTimestamp)
-                self.pebl.annotationSyncTimestamp = stored;
-            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [a]);
+            let stmts = allAnnotations.map((a) => {
+                if (Voided.is(a)) {
+                    a = new Voided(a);
+                    self.pebl.storage.removeAnnotation(userProfile, a.target);
+                } else {
+                    a = new Annotation(a);
+                    self.pebl.storage.saveAnnotations(userProfile, [a]);
+                }
+                let stored = new Date(a.stored).getTime();
+                if (stored > self.pebl.annotationSyncTimestamp)
+                    self.pebl.annotationSyncTimestamp = stored;
+                return a;
+            });
+            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, stmts);
         }
 
         this.messageHandlers.newSharedAnnotation = function(userProfile, payload) {
-            let sa;
-            if (Voided.is(payload.data)) {
-                sa = new Voided(payload.data);
-                self.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
+            let allSharedAnnotations;
+            if (payload.data instanceof Array) {
+                allSharedAnnotations = payload.data;
             } else {
-                sa = new SharedAnnotation(payload.data);
-                self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
+                allSharedAnnotations = [payload.data];
             }
-            let stored = new Date(sa.stored).getTime();
-            if (stored > self.pebl.annotationSyncTimestamp)
-                self.pebl.sharedAnnotationSyncTimestamp = stored;
-            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sa]);
+            let stmts = allSharedAnnotations.map((sa) => {
+                if (Voided.is(sa)) {
+                    sa = new Voided(sa);
+                    self.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
+                } else {
+                    sa = new SharedAnnotation(sa);
+                    self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
+                }
+                let stored = new Date(sa.stored).getTime();
+                if (stored > self.pebl.annotationSyncTimestamp)
+                    self.pebl.sharedAnnotationSyncTimestamp = stored;
+                return sa;
+            })
+            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
         }
 
         this.messageHandlers.loggedOut = (userProfile, payload) => {
-            self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
+            self.pebl.storage.removeCurrentUser(() => {
+                self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
+            });
+        }
+
+        this.messageHandlers.error = (userProfile, payload) => {
+            console.log("Message failed", payload);
         }
     }
 
@@ -498,7 +521,7 @@ export class LLSyncAction implements SyncProcess {
 
         if (!this.pebl.groupThreadSyncTimestamps[groupId])
             this.pebl.groupThreadSyncTimestamps[groupId] = {};
-        
+
         if (!this.pebl.groupThreadSyncTimestamps[groupId][thread])
             this.pebl.groupThreadSyncTimestamps[groupId][thread] = 1;
 

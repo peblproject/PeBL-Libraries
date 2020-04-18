@@ -180,9 +180,9 @@ export class Action extends XApiStatement {
 
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
-        return (verb == "preferred") || (verb == "morphed") || (verb == "interacted") || (verb == "experienced") || (verb == "disliked") || 
+        return (verb == "preferred") || (verb == "morphed") || (verb == "interacted") || (verb == "experienced") || (verb == "disliked") ||
             (verb == "liked") || (verb == "accessed") || (verb == "hid") || (verb == "showed") || (verb == "displayed") || (verb == "undisplayed") ||
-            (verb == "searched") || (verb == "selected") || (verb == "unbookmarked") || (verb == "discarded") || (verb == "unshared") || (verb == "unannotated") || 
+            (verb == "searched") || (verb == "selected") || (verb == "unbookmarked") || (verb == "discarded") || (verb == "unshared") || (verb == "unannotated") ||
             (verb == "submitted");
     }
 }
@@ -273,7 +273,7 @@ export class Voided extends XApiStatement {
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
-        this.thread = this.context.contextActivities.parent[0].id;
+        this.thread = (this.context && this.context.contextActivities && this.context.contextActivities.parent) ? this.context.contextActivities.parent[0].id : "";
         if (this.thread.indexOf(PREFIX_PEBL_THREAD) != -1)
             this.thread = this.thread.substring(PREFIX_PEBL_THREAD.length);
 
@@ -538,9 +538,9 @@ export class ProgramAction extends XApiStatement {
     static is(x: XApiStatement): boolean {
         let verb = x.verb.display["en-US"];
         return (verb == "programLevelUp") || (verb == "programLevelDown") || (verb == "programInvited") || (verb == "programUninvited")
-                || (verb == "programExpelled") || (verb == "programJoined") || (verb == "programActivityLaunched")
-                || (verb == "programActivityCompleted") || (verb == "programActivityTeamCompleted") || (verb == "programModified")
-                || (verb == "programDeleted") || (verb == "programCompleted") || (verb == "programCopied") || (verb == "programDiscussed")
+            || (verb == "programExpelled") || (verb == "programJoined") || (verb == "programActivityLaunched")
+            || (verb == "programActivityCompleted") || (verb == "programActivityTeamCompleted") || (verb == "programModified")
+            || (verb == "programDeleted") || (verb == "programCompleted") || (verb == "programCopied") || (verb == "programDiscussed")
     }
 }
 
