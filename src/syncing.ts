@@ -28,12 +28,7 @@ export class LLSyncAction implements SyncProcess {
 
     readonly DEFAULT_RECONNECTION_BACKOFF = 1000;
 
-    private annotationSyncTimestamp: number;
-    private sharedAnnotationSyncTimestamp: number;
-    private notificationSyncTimestamp: number;
-    private threadSyncTimestamps: { [thread: string]: number };
-    private privateThreadSyncTimestamps: { [thread: string]: number };
-    private groupThreadSyncTimestamps: { [group: string]: { [thread: string]: number } };
+    
     private reconnectionTimeoutHandler?: number;
     private reconnectionBackoffResetHandler?: number;
     private reconnectionBackoff: number;
@@ -45,12 +40,7 @@ export class LLSyncAction implements SyncProcess {
         this.pebl = pebl;
         this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
 
-        this.annotationSyncTimestamp = 0;
-        this.sharedAnnotationSyncTimestamp = 0;
-        this.notificationSyncTimestamp = 0;
-        this.threadSyncTimestamps = {};
-        this.privateThreadSyncTimestamps= {};
-        this.groupThreadSyncTimestamps = {};
+        
         this.active = false;
 
         console.log(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
@@ -61,15 +51,15 @@ export class LLSyncAction implements SyncProcess {
                     let voided = new Voided(stmt);
                     self.pebl.storage.removeNotification(userProfile, voided.target);
                     let stored = new Date(voided.stored).getTime();
-                    if (stored > self.notificationSyncTimestamp)
-                        self.notificationSyncTimestamp = stored;
+                    if (stored > self.pebl.notificationSyncTimestamp)
+                        self.pebl.notificationSyncTimestamp = stored;
                     return voided;
                 } else {
                     let n = new Notification(stmt);
                     self.pebl.storage.saveNotification(userProfile, n);
                     let stored = new Date(n.stored).getTime();
-                    if (stored > self.notificationSyncTimestamp)
-                        self.notificationSyncTimestamp = stored;
+                    if (stored > self.pebl.notificationSyncTimestamp)
+                        self.pebl.notificationSyncTimestamp = stored;
                     return n;
                 }
             });
@@ -87,14 +77,14 @@ export class LLSyncAction implements SyncProcess {
             }
             self.pebl.emitEvent(self.pebl.events.incomingNotifications, [n]);
             let stored = new Date(n.stored).getTime();
-            if (stored > self.notificationSyncTimestamp)
-                self.notificationSyncTimestamp = stored;
+            if (stored > self.pebl.notificationSyncTimestamp)
+                self.pebl.notificationSyncTimestamp = stored;
         }
 
         this.messageHandlers.getThreadedMessages = function(userProfile, payload) {
-            let groupId = payload.additionalData.groupId;
-            let isPrivate = payload.additionalData.isPrivate;
-            let thread = payload.additionalData.thread;
+            let groupId = payload.options && payload.options.groupId;
+            let isPrivate = payload.options && payload.options.isPrivate;
+            let thread = payload.thread;
             for (let stmt of payload.data) {
                 if (groupId) {
                     self.handleGroupMessage(userProfile, stmt, thread, groupId);
@@ -107,9 +97,9 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.newThreadedMessage = function(userProfile, payload) {
-            let groupId = payload.additionalData.groupId;
-            let isPrivate = payload.additionalData.isPrivate;
-            let thread = payload.additionalData.thread;
+            let groupId = payload.options && payload.options.groupId;
+            let isPrivate = payload.options && payload.options.isPrivate;
+            let thread = payload.thread;
 
             if (groupId) {
                 self.handleGroupMessage(userProfile, payload.data, thread, groupId);
@@ -122,26 +112,37 @@ export class LLSyncAction implements SyncProcess {
 
         this.messageHandlers.getSubscribedThreads = function(userProfile, payload) {
             if (self.websocket && self.websocket.readyState === 1) {
-                for (let thread of payload.threads) {
+                for (let thread of payload.data.threads) {
                     let message = {
                         identity: userProfile.identity,
                         requestType: "getThreadedMessages",
                         thread: thread,
-                        timestamp: self.threadSyncTimestamps[thread] ? self.threadSyncTimestamps[thread] : 1
+                        timestamp: self.pebl.threadSyncTimestamps[thread] ? self.pebl.threadSyncTimestamps[thread] : 1
                     }
                     self.websocket.send(JSON.stringify(message));
                 }
-                for (let thread of payload.privateThreads) {
+                for (let thread of payload.data.privateThreads) {
                     let message = {
                         identity: userProfile.identity,
                         requestType: "getThreadedMessages",
                         thread: thread,
-                        isPrivate: true,
-                        timestamp: self.privateThreadSyncTimestamps[thread] ? self.privateThreadSyncTimestamps[thread] : 1
+                        options: {isPrivate: true},
+                        timestamp: self.pebl.privateThreadSyncTimestamps[thread] ? self.pebl.privateThreadSyncTimestamps[thread] : 1
                     }
                     self.websocket.send(JSON.stringify(message));
                 }
-                //TODO: group threads
+                for (let groupId in payload.data.groupThreads) {
+                    for (let thread of payload.data.groupThreads[groupId]) {
+                        let message = {
+                            identity: userProfile.identity,
+                            requestType: "getThreadedMessages",
+                            thread: thread,
+                            options: {groupId: groupId},
+                            timestamp: self.pebl.groupThreadSyncTimestamps[groupId] ? self.pebl.groupThreadSyncTimestamps[groupId][thread] : 1
+                        }
+                        self.websocket.send(JSON.stringify(message));
+                    }
+                }
             }
         }
 
@@ -151,15 +152,15 @@ export class LLSyncAction implements SyncProcess {
                     let voided = new Voided(stmt);
                     self.pebl.storage.removeAnnotation(userProfile, voided.target);
                     let stored = new Date(voided.stored).getTime();
-                    if (stored > self.annotationSyncTimestamp)
-                        self.annotationSyncTimestamp = stored;
+                    if (stored > self.pebl.annotationSyncTimestamp)
+                        self.pebl.annotationSyncTimestamp = stored;
                     return voided;
                 } else {
                     let a = new Annotation(stmt);
                     self.pebl.storage.saveAnnotations(userProfile, [a]);
                     let stored = new Date(a.stored).getTime();
-                    if (stored > self.annotationSyncTimestamp)
-                        self.annotationSyncTimestamp = stored;
+                    if (stored > self.pebl.annotationSyncTimestamp)
+                        self.pebl.annotationSyncTimestamp = stored;
                     return a;
                 }
             });
@@ -172,15 +173,15 @@ export class LLSyncAction implements SyncProcess {
                     let voided = new Voided(stmt);
                     self.pebl.storage.removeSharedAnnotation(userProfile, voided.target);
                     let stored = new Date(voided.stored).getTime();
-                    if (stored > self.sharedAnnotationSyncTimestamp)
-                        self.sharedAnnotationSyncTimestamp = stored;
+                    if (stored > self.pebl.sharedAnnotationSyncTimestamp)
+                        self.pebl.sharedAnnotationSyncTimestamp = stored;
                     return voided;
                 } else {
                     let sa = new SharedAnnotation(stmt);
                     self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
                     let stored = new Date(sa.stored).getTime();
-                    if (stored > self.sharedAnnotationSyncTimestamp)
-                        self.sharedAnnotationSyncTimestamp = stored;
+                    if (stored > self.pebl.sharedAnnotationSyncTimestamp)
+                        self.pebl.sharedAnnotationSyncTimestamp = stored;
                     return sa;
                 }
             });
@@ -197,8 +198,8 @@ export class LLSyncAction implements SyncProcess {
                 self.pebl.storage.saveAnnotations(userProfile, [a]);
             }
             let stored = new Date(a.stored).getTime();
-            if (stored > self.annotationSyncTimestamp)
-                self.annotationSyncTimestamp = stored;
+            if (stored > self.pebl.annotationSyncTimestamp)
+                self.pebl.annotationSyncTimestamp = stored;
             self.pebl.emitEvent(self.pebl.events.incomingAnnotations, [a]);
         }
 
@@ -212,8 +213,8 @@ export class LLSyncAction implements SyncProcess {
                 self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
             }
             let stored = new Date(sa.stored).getTime();
-            if (stored > self.annotationSyncTimestamp)
-                self.sharedAnnotationSyncTimestamp = stored;
+            if (stored > self.pebl.annotationSyncTimestamp)
+                self.pebl.sharedAnnotationSyncTimestamp = stored;
             self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sa]);
         }
     }
@@ -372,7 +373,7 @@ export class LLSyncAction implements SyncProcess {
                 let message = {
                     identity: userProfile.identity,
                     requestType: "getNotifications",
-                    timestamp: this.notificationSyncTimestamp + 1
+                    timestamp: this.pebl.notificationSyncTimestamp + 1
                 }
                 this.websocket.send(JSON.stringify(message));
             }
@@ -385,7 +386,7 @@ export class LLSyncAction implements SyncProcess {
                 let message = {
                     identity: userProfile.identity,
                     requestType: "getAnnotations",
-                    timestamp: this.annotationSyncTimestamp + 1
+                    timestamp: this.pebl.annotationSyncTimestamp + 1
                 }
                 this.websocket.send(JSON.stringify(message));
             }
@@ -398,7 +399,7 @@ export class LLSyncAction implements SyncProcess {
                 let message = {
                     identity: userProfile.identity,
                     requestType: "getSharedAnnotations",
-                    timestamp: this.sharedAnnotationSyncTimestamp + 1
+                    timestamp: this.pebl.sharedAnnotationSyncTimestamp + 1
                 }
                 this.websocket.send(JSON.stringify(message));
             }
@@ -429,11 +430,11 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
 
-        if (!this.privateThreadSyncTimestamps[thread])
-            this.privateThreadSyncTimestamps[thread] = 1;
+        if (!this.pebl.privateThreadSyncTimestamps[thread])
+            this.pebl.privateThreadSyncTimestamps[thread] = 1;
 
-        if (stored > this.privateThreadSyncTimestamps[thread])
-            this.privateThreadSyncTimestamps[thread] = stored;
+        if (stored > this.pebl.privateThreadSyncTimestamps[thread])
+            this.pebl.privateThreadSyncTimestamps[thread] = stored;
         this.pebl.emitEvent(thread + USER_PREFIX + userProfile.identity, [m]);
     }
 
@@ -449,14 +450,14 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
 
-        if (!this.groupThreadSyncTimestamps[groupId])
-            this.groupThreadSyncTimestamps[groupId] = {};
+        if (!this.pebl.groupThreadSyncTimestamps[groupId])
+            this.pebl.groupThreadSyncTimestamps[groupId] = {};
         
-        if (!this.groupThreadSyncTimestamps[groupId][thread])
-            this.groupThreadSyncTimestamps[groupId][thread] = 1;
+        if (!this.pebl.groupThreadSyncTimestamps[groupId][thread])
+            this.pebl.groupThreadSyncTimestamps[groupId][thread] = 1;
 
-        if (stored > this.groupThreadSyncTimestamps[groupId][thread])
-            this.groupThreadSyncTimestamps[groupId][thread] = stored;
+        if (stored > this.pebl.groupThreadSyncTimestamps[groupId][thread])
+            this.pebl.groupThreadSyncTimestamps[groupId][thread] = stored;
         this.pebl.emitEvent(thread + GROUP_PREFIX + groupId, [m]);
     }
 
@@ -472,11 +473,11 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
 
-        if (!this.threadSyncTimestamps[thread])
-            this.threadSyncTimestamps[thread] = 1;
+        if (!this.pebl.threadSyncTimestamps[thread])
+            this.pebl.threadSyncTimestamps[thread] = 1;
 
-        if (stored > this.threadSyncTimestamps[thread])
-            this.threadSyncTimestamps[thread] = stored;
+        if (stored > this.pebl.threadSyncTimestamps[thread])
+            this.pebl.threadSyncTimestamps[thread] = stored;
         this.pebl.emitEvent(thread, [m]);
     }
 }

@@ -144,7 +144,7 @@ export class PEBLEventHandlers {
         let exts = {
             access: payload.access,
             type: payload.type,
-            masterThread: payload.masterThread,
+            replyThread: payload.replyThread,
             groupId: payload.groupId
         };
 
@@ -161,12 +161,13 @@ export class PEBLEventHandlers {
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);
+                        let clone = JSON.parse(JSON.stringify(message));
                         self.pebl.storage.saveMessages(userProfile, message);
                         self.pebl.storage.saveOutgoingXApi(userProfile, {
                             identity: userProfile.identity,
                             id: message.id,
                             requestType: "saveThreadedMessage",
-                            message: message,
+                            message: clone,
                         });
                         self.pebl.emitEvent(message.thread, [message]);
                     });
@@ -183,7 +184,8 @@ export class PEBLEventHandlers {
 
         let exts = {
             access: payload.access,
-            type: payload.type
+            type: payload.type,
+            isPrivate: payload.isPrivate
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -199,12 +201,13 @@ export class PEBLEventHandlers {
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);
+                        let clone = JSON.parse(JSON.stringify(message));
                         self.pebl.storage.saveMessages(userProfile, message);
                         self.pebl.storage.saveOutgoingXApi(userProfile, {
                             identity: userProfile.identity,
                             id: message.id,
                             requestType: "saveThreadedMessage",
-                            messages: [message]
+                            message: clone
                         });
                         self.pebl.emitEvent(message.thread, [message]);
                     });

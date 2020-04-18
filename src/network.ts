@@ -216,14 +216,14 @@ export class Network implements NetworkAdapter {
                                     if (success)
                                         this.pebl.storage.removeOutgoingXApi(userProfile, stmts);
                                     if (this.running)
-                                        this.pushTimeout = setTimeout(this.push.bind(this), 5000);
+                                        this.pushTimeout = setTimeout(this.push.bind(this), 2000);
 
                                     if (finished)
                                         finished();
                                 });
                         } else {
                             if (this.running)
-                                this.pushTimeout = setTimeout(this.push.bind(this), 5000);
+                                this.pushTimeout = setTimeout(this.push.bind(this), 2000);
 
                             if (finished)
                                 finished();
@@ -231,7 +231,7 @@ export class Network implements NetworkAdapter {
                     });
             } else {
                 if (this.running)
-                    this.pushTimeout = setTimeout(this.push.bind(this), 5000);
+                    this.pushTimeout = setTimeout(this.push.bind(this), 2000);
 
                 if (finished)
                     finished();

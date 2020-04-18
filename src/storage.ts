@@ -688,6 +688,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             if (stmts instanceof Message) {
                 let clone = stmts;
                 clone.identity = userProfile.identity;
+                if (clone.isPrivate)
+                    clone.thread += '_user-' + userProfile.identity;
+                else if (clone.groupId)
+                    clone.thread += '_group-' + clone.groupId;
+
                 let request = this.db.transaction(["messages"], "readwrite").objectStore("messages").put(this.cleanRecord(clone));
                 request.onerror = function(e) {
                     console.log(e);
@@ -705,6 +710,10 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     if (record) {
                         let clone = record;
                         clone.identity = userProfile.identity;
+                        if (clone.isPrivate)
+                            clone.thread += '_user-' + userProfile.identity;
+                        else if (clone.groupId)
+                            clone.thread += '_group-' + clone.groupId;
                         let request = objectStore.put(self.cleanRecord(clone));
                         request.onerror = processCallback;
                         request.onsuccess = processCallback;
