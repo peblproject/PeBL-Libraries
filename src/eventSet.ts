@@ -48,6 +48,7 @@ export class EventSet {
     removedProgram = "removedProgram";
     removedMessage = "removedMessage";
 
+    eventRefreshLogin = "eventRefreshLogin";
     eventLoggedIn = "eventLoggedIn";
     eventLoggedOut = "eventLoggedOut";
     eventLogin = "eventLogin";

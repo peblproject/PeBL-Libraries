@@ -40,7 +40,6 @@ export class LLSyncAction implements SyncProcess {
         this.pebl = pebl;
         this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
 
-        
         this.active = false;
 
         console.log(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
@@ -216,6 +215,10 @@ export class LLSyncAction implements SyncProcess {
             if (stored > self.pebl.annotationSyncTimestamp)
                 self.pebl.sharedAnnotationSyncTimestamp = stored;
             self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sa]);
+        }
+
+        this.messageHandlers.loggedOut = (userProfile, payload) => {
+            self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
         }
     }
 
