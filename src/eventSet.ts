@@ -18,6 +18,8 @@ export class EventSet {
 
     incomingErrors = "incomingErrors";
 
+    updatedToc = "updatedToc";
+
     saveProgram = "saveProgram";
     saveProgramConflict = "saveProgramConflict";
     saveProgramSuccess = "saveProgramSuccess";

@@ -75,6 +75,7 @@ export class Network implements NetworkAdapter {
                                         this.pebl.storage.saveToc(userProfile, ref.book, tocEntry);
 
                                         this.pebl.emitEvent(this.pebl.events.incomingNotification, ref);
+                                        this.pebl.emitEvent(this.pebl.events.updatedToc, ref.book);
 
                                         this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
