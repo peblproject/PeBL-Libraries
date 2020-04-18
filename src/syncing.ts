@@ -28,7 +28,7 @@ export class LLSyncAction implements SyncProcess {
 
     readonly DEFAULT_RECONNECTION_BACKOFF = 1000;
 
-    
+
     private reconnectionTimeoutHandler?: number;
     private reconnectionBackoffResetHandler?: number;
     private reconnectionBackoff: number;
@@ -125,7 +125,7 @@ export class LLSyncAction implements SyncProcess {
                         identity: userProfile.identity,
                         requestType: "getThreadedMessages",
                         thread: thread,
-                        options: {isPrivate: true},
+                        options: { isPrivate: true },
                         timestamp: self.pebl.privateThreadSyncTimestamps[thread] ? self.pebl.privateThreadSyncTimestamps[thread] : 1
                     }
                     self.websocket.send(JSON.stringify(message));
@@ -136,7 +136,7 @@ export class LLSyncAction implements SyncProcess {
                             identity: userProfile.identity,
                             requestType: "getThreadedMessages",
                             thread: thread,
-                            options: {groupId: groupId},
+                            options: { groupId: groupId },
                             timestamp: self.pebl.groupThreadSyncTimestamps[groupId] ? self.pebl.groupThreadSyncTimestamps[groupId][thread] : 1
                         }
                         self.websocket.send(JSON.stringify(message));
@@ -146,6 +146,7 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.getAnnotations = function(userProfile, payload) {
+            console.log(payload);
             let stmts = payload.data.map((stmt: any) => {
                 if (Voided.is(stmt)) {
                     let voided = new Voided(stmt);
@@ -218,7 +219,13 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.loggedOut = (userProfile, payload) => {
-            self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
+            self.pebl.storage.removeCurrentUser(() => {
+                self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
+            });
+        }
+
+        this.messageHandlers.error = (userProfile, payload) => {
+            console.log("Message failed", payload);
         }
     }
 
@@ -296,7 +303,7 @@ export class LLSyncAction implements SyncProcess {
                                 var parsedMessage = JSON.parse(message.data);
 
                                 if (this.messageHandlers[parsedMessage.requestType]) {
-                                    this.messageHandlers[parsedMessage.requestType](userProfile, parsedMessage.payload);
+                                    this.messageHandlers[parsedMessage.requestType](userProfile, parsedMessage);
                                 } else {
                                     console.log("Unknown request type", parsedMessage.requestType, parsedMessage);
                                 }
@@ -455,7 +462,7 @@ export class LLSyncAction implements SyncProcess {
 
         if (!this.pebl.groupThreadSyncTimestamps[groupId])
             this.pebl.groupThreadSyncTimestamps[groupId] = {};
-        
+
         if (!this.pebl.groupThreadSyncTimestamps[groupId][thread])
             this.pebl.groupThreadSyncTimestamps[groupId][thread] = 1;
 
