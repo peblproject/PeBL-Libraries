@@ -145,7 +145,8 @@ export class PEBLEventHandlers {
             access: payload.access,
             type: payload.type,
             replyThread: payload.replyThread,
-            groupId: payload.groupId
+            groupId: payload.groupId,
+            isPrivate: payload.isPrivate
         };
 
         self.pebl.user.getUser(function(userProfile) {
