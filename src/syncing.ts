@@ -110,18 +110,27 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.getThreadedMessages = function(userProfile, payload) {
-            let groupId = payload.options && payload.options.groupId;
-            let isPrivate = payload.options && payload.options.isPrivate;
-            let thread = payload.thread;
-            for (let stmt of payload.data) {
-                if (groupId) {
-                    self.handleGroupMessage(userProfile, stmt, thread, groupId);
-                } else if (isPrivate) {
-                    self.handlePrivateMessage(userProfile, stmt, thread);
-                } else {
-                    self.handleMessage(userProfile, stmt, thread);
-                }
+            let threads;
+            if (payload.data instanceof Array) {
+                threads = payload.data;
+            } else {
+                threads = [payload.data];
             }
+
+            threads.forEach((payload) => {
+                let groupId = payload.options && payload.options.groupId;
+                let isPrivate = payload.options && payload.options.isPrivate;
+                let thread = payload.thread;
+                for (let stmt of payload.data) {
+                    if (groupId) {
+                        self.handleGroupMessage(userProfile, stmt, thread, groupId);
+                    } else if (isPrivate) {
+                        self.handlePrivateMessage(userProfile, stmt, thread);
+                    } else {
+                        self.handleMessage(userProfile, stmt, thread);
+                    }
+                }
+            });
         }
 
         this.messageHandlers.newThreadedMessage = function(userProfile, payload) {
@@ -140,37 +149,37 @@ export class LLSyncAction implements SyncProcess {
 
         this.messageHandlers.getSubscribedThreads = function(userProfile, payload) {
             if (self.websocket && self.websocket.readyState === 1) {
+                let messageSet = [];
                 for (let thread of payload.data.threads) {
                     let message = {
-                        identity: userProfile.identity,
-                        requestType: "getThreadedMessages",
                         thread: thread,
                         timestamp: self.pebl.threadSyncTimestamps[thread] ? self.pebl.threadSyncTimestamps[thread] : 1
                     }
-                    self.websocket.send(JSON.stringify(message));
+                    messageSet.push(message);
                 }
                 for (let thread of payload.data.privateThreads) {
                     let message = {
-                        identity: userProfile.identity,
-                        requestType: "getThreadedMessages",
                         thread: thread,
                         options: { isPrivate: true },
                         timestamp: self.pebl.privateThreadSyncTimestamps[thread] ? self.pebl.privateThreadSyncTimestamps[thread] : 1
                     }
-                    self.websocket.send(JSON.stringify(message));
+                    messageSet.push(message);
                 }
                 for (let groupId in payload.data.groupThreads) {
                     for (let thread of payload.data.groupThreads[groupId]) {
                         let message = {
-                            identity: userProfile.identity,
-                            requestType: "getThreadedMessages",
                             thread: thread,
                             options: { groupId: groupId },
                             timestamp: self.pebl.groupThreadSyncTimestamps[groupId] ? self.pebl.groupThreadSyncTimestamps[groupId][thread] : 1
                         }
-                        self.websocket.send(JSON.stringify(message));
+                        messageSet.push(message);
                     }
                 }
+                self.websocket.send(JSON.stringify({
+                    requestType: "getThreadedMessages",
+                    identity: userProfile.identity,
+                    requests: messageSet
+                }));
             }
         }
 
@@ -398,10 +407,11 @@ export class LLSyncAction implements SyncProcess {
     push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                for (let message of outgoing) {
-                    console.log(message);
-                    this.websocket.send(JSON.stringify(message));
-                }
+                this.websocket.send(JSON.stringify({
+                    requestType: "bulkPush",
+                    identity: userProfile.identity,
+                    data: outgoing
+                }));
                 callback(true);
             } else {
                 callback(false);
