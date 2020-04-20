@@ -94,21 +94,6 @@ export class LLSyncAction implements SyncProcess {
             self.pebl.emitEvent(self.pebl.events.incomingNotifications, stmts);
         }
 
-        this.messageHandlers.newNotification = function(userProfile, payload) {
-            let n;
-            if (Voided.is(payload.data)) {
-                n = new Voided(payload.data);
-                self.pebl.storage.removeNotification(userProfile, n.target);
-            } else {
-                n = new Notification(payload.data);
-                self.pebl.storage.saveNotification(userProfile, n);
-            }
-            self.pebl.emitEvent(self.pebl.events.incomingNotifications, [n]);
-            let stored = new Date(n.stored).getTime();
-            if (stored > self.pebl.notificationSyncTimestamp)
-                self.pebl.notificationSyncTimestamp = stored;
-        }
-
         this.messageHandlers.getThreadedMessages = function(userProfile, payload) {
             let groupId = payload.options && payload.options.groupId;
             let isPrivate = payload.options && payload.options.isPrivate;
