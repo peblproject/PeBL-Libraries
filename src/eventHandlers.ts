@@ -147,7 +147,9 @@ export class PEBLEventHandlers {
             replyThread: payload.replyThread,
             groupId: payload.groupId,
             isPrivate: payload.isPrivate,
-            book: payload.book
+            book: payload.book,
+            idRef: payload.idRef,
+            cfi: payload.cfi
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -188,7 +190,9 @@ export class PEBLEventHandlers {
             access: payload.access,
             type: payload.type,
             isPrivate: payload.isPrivate,
-            book: payload.book
+            book: payload.book,
+            idRef: payload.idRef,
+            cfi: payload.cfi
         };
 
         self.pebl.user.getUser(function(userProfile) {
