@@ -1,5 +1,6 @@
 const USER_PREFIX = "_user-";
 const GROUP_PREFIX = "_group-";
+
 // const PEBL_THREAD_PREFIX = "peblThread://";
 // const PEBL_THREAD_REGISTRY = "peblThread://registry";
 // const PEBL_THREAD_USER_PREFIX = "peblThread://" + USER_PREFIX;
@@ -17,6 +18,7 @@ import { SyncProcess } from "./adapters";
 import { PEBL } from "./pebl";
 import { UserProfile } from "./models";
 import { Voided, Annotation, SharedAnnotation, Message, Notification, Reference } from "./xapi";
+import { SYNC_REFERENCES, SYNC_NOTIFICATIONS, SYNC_SHARED_ANNOTATIONS, SYNC_ANNOTATIONS } from "./constants";
 
 export class LLSyncAction implements SyncProcess {
 
@@ -27,7 +29,6 @@ export class LLSyncAction implements SyncProcess {
     private messageHandlers: { [key: string]: ((userProfile: UserProfile, payload: { [key: string]: any }) => void) }
 
     readonly DEFAULT_RECONNECTION_BACKOFF = 1000;
-
 
     private reconnectionTimeoutHandler?: number;
     private reconnectionBackoffResetHandler?: number;
@@ -46,215 +47,275 @@ export class LLSyncAction implements SyncProcess {
         this.messageHandlers = {};
 
         this.messageHandlers.getReferences = (userProfile, payload) => {
-            for (let stmt of payload.data) {
-                if (Voided.is(stmt)) {
-                    //TODO
-                    console.log('TODO');
-                } else {
-                    let ref = new Reference(stmt);
-                    self.pebl.storage.saveQueuedReference(userProfile, ref);
-                    let stored = new Date(ref.stored).getTime();
-                    if (stored > self.pebl.referenceSyncTimestamp)
-                        self.pebl.referenceSyncTimestamp = stored;
+            this.pebl.storage.getSyncTimestamps(SYNC_REFERENCES, (timestamp: number) => {
+                for (let stmt of payload.data) {
+                    if (Voided.is(stmt)) {
+                        //TODO
+                        console.log('TODO');
+                    } else {
+                        let ref = new Reference(stmt);
+                        self.pebl.storage.saveQueuedReference(userProfile, ref);
+                        let stored = new Date(ref.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                    }
                 }
-            }
+                this.pebl.storage.saveSyncTimestamps(SYNC_REFERENCES, timestamp, () => { });
+            });
         }
 
         this.messageHandlers.newReference = (userProfile, payload) => {
-            if (Voided.is(payload.data)) {
-                //TODO
-                console.log('TODO');
-            } else {
-                let ref = new Reference(payload.data);
-                self.pebl.storage.saveQueuedReference(userProfile, ref);
-                let stored = new Date(ref.stored).getTime();
-                if (stored > self.pebl.referenceSyncTimestamp)
-                    self.pebl.referenceSyncTimestamp = stored;
-            }
-        }
-
-        this.messageHandlers.getNotifications = function(userProfile, payload) {
-            let stmts = payload.data.map((stmt: any) => {
-                if (Voided.is(stmt)) {
-                    let voided = new Voided(stmt);
-                    self.pebl.storage.removeNotification(userProfile, voided.target);
-                    let stored = new Date(voided.stored).getTime();
-                    if (stored > self.pebl.notificationSyncTimestamp)
-                        self.pebl.notificationSyncTimestamp = stored;
-                    return voided;
+            this.pebl.storage.getSyncTimestamps(SYNC_REFERENCES, (timestamp: number) => {
+                if (Voided.is(payload.data)) {
+                    //TODO
+                    console.log('TODO');
                 } else {
-                    let n = new Notification(stmt);
-                    self.pebl.storage.saveNotification(userProfile, n);
-                    let stored = new Date(n.stored).getTime();
-                    if (stored > self.pebl.notificationSyncTimestamp)
-                        self.pebl.notificationSyncTimestamp = stored;
-                    return n;
+                    let ref = new Reference(payload.data);
+                    self.pebl.storage.saveQueuedReference(userProfile, ref);
+                    let stored = new Date(ref.stored).getTime();
+                    if (stored > timestamp)
+                        timestamp = stored;
+                    this.pebl.storage.saveSyncTimestamps(SYNC_REFERENCES, timestamp, () => { });
                 }
             });
-            self.pebl.emitEvent(self.pebl.events.incomingNotifications, stmts);
         }
 
-        this.messageHandlers.getThreadedMessages = function(userProfile, payload) {
-            let threads;
+        this.messageHandlers.getNotifications = (userProfile, payload) => {
+            this.pebl.storage.getSyncTimestamps(SYNC_NOTIFICATIONS, (timestamp: number) => {
+                let stmts = payload.data.map((stmt: any) => {
+                    if (Voided.is(stmt)) {
+                        let voided = new Voided(stmt);
+                        self.pebl.storage.removeNotification(userProfile, voided.target);
+                        let stored = new Date(voided.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                        return voided;
+                    } else {
+                        let n = new Notification(stmt);
+                        self.pebl.storage.saveNotification(userProfile, n);
+                        let stored = new Date(n.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                        return n;
+                    }
+                });
+                this.pebl.storage.saveSyncTimestamps(SYNC_NOTIFICATIONS, timestamp, () => {
+                    self.pebl.emitEvent(self.pebl.events.incomingNotifications, stmts);
+                });
+            });
+        }
+
+        this.messageHandlers.getThreadedMessages = (userProfile, payload) => {
+            let threads: any[];
             if (payload.data instanceof Array) {
                 threads = payload.data;
             } else {
                 threads = [payload.data];
             }
 
-            threads.forEach((payload) => {
-                let groupId = payload.options && payload.options.groupId;
-                let isPrivate = payload.options && payload.options.isPrivate;
-                let thread = payload.thread;
-                for (let stmt of payload.data) {
-                    if (groupId) {
-                        self.handleGroupMessage(userProfile, stmt, thread, groupId);
-                    } else if (isPrivate) {
-                        self.handlePrivateMessage(userProfile, stmt, thread);
-                    } else {
-                        self.handleMessage(userProfile, stmt, thread);
+            this.pebl.utils.getThreadTimestamps((threadSyncTimestamps: { [key: string]: any },
+                privateThreadSyncTimestamps: { [key: string]: any },
+                groupThreadSyncTimestamps: { [key: string]: any }) => {
+
+                threads.forEach((payload) => {
+                    let groupId = payload.options && payload.options.groupId;
+                    let isPrivate = payload.options && payload.options.isPrivate;
+                    let thread = payload.thread;
+                    for (let stmt of payload.data) {
+                        if (groupId) {
+                            self.handleGroupMessage(userProfile, stmt, thread, groupId, groupThreadSyncTimestamps);
+                        } else if (isPrivate) {
+                            self.handlePrivateMessage(userProfile, stmt, thread, privateThreadSyncTimestamps);
+                        } else {
+                            self.handleMessage(userProfile, stmt, thread, threadSyncTimestamps);
+                        }
                     }
-                }
+                });
+
+                this.pebl.utils.saveThreadTimestamps(threadSyncTimestamps,
+                    privateThreadSyncTimestamps,
+                    groupThreadSyncTimestamps,
+                    () => { });
             });
         }
 
-        this.messageHandlers.newThreadedMessage = function(userProfile, payload) {
+        this.messageHandlers.newThreadedMessage = (userProfile, payload) => {
             let groupId = payload.options && payload.options.groupId;
             let isPrivate = payload.options && payload.options.isPrivate;
             let thread = payload.thread;
+            this.pebl.utils.getThreadTimestamps((threadSyncTimestamps: { [key: string]: any },
+                privateThreadSyncTimestamps: { [key: string]: any },
+                groupThreadSyncTimestamps: { [key: string]: any }) => {
 
-            if (groupId) {
-                self.handleGroupMessage(userProfile, payload.data, thread, groupId);
-            } else if (isPrivate) {
-                self.handlePrivateMessage(userProfile, payload.data, thread);
-            } else {
-                self.handleMessage(userProfile, payload.data, thread);
-            }
+                if (groupId) {
+                    this.handleGroupMessage(userProfile, payload.data, thread, groupId, groupThreadSyncTimestamps);
+                } else if (isPrivate) {
+                    this.handlePrivateMessage(userProfile, payload.data, thread, privateThreadSyncTimestamps);
+                } else {
+                    this.handleMessage(userProfile, payload.data, thread, threadSyncTimestamps);
+                }
+
+                this.pebl.utils.saveThreadTimestamps(threadSyncTimestamps,
+                    privateThreadSyncTimestamps,
+                    groupThreadSyncTimestamps,
+                    () => { });
+            });
         }
 
-        this.messageHandlers.getSubscribedThreads = function(userProfile, payload) {
+        this.messageHandlers.getSubscribedThreads = (userProfile, payload) => {
             if (self.websocket && self.websocket.readyState === 1) {
-                let messageSet = [];
-                for (let thread of payload.data.threads) {
-                    let message = {
-                        thread: thread,
-                        timestamp: self.pebl.threadSyncTimestamps[thread] ? self.pebl.threadSyncTimestamps[thread] : 1
-                    }
-                    messageSet.push(message);
-                }
-                for (let thread of payload.data.privateThreads) {
-                    let message = {
-                        thread: thread,
-                        options: { isPrivate: true },
-                        timestamp: self.pebl.privateThreadSyncTimestamps[thread] ? self.pebl.privateThreadSyncTimestamps[thread] : 1
-                    }
-                    messageSet.push(message);
-                }
-                for (let groupId in payload.data.groupThreads) {
-                    for (let thread of payload.data.groupThreads[groupId]) {
+                this.pebl.utils.getThreadTimestamps((threadSyncTimestamps: { [key: string]: any },
+                    privateThreadSyncTimestamps: { [key: string]: any },
+                    groupThreadSyncTimestamps: { [key: string]: any }) => {
+
+                    let messageSet = [];
+                    for (let thread of payload.data.threads) {
                         let message = {
                             thread: thread,
-                            options: { groupId: groupId },
-                            timestamp: self.pebl.groupThreadSyncTimestamps[groupId] ? self.pebl.groupThreadSyncTimestamps[groupId][thread] : 1
+                            timestamp: threadSyncTimestamps[thread] ? threadSyncTimestamps[thread] : 1
                         }
                         messageSet.push(message);
                     }
-                }
-                self.websocket.send(JSON.stringify({
-                    requestType: "getThreadedMessages",
-                    identity: userProfile.identity,
-                    requests: messageSet
-                }));
+                    for (let thread of payload.data.privateThreads) {
+                        let message = {
+                            thread: thread,
+                            options: { isPrivate: true },
+                            timestamp: privateThreadSyncTimestamps[thread] ? privateThreadSyncTimestamps[thread] : 1
+                        }
+                        messageSet.push(message);
+                    }
+                    for (let groupId in payload.data.groupThreads) {
+                        for (let thread of payload.data.groupThreads[groupId]) {
+                            let groupTime: number;
+                            if (groupThreadSyncTimestamps[groupId]) {
+                                groupTime = groupThreadSyncTimestamps[groupId][thread]
+                            } else {
+                                groupTime = 1;
+                            }
+
+                            let message = {
+                                thread: thread,
+                                options: { groupId: groupId },
+                                timestamp: groupTime
+                            }
+                            messageSet.push(message);
+                        }
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify({
+                            requestType: "getThreadedMessages",
+                            identity: userProfile.identity,
+                            requests: messageSet
+                        }));
+                    }
+                });
             }
         }
 
-        this.messageHandlers.getAnnotations = function(userProfile, payload) {
+        this.messageHandlers.getAnnotations = (userProfile, payload) => {
             console.log(payload);
-            let stmts = payload.data.map((stmt: any) => {
-                if (Voided.is(stmt)) {
-                    let voided = new Voided(stmt);
-                    self.pebl.storage.removeAnnotation(userProfile, voided.target);
-                    let stored = new Date(voided.stored).getTime();
-                    if (stored > self.pebl.annotationSyncTimestamp)
-                        self.pebl.annotationSyncTimestamp = stored;
-                    return voided;
-                } else {
-                    let a = new Annotation(stmt);
-                    self.pebl.storage.saveAnnotations(userProfile, [a]);
-                    let stored = new Date(a.stored).getTime();
-                    if (stored > self.pebl.annotationSyncTimestamp)
-                        self.pebl.annotationSyncTimestamp = stored;
-                    return a;
-                }
+            this.pebl.storage.getSyncTimestamps(SYNC_ANNOTATIONS, (timestamp: number) => {
+                let stmts = payload.data.map((stmt: any) => {
+                    if (Voided.is(stmt)) {
+                        let voided = new Voided(stmt);
+                        this.pebl.storage.removeAnnotation(userProfile, voided.target);
+                        let stored = new Date(voided.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                        return voided;
+                    } else {
+                        let a = new Annotation(stmt);
+                        this.pebl.storage.saveAnnotations(userProfile, [a]);
+                        let stored = new Date(a.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                        return a;
+                    }
+                });
+                this.pebl.storage.saveSyncTimestamps(SYNC_ANNOTATIONS, timestamp, () => {
+                    this.pebl.emitEvent(this.pebl.events.incomingAnnotations, stmts);
+                });
             });
-            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, stmts);
         }
 
-        this.messageHandlers.getSharedAnnotations = function(userProfile, payload) {
-            let stmts = payload.data.map((stmt: any) => {
-                if (Voided.is(stmt)) {
-                    let voided = new Voided(stmt);
-                    self.pebl.storage.removeSharedAnnotation(userProfile, voided.target);
-                    let stored = new Date(voided.stored).getTime();
-                    if (stored > self.pebl.sharedAnnotationSyncTimestamp)
-                        self.pebl.sharedAnnotationSyncTimestamp = stored;
-                    return voided;
-                } else {
-                    let sa = new SharedAnnotation(stmt);
-                    self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
-                    let stored = new Date(sa.stored).getTime();
-                    if (stored > self.pebl.sharedAnnotationSyncTimestamp)
-                        self.pebl.sharedAnnotationSyncTimestamp = stored;
-                    return sa;
-                }
+        this.messageHandlers.getSharedAnnotations = (userProfile, payload) => {
+            this.pebl.storage.getSyncTimestamps(SYNC_SHARED_ANNOTATIONS, (timestamp: number) => {
+                let stmts = payload.data.map((stmt: any) => {
+                    if (Voided.is(stmt)) {
+                        let voided = new Voided(stmt);
+                        self.pebl.storage.removeSharedAnnotation(userProfile, voided.target);
+                        let stored = new Date(voided.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                        return voided;
+                    } else {
+                        let sa = new SharedAnnotation(stmt);
+                        self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
+                        let stored = new Date(sa.stored).getTime();
+                        if (stored > timestamp)
+                            timestamp = stored;
+                        return sa;
+                    }
+                });
+                this.pebl.storage.saveSyncTimestamps(SYNC_SHARED_ANNOTATIONS, timestamp, () => {
+                    self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
+                });
             });
-            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
         }
 
-        this.messageHandlers.newAnnotation = function(userProfile, payload) {
-            let allAnnotations;
+        this.messageHandlers.newAnnotation = (userProfile, payload) => {
+            let allAnnotations: any[];
             if (payload.data instanceof Array) {
                 allAnnotations = payload.data;
             } else {
                 allAnnotations = [payload.data];
             }
-            let stmts = allAnnotations.map((a) => {
-                if (Voided.is(a)) {
-                    a = new Voided(a);
-                    self.pebl.storage.removeAnnotation(userProfile, a.target);
-                } else {
-                    a = new Annotation(a);
-                    self.pebl.storage.saveAnnotations(userProfile, [a]);
-                }
-                let stored = new Date(a.stored).getTime();
-                if (stored > self.pebl.annotationSyncTimestamp)
-                    self.pebl.annotationSyncTimestamp = stored;
-                return a;
+            this.pebl.storage.getSyncTimestamps(SYNC_ANNOTATIONS, (timestamp: number) => {
+                let stmts = allAnnotations.map((a) => {
+                    if (Voided.is(a)) {
+                        a = new Voided(a);
+                        self.pebl.storage.removeAnnotation(userProfile, a.target);
+                    } else {
+                        a = new Annotation(a);
+                        self.pebl.storage.saveAnnotations(userProfile, [a]);
+                    }
+                    let stored = new Date(a.stored).getTime();
+                    if (stored > timestamp)
+                        timestamp = stored;
+                    return a;
+                });
+
+                this.pebl.storage.saveSyncTimestamps(SYNC_ANNOTATIONS, timestamp, () => {
+                    self.pebl.emitEvent(self.pebl.events.incomingAnnotations, stmts);
+                });
             });
-            self.pebl.emitEvent(self.pebl.events.incomingAnnotations, stmts);
         }
 
-        this.messageHandlers.newSharedAnnotation = function(userProfile, payload) {
-            let allSharedAnnotations;
+        this.messageHandlers.newSharedAnnotation = (userProfile, payload) => {
+            let allSharedAnnotations: any[];
             if (payload.data instanceof Array) {
                 allSharedAnnotations = payload.data;
             } else {
                 allSharedAnnotations = [payload.data];
             }
-            let stmts = allSharedAnnotations.map((sa) => {
-                if (Voided.is(sa)) {
-                    sa = new Voided(sa);
-                    self.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
-                } else {
-                    sa = new SharedAnnotation(sa);
-                    self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
-                }
-                let stored = new Date(sa.stored).getTime();
-                if (stored > self.pebl.annotationSyncTimestamp)
-                    self.pebl.sharedAnnotationSyncTimestamp = stored;
-                return sa;
-            })
-            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
+            this.pebl.storage.getSyncTimestamps(SYNC_SHARED_ANNOTATIONS, (timestamp: number) => {
+                let stmts = allSharedAnnotations.map((sa) => {
+                    if (Voided.is(sa)) {
+                        sa = new Voided(sa);
+                        self.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
+                    } else {
+                        sa = new SharedAnnotation(sa);
+                        self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
+                    }
+                    let stored = new Date(sa.stored).getTime();
+                    if (stored > timestamp)
+                        timestamp = stored;
+                    return sa;
+                });
+                this.pebl.storage.saveSyncTimestamps(SYNC_SHARED_ANNOTATIONS, timestamp, () => {
+                    self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
+                });
+            });
         }
 
         this.messageHandlers.loggedOut = (userProfile, payload) => {
@@ -421,12 +482,16 @@ export class LLSyncAction implements SyncProcess {
     pullNotifications(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                let message = {
-                    identity: userProfile.identity,
-                    requestType: "getNotifications",
-                    timestamp: this.pebl.notificationSyncTimestamp + 1
-                }
-                this.websocket.send(JSON.stringify(message));
+                this.pebl.storage.getSyncTimestamps(SYNC_NOTIFICATIONS, (timestamp: number) => {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getNotifications",
+                        timestamp: timestamp + 1
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify(message));
+                    }
+                });
             }
         });
     }
@@ -434,12 +499,16 @@ export class LLSyncAction implements SyncProcess {
     pullAnnotations(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                let message = {
-                    identity: userProfile.identity,
-                    requestType: "getAnnotations",
-                    timestamp: this.pebl.annotationSyncTimestamp + 1
-                }
-                this.websocket.send(JSON.stringify(message));
+                this.pebl.storage.getSyncTimestamps(SYNC_ANNOTATIONS, (timestamp: number) => {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getAnnotations",
+                        timestamp: timestamp + 1
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify(message));
+                    }
+                });
             }
         });
     }
@@ -447,12 +516,16 @@ export class LLSyncAction implements SyncProcess {
     pullSharedAnnotations(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                let message = {
-                    identity: userProfile.identity,
-                    requestType: "getSharedAnnotations",
-                    timestamp: this.pebl.sharedAnnotationSyncTimestamp + 1
-                }
-                this.websocket.send(JSON.stringify(message));
+                this.pebl.storage.getSyncTimestamps(SYNC_SHARED_ANNOTATIONS, (timestamp: number) => {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getSharedAnnotations",
+                        timestamp: timestamp + 1
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify(message));
+                    }
+                });
             }
         });
     }
@@ -460,12 +533,16 @@ export class LLSyncAction implements SyncProcess {
     pullReferences(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                let message = {
-                    identity: userProfile.identity,
-                    requestType: "getReferences",
-                    timestamp: this.pebl.referenceSyncTimestamp + 1
-                }
-                this.websocket.send(JSON.stringify(message));
+                this.pebl.storage.getSyncTimestamps(SYNC_REFERENCES, (timestamp: number) => {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getReferences",
+                        timestamp: timestamp + 1
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify(message));
+                    }
+                });
             }
         });
     }
@@ -482,7 +559,7 @@ export class LLSyncAction implements SyncProcess {
         });
     }
 
-    handlePrivateMessage(userProfile: UserProfile, message: any, thread: string): void {
+    handlePrivateMessage(userProfile: UserProfile, message: any, thread: string, privateThreadSyncTimestamps: { [key: string]: any }): void {
         let m;
         if (Voided.is(message)) {
             m = new Voided(message);
@@ -494,15 +571,15 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
 
-        if (!this.pebl.privateThreadSyncTimestamps[thread])
-            this.pebl.privateThreadSyncTimestamps[thread] = 1;
+        if (!privateThreadSyncTimestamps[thread])
+            privateThreadSyncTimestamps[thread] = 1;
 
-        if (stored > this.pebl.privateThreadSyncTimestamps[thread])
-            this.pebl.privateThreadSyncTimestamps[thread] = stored;
+        if (stored > privateThreadSyncTimestamps[thread])
+            privateThreadSyncTimestamps[thread] = stored;
         this.pebl.emitEvent(thread + USER_PREFIX + userProfile.identity, [m]);
     }
 
-    handleGroupMessage(userProfile: UserProfile, message: any, thread: string, groupId: string): void {
+    handleGroupMessage(userProfile: UserProfile, message: any, thread: string, groupId: string, groupThreadSyncTimestamps: { [key: string]: any }): void {
         let m;
         if (Voided.is(message)) {
             m = new Voided(message);
@@ -514,18 +591,18 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
 
-        if (!this.pebl.groupThreadSyncTimestamps[groupId])
-            this.pebl.groupThreadSyncTimestamps[groupId] = {};
+        if (!groupThreadSyncTimestamps[groupId])
+            groupThreadSyncTimestamps[groupId] = {};
 
-        if (!this.pebl.groupThreadSyncTimestamps[groupId][thread])
-            this.pebl.groupThreadSyncTimestamps[groupId][thread] = 1;
+        if (!groupThreadSyncTimestamps[groupId][thread])
+            groupThreadSyncTimestamps[groupId][thread] = 1;
 
-        if (stored > this.pebl.groupThreadSyncTimestamps[groupId][thread])
-            this.pebl.groupThreadSyncTimestamps[groupId][thread] = stored;
+        if (stored > groupThreadSyncTimestamps[groupId][thread])
+            groupThreadSyncTimestamps[groupId][thread] = stored;
         this.pebl.emitEvent(thread + GROUP_PREFIX + groupId, [m]);
     }
 
-    handleMessage(userProfile: UserProfile, message: any, thread: string): void {
+    handleMessage(userProfile: UserProfile, message: any, thread: string, threadSyncTimestamps: { [key: string]: any }): void {
         let m;
         if (Voided.is(message)) {
             m = new Voided(message);
@@ -537,11 +614,11 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
 
-        if (!this.pebl.threadSyncTimestamps[thread])
-            this.pebl.threadSyncTimestamps[thread] = 1;
+        if (!threadSyncTimestamps[thread])
+            threadSyncTimestamps[thread] = 1;
 
-        if (stored > this.pebl.threadSyncTimestamps[thread])
-            this.pebl.threadSyncTimestamps[thread] = stored;
+        if (stored > threadSyncTimestamps[thread])
+            threadSyncTimestamps[thread] = stored;
         this.pebl.emitEvent(thread, [m]);
     }
 }

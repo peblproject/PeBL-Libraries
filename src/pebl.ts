@@ -36,27 +36,12 @@ export class PEBL {
     readonly utils: Utils;
     readonly config?: { [key: string]: any };
 
-    annotationSyncTimestamp: number;
-    sharedAnnotationSyncTimestamp: number;
-    notificationSyncTimestamp: number;
-    threadSyncTimestamps: { [thread: string]: number };
-    privateThreadSyncTimestamps: { [thread: string]: number };
-    groupThreadSyncTimestamps: { [group: string]: { [thread: string]: number } };
-    referenceSyncTimestamp: number;
     // readonly launcher: LauncherAdapter;
 
     constructor(config?: { [key: string]: any }, callback?: (pebl: PEBL) => void) {
         this.extension = {};
         // this.extension.shared = {};
         this.config = config;
-
-        this.annotationSyncTimestamp = 0;
-        this.sharedAnnotationSyncTimestamp = 0;
-        this.notificationSyncTimestamp = 0;
-        this.referenceSyncTimestamp = 0;
-        this.threadSyncTimestamps = {};
-        this.privateThreadSyncTimestamps= {};
-        this.groupThreadSyncTimestamps = {};
 
         if (config) {
             this.teacher = config.teacher;
@@ -316,40 +301,46 @@ export class PEBL {
                     threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
                 }
 
-                let needsToPull = false;
-                if (options && options.groupId) {
-                    if (!this.groupThreadSyncTimestamps[options.groupId] || !this.groupThreadSyncTimestamps[options.groupId][baseThread])
-                        needsToPull = true;
-                } else if (options && options.isPrivate) {
-                    if (!this.privateThreadSyncTimestamps[baseThread])
-                        needsToPull = true;
-                } else {
-                    if (!this.threadSyncTimestamps[baseThread])
-                        needsToPull = true;
-                }
-                //Never subscribed to this thread, need to get all the messages for it.
-                if (needsToPull) {
+                this.utils.getThreadTimestamps((threadSyncTimestamps: { [key: string]: any },
+                    privateThreadSyncTimestamps: { [key: string]: any },
+                    groupThreadSyncTimestamps: { [key: string]: any }) => {
+
+                    let needsToPull = false;
+                    if (options && options.groupId) {
+                        if (!groupThreadSyncTimestamps[options.groupId] || !groupThreadSyncTimestamps[options.groupId][baseThread])
+                            needsToPull = true;
+                    } else if (options && options.isPrivate) {
+                        if (!privateThreadSyncTimestamps[baseThread])
+                            needsToPull = true;
+                    } else {
+                        if (!threadSyncTimestamps[baseThread])
+                            needsToPull = true;
+                    }
+
+                    //Never subscribed to this thread, need to get all the messages for it.
+                    if (needsToPull) {
+                        let message = {
+                            id: this.utils.getUuid(),
+                            identity: userProfile.identity,
+                            requestType: "getThreadedMessages",
+                            thread: baseThread,
+                            options: options,
+                            timestamp: 1
+                        }
+                        this.storage.saveOutgoingXApi(userProfile, message);
+                    }
+
+                    this.storage.getMessages(userProfile, thread, callback);
                     let message = {
                         id: this.utils.getUuid(),
                         identity: userProfile.identity,
-                        requestType: "getThreadedMessages",
+                        requestType: "subscribeThread",
                         thread: baseThread,
-                        options: options,
-                        timestamp: 1
+                        options: options
                     }
-                    this.storage.saveOutgoingXApi(userProfile, message);
-                }
-            
-                this.storage.getMessages(userProfile, thread, callback);
-                let message = {
-                    id: this.utils.getUuid(),
-                    identity: userProfile.identity,
-                    requestType: "subscribeThread",
-                    thread: baseThread,
-                    options: options
-                }
 
-                this.storage.saveOutgoingXApi(userProfile, message);
+                    this.storage.saveOutgoingXApi(userProfile, message);
+                });
             } else {
                 callback([]);
             }

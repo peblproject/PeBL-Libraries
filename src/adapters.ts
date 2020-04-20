@@ -158,6 +158,19 @@ export interface StorageAdapter {
     removeModuleEvent(idref: string, id: string, callback?: (() => void)): void;
 
 
+    saveSyncTimestamps(key: string, data: number, callback: (worked: boolean) => void): void;
+
+    getSyncTimestamps(key: string, callback: (timestamp: number) => void): void;
+
+    saveCompoundSyncTimestamps(key: string,
+        data: { [thread: string]: number } | { [group: string]: { [thread: string]: number } },
+        callback: (worked: boolean) => void): void;
+
+    getCompoundSyncTimestamps(key: string,
+        callback: (timestamps: { [thread: string]: any }) => void): void;
+
+
+
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;
 
     getActivity(userProfile: UserProfile, activityType: string, callback: (groups: Activity[]) => void): void;
