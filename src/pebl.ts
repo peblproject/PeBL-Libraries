@@ -323,9 +323,11 @@ export class PEBL {
                             id: this.utils.getUuid(),
                             identity: userProfile.identity,
                             requestType: "getThreadedMessages",
-                            thread: baseThread,
-                            options: options,
-                            timestamp: 1
+                            requests: [{
+                                thread: baseThread,
+                                options: options,
+                                timestamp: 1
+                            }]
                         }
                         this.storage.saveOutgoingXApi(userProfile, message);
                     }

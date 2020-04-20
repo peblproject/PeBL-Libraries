@@ -348,6 +348,10 @@ export class LLSyncAction implements SyncProcess {
             this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
             let makeWebSocketConnection = () => {
                 if (this.pebl.config && this.pebl.config.PeBLServicesWSURL) {
+                    if (this.websocket) {
+                        this.websocket.close();
+                        this.websocket = undefined;
+                    }
                     this.websocket = new WebSocket(this.pebl.config.PeBLServicesWSURL);
                     this.websocket.onopen = () => {
                         console.log('websocket opened');
