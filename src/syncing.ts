@@ -93,7 +93,7 @@ export class LLSyncAction implements SyncProcess {
                     } else {
                         let n;
                         if (Reference.is(stmt))
-                            n = new Notification(stmt);
+                            n = new Reference(stmt);
                         else if (Message.is(stmt))
                             n = new Message(stmt);
                         else if (SharedAnnotation.is(stmt))
