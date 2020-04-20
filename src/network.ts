@@ -61,7 +61,7 @@ export class Network implements NetworkAdapter {
                                 this.pebl.storage.getToc(userProfile, ref.book, (toc) => {
                                     //Wait to add resources until the static TOC has been initialized, otherwise it never gets intialized
                                     if (toc.length > 0) {
-                                        this.pebl.storage.saveNotification(userProfile, ref);
+                                        // this.pebl.storage.saveNotification(userProfile, ref);
                                         let tocEntry: { [key: string]: any } = {
                                             "url": ref.url,
                                             "documentName": ref.name,
