@@ -91,7 +91,15 @@ export class LLSyncAction implements SyncProcess {
                             timestamp = stored;
                         return voided;
                     } else {
-                        let n = new Notification(stmt);
+                        let n;
+                        if (Reference.is(stmt))
+                            n = new Notification(stmt);
+                        else if (Message.is(stmt))
+                            n = new Message(stmt);
+                        else if (SharedAnnotation.is(stmt))
+                            n = new SharedAnnotation(stmt);
+                        else
+                            n = new Notification(stmt);
                         self.pebl.storage.saveNotification(userProfile, n);
                         let stored = new Date(n.stored).getTime();
                         if (stored > timestamp)
@@ -100,7 +108,7 @@ export class LLSyncAction implements SyncProcess {
                     }
                 });
                 this.pebl.storage.saveSyncTimestamps(SYNC_NOTIFICATIONS, timestamp, () => {
-                    self.pebl.emitEvent(self.pebl.events.incomingNotifications, stmts);
+                    this.pebl.emitEvent(self.pebl.events.incomingNotifications, stmts);
                 });
             });
         }
