@@ -446,6 +446,12 @@ export class Utils {
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.removeNotification(userProfile, notificationId);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    id: self.pebl.utils.getUuid(),
+                    identity: userProfile.identity,
+                    requestType: "deleteNotification",
+                    xId: notificationId
+                });
             }
         });
     }
