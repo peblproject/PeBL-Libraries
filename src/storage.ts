@@ -497,10 +497,10 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveSyncTimestamps(key: string, data: number, callback: (worked: boolean) => void): void {
+    saveSyncTimestamps(identity: string, key: string, data: number, callback: (worked: boolean) => void): void {
         if (this.db) {
             let request = this.db.transaction(["state"], "readwrite").objectStore("state").put({
-                id: key,
+                id: identity + key,
                 data: data
             });
             request.onerror = function(e) {
@@ -512,14 +512,14 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             };
         } else {
             this.invocationQueue.push(() => {
-                this.saveSyncTimestamps(key, data, callback);
+                this.saveSyncTimestamps(identity, key, data, callback);
             });
         }
     }
 
-    getSyncTimestamps(key: string, callback: (timestamp: number) => void): void {
+    getSyncTimestamps(identity: string, key: string, callback: (timestamp: number) => void): void {
         if (this.db) {
-            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(key);
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(identity + key);
             request.onerror = function(e) {
                 console.log(e);
                 callback(-1);
@@ -533,18 +533,19 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             };
         } else {
             this.invocationQueue.push(() => {
-                this.getSyncTimestamps(key, callback);
+                this.getSyncTimestamps(identity, key, callback);
             });
         }
     }
 
-    saveCompoundSyncTimestamps(key: string,
+    saveCompoundSyncTimestamps(identity: string,
+        key: string,
         data: { [thread: string]: number } | { [group: string]: { [thread: string]: number } },
         callback: (worked: boolean) => void): void {
 
         if (this.db) {
             let request = this.db.transaction(["state"], "readwrite").objectStore("state").put({
-                id: key,
+                id: identity + key,
                 data: data
             });
             request.onerror = function(e) {
@@ -556,16 +557,17 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             };
         } else {
             this.invocationQueue.push(() => {
-                this.saveCompoundSyncTimestamps(key, data, callback);
+                this.saveCompoundSyncTimestamps(identity, key, data, callback);
             });
         }
     }
 
-    getCompoundSyncTimestamps(key: string,
+    getCompoundSyncTimestamps(identity: string,
+        key: string,
         callback: (timestamps: { [thread: string]: any }) => void): void {
 
         if (this.db) {
-            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(key);
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(identity + key);
             request.onerror = function(e) {
                 console.log(e);
                 callback({});
@@ -578,7 +580,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             };
         } else {
             this.invocationQueue.push(() => {
-                this.getCompoundSyncTimestamps(key, callback);
+                this.getCompoundSyncTimestamps(identity, key, callback);
             });
         }
     }

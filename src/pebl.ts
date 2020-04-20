@@ -301,7 +301,7 @@ export class PEBL {
                     threadCallbacks.push({ once: once, fn: callback, modifiedFn: modifiedHandler });
                 }
 
-                this.utils.getThreadTimestamps((threadSyncTimestamps: { [key: string]: any },
+                this.utils.getThreadTimestamps(userProfile.identity, (threadSyncTimestamps: { [key: string]: any },
                     privateThreadSyncTimestamps: { [key: string]: any },
                     groupThreadSyncTimestamps: { [key: string]: any }) => {
 

@@ -158,15 +158,15 @@ export interface StorageAdapter {
     removeModuleEvent(idref: string, id: string, callback?: (() => void)): void;
 
 
-    saveSyncTimestamps(key: string, data: number, callback: (worked: boolean) => void): void;
+    saveSyncTimestamps(identity: string, key: string, data: number, callback: (worked: boolean) => void): void;
 
-    getSyncTimestamps(key: string, callback: (timestamp: number) => void): void;
+    getSyncTimestamps(identity: string, key: string, callback: (timestamp: number) => void): void;
 
-    saveCompoundSyncTimestamps(key: string,
+    saveCompoundSyncTimestamps(identity: string, key: string,
         data: { [thread: string]: number } | { [group: string]: { [thread: string]: number } },
         callback: (worked: boolean) => void): void;
 
-    getCompoundSyncTimestamps(key: string,
+    getCompoundSyncTimestamps(identity: string, key: string,
         callback: (timestamps: { [thread: string]: any }) => void): void;
 
 

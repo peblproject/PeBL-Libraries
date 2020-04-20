@@ -513,15 +513,16 @@ export class Utils {
         });
     }
 
-    getThreadTimestamps(callback: (thread: { [key: string]: any },
-        privateThreads: { [key: string]: any },
-        groupThreads: { [key: string]: any }) => void): void {
+    getThreadTimestamps(identity: string,
+        callback: (thread: { [key: string]: any },
+            privateThreads: { [key: string]: any },
+            groupThreads: { [key: string]: any }) => void): void {
 
-        this.pebl.storage.getCompoundSyncTimestamps(SYNC_THREAD,
+        this.pebl.storage.getCompoundSyncTimestamps(identity, SYNC_THREAD,
             (threadSyncTimestamps: { [thread: string]: any }) => {
-                this.pebl.storage.getCompoundSyncTimestamps(SYNC_PRIVATE_THREAD,
+                this.pebl.storage.getCompoundSyncTimestamps(identity, SYNC_PRIVATE_THREAD,
                     (privateThreadSyncTimestamps: { [thread: string]: any }) => {
-                        this.pebl.storage.getCompoundSyncTimestamps(SYNC_GROUP_THREAD,
+                        this.pebl.storage.getCompoundSyncTimestamps(identity, SYNC_GROUP_THREAD,
                             (groupThreadSyncTimestamps: { [thread: string]: any }) => {
                                 callback(threadSyncTimestamps,
                                     privateThreadSyncTimestamps,
@@ -531,18 +532,19 @@ export class Utils {
             });
     }
 
-    saveThreadTimestamps(threads: { [key: string]: any },
+    saveThreadTimestamps(identity: string,
+        threads: { [key: string]: any },
         privateThreads: { [key: string]: any },
         groupThreads: { [key: string]: any },
         callback: () => void): void {
 
-        this.pebl.storage.saveCompoundSyncTimestamps(SYNC_THREAD,
+        this.pebl.storage.saveCompoundSyncTimestamps(identity, SYNC_THREAD,
             threads,
             () => {
-                this.pebl.storage.saveCompoundSyncTimestamps(SYNC_PRIVATE_THREAD,
+                this.pebl.storage.saveCompoundSyncTimestamps(identity, SYNC_PRIVATE_THREAD,
                     privateThreads,
                     () => {
-                        this.pebl.storage.saveCompoundSyncTimestamps(SYNC_GROUP_THREAD,
+                        this.pebl.storage.saveCompoundSyncTimestamps(identity, SYNC_GROUP_THREAD,
                             groupThreads,
                             () => {
                                 callback();
