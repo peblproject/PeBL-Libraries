@@ -146,7 +146,8 @@ export class PEBLEventHandlers {
             type: payload.type,
             replyThread: payload.replyThread,
             groupId: payload.groupId,
-            isPrivate: payload.isPrivate
+            isPrivate: payload.isPrivate,
+            book: payload.book
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -168,7 +169,7 @@ export class PEBLEventHandlers {
                             identity: userProfile.identity,
                             id: message.id,
                             requestType: "saveThreadedMessage",
-                            message: clone,
+                            message: clone
                         });
                         self.pebl.emitEvent(message.thread, [message]);
                     });
@@ -186,7 +187,8 @@ export class PEBLEventHandlers {
         let exts = {
             access: payload.access,
             type: payload.type,
-            isPrivate: payload.isPrivate
+            isPrivate: payload.isPrivate,
+            book: payload.book
         };
 
         self.pebl.user.getUser(function(userProfile) {

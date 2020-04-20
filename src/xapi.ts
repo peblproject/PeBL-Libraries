@@ -231,6 +231,7 @@ export class Message extends XApiStatement {
     readonly prompt: string;
     readonly name: string;
     readonly direct: boolean;
+    readonly book?: string;
     groupId?: string;
     isPrivate?: boolean;
     readonly access?: "private" | "team" | "class" | "all";
@@ -256,6 +257,7 @@ export class Message extends XApiStatement {
             this.replyThread = extensions[PREFIX_PEBL_EXTENSION + "replyThread"];
             this.groupId = extensions[PREFIX_PEBL_EXTENSION + "groupId"];
             this.isPrivate = extensions[PREFIX_PEBL_EXTENSION + "isPrivate"];
+            this.book = extensions[PREFIX_PEBL_EXTENSION + "book"];
         }
     }
 
