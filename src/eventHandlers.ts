@@ -149,7 +149,8 @@ export class PEBLEventHandlers {
             isPrivate: payload.isPrivate,
             book: payload.book,
             idRef: payload.idRef,
-            cfi: payload.cfi
+            cfi: payload.cfi,
+            peblAction: payload.peblAction
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -192,7 +193,8 @@ export class PEBLEventHandlers {
             isPrivate: payload.isPrivate,
             book: payload.book,
             idRef: payload.idRef,
-            cfi: payload.cfi
+            cfi: payload.cfi,
+            peblAction: payload.peblAction
         };
 
         self.pebl.user.getUser(function(userProfile) {

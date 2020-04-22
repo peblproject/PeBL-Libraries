@@ -239,6 +239,7 @@ export class Message extends XApiStatement {
     readonly replyThread?: string;
     readonly cfi?: string;
     readonly idRef?: string;
+    readonly peblAction?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -262,6 +263,7 @@ export class Message extends XApiStatement {
             this.book = extensions[PREFIX_PEBL_EXTENSION + "book"];
             this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
             this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
+            this.peblAction = extensions[PREFIX_PEBL_EXTENSION + "peblAction"];
         }
     }
 
