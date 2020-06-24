@@ -380,7 +380,7 @@ export class Institution extends Activity {
                 } else if ((XApiStatement.is(self[key]) && Membership.is(self[key] as XApiStatement)) || TempMembership.is(self[key])) {
                     obj[key] = encodeURIComponent(JSON.stringify(self[key]));
                 }
-            } else if (key.indexOf('member-') !== -1) {
+            } else if (key.indexOf('program-') !== -1) {
                 if (self[key] == null) {
                     obj[key] = self[key];
                 } else if (Program.is(self[key])) {

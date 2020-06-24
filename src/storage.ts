@@ -14,7 +14,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private invocationQueue: Function[] = [];
 
     constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 21);
+        let request = window.indexedDB.open("pebl", 26);
         let self: IndexedDBStorageAdapter = this;
 
         request.onupgradeneeded = function() {
@@ -43,7 +43,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let activityStore = db.createObjectStore("activity", { keyPath: ["identity", "type", "id"] });
             let activityEventStore = db.createObjectStore("activityEvents", { keyPath: ["id", "programId"] });
 
-            let moduleEventStore = db.createObjectStore("moduleEvents", {keyPath: ["id", "idref"] });
+            let moduleEventStore = db.createObjectStore("moduleEvents", { keyPath: ["id", "idref"] });
 
             activityStore.createIndex(MASTER_INDEX, ["identity", "type"]);
             activityEventStore.createIndex(MASTER_INDEX, ["programId"]);
@@ -497,6 +497,97 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
+    saveSyncTimestamps(identity: string, key: string, data: number, callback: (worked: boolean) => void): void {
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readwrite").objectStore("state").put({
+                id: identity + key,
+                data: data
+            });
+            request.onerror = function(e) {
+                console.log(e);
+                callback(false);
+            };
+            request.onsuccess = function() {
+                callback(true);
+            };
+        } else {
+            this.invocationQueue.push(() => {
+                this.saveSyncTimestamps(identity, key, data, callback);
+            });
+        }
+    }
+
+    getSyncTimestamps(identity: string, key: string, callback: (timestamp: number) => void): void {
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(identity + key);
+            request.onerror = function(e) {
+                console.log(e);
+                callback(-1);
+            };
+            request.onsuccess = function() {
+                if (request.result) {
+                    callback(request.result.data);
+                } else {
+                    callback(-1);
+                }
+            };
+        } else {
+            this.invocationQueue.push(() => {
+                this.getSyncTimestamps(identity, key, callback);
+            });
+        }
+    }
+
+    saveCompoundSyncTimestamps(identity: string,
+        key: string,
+        data: { [thread: string]: number } | { [group: string]: { [thread: string]: number } },
+        callback: (worked: boolean) => void): void {
+
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readwrite").objectStore("state").put({
+                id: identity + key,
+                data: data
+            });
+            request.onerror = function(e) {
+                console.log(e);
+                callback(false);
+            };
+            request.onsuccess = function() {
+                callback(true);
+            };
+        } else {
+            this.invocationQueue.push(() => {
+                this.saveCompoundSyncTimestamps(identity, key, data, callback);
+            });
+        }
+    }
+
+    getCompoundSyncTimestamps(identity: string,
+        key: string,
+        callback: (timestamps: { [thread: string]: any }) => void): void {
+
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(identity + key);
+            request.onerror = function(e) {
+                console.log(e);
+                callback({});
+            };
+            request.onsuccess = function() {
+                if (request.result)
+                    callback(request.result.data);
+                else
+                    callback({});
+            };
+        } else {
+            this.invocationQueue.push(() => {
+                this.getCompoundSyncTimestamps(identity, key, callback);
+            });
+        }
+    }
+
+
+    // -------------------------------
+
     saveEvent(userProfile: UserProfile, events: (XApiStatement | XApiStatement[]), callback?: (() => void)): void {
         if (this.db) {
             if (events instanceof XApiStatement) {
@@ -611,9 +702,9 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveOutgoingXApi(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void {
+    saveOutgoingXApi(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void {
         if (this.db) {
-            let clone = stmt.toXAPI();
+            let clone = stmt;
             clone.identity = userProfile.identity;
             let request = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi").put(this.cleanRecord(clone));
             request.onerror = function(e) {
@@ -631,7 +722,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void {
+    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void {
         if (this.db) {
             let os = this.db.transaction(["outgoingXApi"], "readonly").objectStore("outgoingXApi");
             let index = os.index(MASTER_INDEX);
@@ -655,7 +746,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeOutgoingXApi(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void {
+    removeOutgoingXApi(userProfile: UserProfile, toClear: { [key: string]: any }[], callback?: (() => void)): void {
         if (this.db) {
             let objectStore = this.db.transaction(["outgoingXApi"], "readwrite").objectStore("outgoingXApi");
             let toClearCopy = toClear.slice(0);
@@ -688,6 +779,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             if (stmts instanceof Message) {
                 let clone = stmts;
                 clone.identity = userProfile.identity;
+                if (clone.isPrivate)
+                    clone.thread += '_user-' + userProfile.identity;
+                else if (clone.groupId)
+                    clone.thread += '_group-' + clone.groupId;
+
                 let request = this.db.transaction(["messages"], "readwrite").objectStore("messages").put(this.cleanRecord(clone));
                 request.onerror = function(e) {
                     console.log(e);
@@ -705,6 +801,10 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     if (record) {
                         let clone = record;
                         clone.identity = userProfile.identity;
+                        if (clone.isPrivate)
+                            clone.thread += '_user-' + userProfile.identity;
+                        else if (clone.groupId)
+                            clone.thread += '_group-' + clone.groupId;
                         let request = objectStore.put(self.cleanRecord(clone));
                         request.onerror = processCallback;
                         request.onsuccess = processCallback;
@@ -1314,11 +1414,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveOutgoingActivity(userProfile: UserProfile, stmt: Activity, callback?: (() => void)): void {
+    saveOutgoingActivity(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void {
         if (this.db) {
             let clone = stmt;
             clone.identity = userProfile.identity;
-            let request = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity").put(this.cleanRecord(clone));
+            let request = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity").put(clone);
             request.onerror = function(e) {
                 console.log(e);
             };
@@ -1334,7 +1434,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: Activity[]) => void): void {
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void {
         if (this.db) {
             let os = this.db.transaction(["outgoingActivity"], "readonly").objectStore("outgoingActivity");
             let index = os.index(MASTER_INDEX);
@@ -1358,7 +1458,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
-    removeOutgoingActivity(userProfile: UserProfile, toClear: Activity, callback?: (() => void)): void {
+    removeOutgoingActivity(userProfile: UserProfile, toClear: { [key: string]: any }, callback?: (() => void)): void {
         if (this.db) {
             let objectStore = this.db.transaction(["outgoingActivity"], "readwrite").objectStore("outgoingActivity");
             let request = objectStore.delete(IDBKeyRange.only([userProfile.identity, toClear.id]));

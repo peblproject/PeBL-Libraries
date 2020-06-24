@@ -2,6 +2,7 @@ import { PEBL } from "./pebl";
 import { XApiStatement, Membership, ProgramAction, Message, ModuleEvent } from "./xapi";
 import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
+import { SYNC_THREAD, SYNC_PRIVATE_THREAD, SYNC_GROUP_THREAD } from "./constants";
 
 export class Utils {
 
@@ -318,7 +319,7 @@ export class Utils {
                 self.pebl.storage.getActivity(userProfile, "system", function(activities) {
                     callback(<System[]>activities);
                 });
-            } else 
+            } else
                 callback([]);
         });
     }
@@ -414,7 +415,7 @@ export class Utils {
     iterateInstitutionMembers(institution: Institution, callback: (key: string, membership: (Membership | TempMembership)) => void): void {
         Institution.iterateMembers(institution, callback);
     }
-    
+
     iterateInstitutionPrograms(institution: Institution, callback: (key: string, program: Program) => void): void {
         Institution.iteratePrograms(institution, callback);
     }
@@ -446,6 +447,12 @@ export class Utils {
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.removeNotification(userProfile, notificationId);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    id: self.pebl.utils.getUuid(),
+                    identity: userProfile.identity,
+                    requestType: "deleteNotification",
+                    xId: notificationId
+                });
             }
         });
     }
@@ -488,4 +495,62 @@ export class Utils {
             }
         });
     }
+
+    getEvents(callback: (events: XApiStatement[]) => void): void {
+        let self = this;
+        self.pebl.user.getUser(function(userProfile) {
+            if (userProfile) {
+                self.pebl.storage.getCurrentBook(function(book) {
+                    if (book) {
+                        self.pebl.storage.getEvents(userProfile, book, callback);
+                    } else {
+                        callback([]);
+                    }
+                });
+            } else {
+                callback([]);
+            }
+        });
+    }
+
+    getThreadTimestamps(identity: string,
+        callback: (thread: { [key: string]: any },
+            privateThreads: { [key: string]: any },
+            groupThreads: { [key: string]: any }) => void): void {
+
+        this.pebl.storage.getCompoundSyncTimestamps(identity, SYNC_THREAD,
+            (threadSyncTimestamps: { [thread: string]: any }) => {
+                this.pebl.storage.getCompoundSyncTimestamps(identity, SYNC_PRIVATE_THREAD,
+                    (privateThreadSyncTimestamps: { [thread: string]: any }) => {
+                        this.pebl.storage.getCompoundSyncTimestamps(identity, SYNC_GROUP_THREAD,
+                            (groupThreadSyncTimestamps: { [thread: string]: any }) => {
+                                callback(threadSyncTimestamps,
+                                    privateThreadSyncTimestamps,
+                                    groupThreadSyncTimestamps);
+                            });
+                    });
+            });
+    }
+
+    saveThreadTimestamps(identity: string,
+        threads: { [key: string]: any },
+        privateThreads: { [key: string]: any },
+        groupThreads: { [key: string]: any },
+        callback: () => void): void {
+
+        this.pebl.storage.saveCompoundSyncTimestamps(identity, SYNC_THREAD,
+            threads,
+            () => {
+                this.pebl.storage.saveCompoundSyncTimestamps(identity, SYNC_PRIVATE_THREAD,
+                    privateThreads,
+                    () => {
+                        this.pebl.storage.saveCompoundSyncTimestamps(identity, SYNC_GROUP_THREAD,
+                            groupThreads,
+                            () => {
+                                callback();
+                            });
+                    });
+            });
+    }
+
 }

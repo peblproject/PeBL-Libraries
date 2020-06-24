@@ -21,13 +21,12 @@ export interface UserAdapter {
 // -------------------------------
 
 export interface SyncProcess {
-    pull(): void;
+    push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void;
 
-    push(outgoing: XApiStatement[], callback: (result: boolean) => void): void;
+    pushActivity(outgoing: { [key: string]: any }[], callback: (success: boolean) => void): void;
 
-    pushActivity(outgoing: Activity[], callback: () => void): void;
-
-    terminate(): void;
+    activate(callback?: (() => void)): void;
+    disable(callback?: (() => void)): void;
 }
 
 // -------------------------------
@@ -93,18 +92,18 @@ export interface StorageAdapter {
     saveCompetencies(userProfile: UserProfile, competencies: { [key: string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoingActivity(userProfile: UserProfile, stmt: Activity, callback?: (() => void)): void;
+    saveOutgoingActivity(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void;
 
-    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: Activity[]) => void): void;
+    getOutgoingActivity(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void;
 
-    removeOutgoingActivity(userProfile: UserProfile, toClear: Activity, callback?: (() => void)): void;
+    removeOutgoingActivity(userProfile: UserProfile, toClear: { [key: string]: any }, callback?: (() => void)): void;
 
 
-    saveOutgoingXApi(userProfile: UserProfile, stmt: XApiStatement, callback?: (() => void)): void;
+    saveOutgoingXApi(userProfile: UserProfile, stmt: { [key: string]: any }, callback?: (() => void)): void;
 
-    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: XApiStatement[]) => void): void;
+    getOutgoingXApi(userProfile: UserProfile, callback: (stmts: { [key: string]: any }[]) => void): void;
 
-    removeOutgoingXApi(userProfile: UserProfile, toClear: XApiStatement[], callback?: (() => void)): void;
+    removeOutgoingXApi(userProfile: UserProfile, toClear: { [key: string]: any }[], callback?: (() => void)): void;
 
 
     saveMessages(userProfile: UserProfile, stmts: (Message | Message[]), callback?: (() => void)): void;
@@ -157,6 +156,19 @@ export interface StorageAdapter {
     getModuleEvent(idref: string, callback: (events: ModuleEvent[]) => void): void;
 
     removeModuleEvent(idref: string, id: string, callback?: (() => void)): void;
+
+
+    saveSyncTimestamps(identity: string, key: string, data: number, callback: (worked: boolean) => void): void;
+
+    getSyncTimestamps(identity: string, key: string, callback: (timestamp: number) => void): void;
+
+    saveCompoundSyncTimestamps(identity: string, key: string,
+        data: { [thread: string]: number } | { [group: string]: { [thread: string]: number } },
+        callback: (worked: boolean) => void): void;
+
+    getCompoundSyncTimestamps(identity: string, key: string,
+        callback: (timestamps: { [thread: string]: any }) => void): void;
+
 
 
     saveActivity(userProfile: UserProfile, stmts: (Activity | Activity[]), callback?: (() => void)): void;
