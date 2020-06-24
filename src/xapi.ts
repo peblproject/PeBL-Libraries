@@ -17,6 +17,14 @@ export class XApiStatement {
     readonly attachments: { [key: string]: any }[];
     readonly stored: string;
     readonly timestamp: string;
+    readonly browserName?: string;
+    readonly browserVersion?: string;
+    readonly osName?: string;
+    readonly osVersion?: string;
+    readonly contextOrigin?: string;
+    readonly contextUrl?: string;
+    readonly currentTeam?: string;
+    readonly currentClass?: string;
 
     constructor(raw: { [key: string]: any }) {
         this.id = raw.id;
@@ -28,6 +36,16 @@ export class XApiStatement {
         this.result = raw.result;
         this["object"] = raw.object;
         this.attachments = raw.attachments;
+
+        let extensions = this["object"].definition.extensions;
+        this.browserName = extensions[PREFIX_PEBL_EXTENSION + "browserName"];
+        this.browserVersion = extensions[PREFIX_PEBL_EXTENSION + "browserVersion"];
+        this.osName = extensions[PREFIX_PEBL_EXTENSION + "osName"];
+        this.osVersion = extensions[PREFIX_PEBL_EXTENSION + "osVersion"];
+        this.contextOrigin = extensions[PREFIX_PEBL_EXTENSION + "contextOrigin"];
+        this.contextUrl = extensions[PREFIX_PEBL_EXTENSION + "contextUrl"];
+        this.currentTeam = extensions[PREFIX_PEBL_EXTENSION + "currentTeam"];
+        this.currentClass = extensions[PREFIX_PEBL_EXTENSION + "currentClass"];
     }
 
     toXAPI(): XApiStatement {

@@ -4,6 +4,8 @@ import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
 import { SYNC_THREAD, SYNC_PRIVATE_THREAD, SYNC_GROUP_THREAD } from "./constants";
 
+var platform = require('platform') as any; //https://github.com/bestiejs/platform.js
+
 export class Utils {
 
     private pebl: PEBL;
@@ -553,4 +555,8 @@ export class Utils {
             });
     }
 
+}
+
+export function getBrowserMetadata(): { [key: string]: any } {
+    return platform;
 }

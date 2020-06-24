@@ -1,4 +1,4 @@
-const PEBL_PREFIX = "pebl://";
+const PEBL_PREFIX = "";
 const PEBL_THREAD_PREFIX = "peblThread://";
 const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
 // const PEBL_THREAD_ARTIFACT_PREFIX = "peblThread://artifact-";
@@ -27,10 +27,10 @@ export class PEBLEventHandlers {
     newBook(event: CustomEvent) {
         let book: string = event.detail;
         let self = this;
-        if (book.indexOf("/") != -1)
-            book = book.substring(book.lastIndexOf("/") + 1);
+        // if (book.indexOf("/") != -1)
+        //     book = book.substring(book.lastIndexOf("/") + 1);
 
-        this.pebl.storage.getCurrentBook(function(currentBook) {
+        this.pebl.storage.getCurrentBook(function(currentBook) { 
             if (currentBook != book) {
                 if (currentBook)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, currentBook);
@@ -52,8 +52,8 @@ export class PEBLEventHandlers {
     newBookNoReset(event: CustomEvent) {
         let book: string = event.detail;
         let self = this;
-        if (book.indexOf("/") != -1)
-            book = book.substring(book.lastIndexOf("/") + 1);
+        // if (book.indexOf("/") != -1)
+        //     book = book.substring(book.lastIndexOf("/") + 1);
 
         this.pebl.storage.getCurrentBook(function(currentBook) {
             if (currentBook != book) {
@@ -61,7 +61,8 @@ export class PEBLEventHandlers {
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, currentBook);
                 self.pebl.storage.removeCurrentActivity();
                 self.pebl.emitEvent(self.pebl.events.eventInteracted, {
-                    activity: book
+                    activity: book,
+                    target: book
                 });
 
                 self.pebl.storage.saveCurrentBook(book);
@@ -110,7 +111,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + payload.target, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_USER_PREFIX + payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         var pulled = userProfile.identity == payload.target;
                         if (pulled)
                             self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#pulled", "pulled");
@@ -150,7 +151,8 @@ export class PEBLEventHandlers {
             book: payload.book,
             idRef: payload.idRef,
             cfi: payload.cfi,
-            peblAction: payload.peblAction
+            peblAction: payload.peblAction,
+            thread: payload.thread
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -162,7 +164,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/responded", "responded");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);
@@ -194,7 +196,8 @@ export class PEBLEventHandlers {
             book: payload.book,
             idRef: payload.idRef,
             cfi: payload.cfi,
-            peblAction: payload.peblAction
+            peblAction: payload.peblAction,
+            thread: payload.thread
         };
 
         self.pebl.user.getUser(function(userProfile) {
@@ -206,7 +209,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/noted", "noted");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_THREAD_PREFIX + payload.thread, payload.prompt, payload.text, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);
@@ -636,7 +639,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/commented", "commented");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let annotation = new Annotation(xapi);
@@ -677,7 +680,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#bookmarked", "bookmarked");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let annotation = new Annotation(xapi);
@@ -713,7 +716,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#unbookmarked", "unbookmarked");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -754,7 +757,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#annotated", "annotated");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.title, payload.text, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let annotation = new Annotation(xapi);
@@ -796,7 +799,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/shared", "shared");
                         self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.title, payload.text, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.title, payload.text, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let annotation = new SharedAnnotation(xapi);
@@ -833,7 +836,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#unshared", "unshared");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -870,7 +873,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#unannotated", "unannotated");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -995,6 +998,8 @@ export class PEBLEventHandlers {
         let xapi = {};
         let self = this;
 
+        let exts = {};
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.getCurrentActivity(function(activity) {
@@ -1002,7 +1007,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#entered", "entered");
                         if (book || activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
@@ -1026,6 +1031,8 @@ export class PEBLEventHandlers {
         let xapi = {};
         let self = this;
 
+        let exts = {};
+
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.pebl.storage.getCurrentActivity(function(activity) {
@@ -1033,7 +1040,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#exited", "exited");
                         if (book || activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
@@ -1056,6 +1063,7 @@ export class PEBLEventHandlers {
     eventLaunched(event: CustomEvent) {
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
@@ -1064,7 +1072,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#launched", "launched");
                         if (book || activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
@@ -1091,13 +1099,14 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
                 self.xapiGen.addId(xapi);
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + payload);
+                self.xapiGen.addObject(xapi, PEBL_PREFIX + payload, undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                 self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/terminated", "terminated");
                 self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload);
 
@@ -1118,6 +1127,7 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.user.getUser(function(userProfile) {
@@ -1125,7 +1135,7 @@ export class PEBLEventHandlers {
                     self.xapiGen.addId(xapi);
                     self.xapiGen.addTimestamp(xapi);
                     self.xapiGen.addActorAccount(xapi, userProfile);
-                    self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                    self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                     self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/initialized", "initialized");
                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
 
@@ -1158,7 +1168,7 @@ export class PEBLEventHandlers {
                 self.xapiGen.addId(xapi);
                 self.xapiGen.addTimestamp(xapi);
                 self.xapiGen.addActorAccount(xapi, userProfile);
-                self.xapiGen.addObject(xapi, PEBL_PREFIX + payload.activity, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                 self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/interacted", "interacted");
                 self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
 
@@ -1179,6 +1189,8 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
+
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentActivity(function(activity) {
                 self.pebl.user.getUser(function(userProfile) {
@@ -1186,7 +1198,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#paged-jump", "paged-jump");
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
@@ -1212,6 +1224,7 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.getCurrentActivity(function(activity) {
             self.pebl.storage.getCurrentActivity(function(book) {
@@ -1220,7 +1233,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObjectInteraction(xapi, PEBL_PREFIX + book, payload.name, payload.prompt, "choice", payload.answers, payload.correctAnswers);
+                        self.xapiGen.addObjectInteraction(xapi, payload.target, payload.name, payload.prompt, "choice", payload.answers, payload.correctAnswers, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addResult(xapi, payload.score, payload.minScore, payload.maxScore, payload.complete, payload.success, payload.answered);
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#attempted", "attempted");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
@@ -1244,6 +1257,7 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.getCurrentActivity(function(activity) {
             self.pebl.storage.getCurrentActivity(function(book) {
@@ -1252,7 +1266,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addResult(xapi, payload.score, payload.minScore, payload.maxScore, payload.complete, payload.success);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/passed", "passed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
@@ -1276,6 +1290,7 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.getCurrentActivity(function(activity) {
             self.pebl.storage.getCurrentActivity(function(book) {
@@ -1284,7 +1299,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addResult(xapi, payload.score, payload.minScore, payload.maxScore, payload.complete, payload.success);
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/failed", "failed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
@@ -1322,7 +1337,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/preferred", "preferred");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
 
@@ -1358,7 +1373,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#morphed", "morphed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1383,7 +1398,8 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            target: payload.target,
+            idref: payload.idref,
+            cfi: payload.cfi,
             type: payload.type
         }
 
@@ -1394,7 +1410,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#experienced", "experienced");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1430,7 +1446,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#disliked", "disliked");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1466,7 +1482,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#liked", "liked");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1493,7 +1509,6 @@ export class PEBLEventHandlers {
         let exts = {
             idref: payload.idref,
             cfi: payload.cfi,
-            target: payload.target,
             type: payload.type
         }
 
@@ -1504,7 +1519,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#accessed", "accessed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1542,7 +1557,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#submitted", "submitted");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1578,7 +1593,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#hid", "hid");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1614,7 +1629,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#showed", "showed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1650,7 +1665,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#displayed", "displayed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1686,7 +1701,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#undisplayed", "undisplayed");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1722,7 +1737,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#searched", "searched");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1758,7 +1773,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#selected", "selected");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1794,7 +1809,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#discarded", "discarded");
                         self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
@@ -1830,7 +1845,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#paged-next", "paged-next");
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
@@ -1867,7 +1882,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#paged-prev", "paged-prev");
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
@@ -1891,6 +1906,7 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentActivity(function(activity) {
@@ -1899,7 +1915,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/completed", "completed");
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
@@ -1944,7 +1960,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#compatibilityTested", "compatibilityTested");
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
@@ -1971,6 +1987,7 @@ export class PEBLEventHandlers {
 
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentActivity(function(activity) {
@@ -1979,7 +1996,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addId(xapi);
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#helped", "helped");
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
@@ -2500,6 +2517,7 @@ export class PEBLEventHandlers {
         let userProfile = event.detail;
         let xapi = {};
         let self = this;
+        let exts = {};
 
         this.pebl.storage.saveCurrentUser(userProfile, function() {
             if (userProfile) {
@@ -2508,9 +2526,9 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/logged-in", "logged-in");
                 self.pebl.storage.getCurrentBook(function(book) {
                     if (book)
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                     else
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + "Harness");
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + "Harness", undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
 
                     self.xapiGen.addActorAccount(xapi, userProfile);
 
@@ -2531,6 +2549,7 @@ export class PEBLEventHandlers {
     eventLogout(event: CustomEvent) {
         let xapi = {};
         let self = this;
+        let exts = {};
 
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
@@ -2539,9 +2558,9 @@ export class PEBLEventHandlers {
                 self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/logged-out", "logged-out");
                 self.pebl.storage.getCurrentBook(function(book) {
                     if (book)
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book);
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                     else
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + "Harness");
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + "Harness", undefined, undefined, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
 
                     self.xapiGen.addActorAccount(xapi, userProfile);
 
@@ -2578,7 +2597,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#moduleRating", "moduleRating");
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.rating, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.rating, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mr = new ModuleRating(xapi);
@@ -2613,7 +2632,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#moduleFeedback", "moduleFeedback");
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.feedback, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, payload.target, payload.feedback, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let mf = new ModuleFeedback(xapi);
@@ -2651,7 +2670,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#moduleExample", "moduleExample");
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.example, payload.description, self.xapiGen.addExtensions(exts));
+                        self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.example, payload.description, self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
                         if (activity)
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
                         let me = new ModuleExample(xapi);

@@ -1,6 +1,7 @@
 const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
 
 import { UserProfile } from "./models";
+import { getBrowserMetadata } from "./utils";
 
 export class XApiGenerator {
 
@@ -88,7 +89,7 @@ export class XApiGenerator {
         return clone;
     }
 
-    addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][]): { [key: string]: any } {
+    addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][], extensions?: { [key: string]: any }): { [key: string]: any } {
         if (!stmt.object)
             stmt.object = {};
 
@@ -131,6 +132,9 @@ export class XApiGenerator {
             stmt.object.definition.description = {}
 
         stmt.object.definition.description["en-US"] = prompt;
+
+        if (extensions)
+            stmt.object.definition.extensions = extensions;
 
         return stmt;
     }
@@ -219,6 +223,25 @@ export class XApiGenerator {
         });
 
         return stmt;
+    }
+
+    addPeblContextExtensions(obj: { [key: string]: any }, userProfile: UserProfile) {
+        let platform = getBrowserMetadata();
+
+        obj.browserName = platform.name;
+        obj.browserVersion = platform.version;
+        obj.osName = platform.os.family;
+        obj.osVersion = platform.os.version;
+
+        obj.contextOrigin = window.location.origin;
+        obj.contextUrl = window.location.href;
+
+        if (userProfile.currentTeam)
+            obj.currentTeam = userProfile.currentTeam;
+        if (userProfile.currentClass)
+            obj.currentClass = userProfile.currentClass;
+
+        return obj;
     }
 
 }
