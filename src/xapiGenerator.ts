@@ -1,4 +1,5 @@
 const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
+const PEBL_ACTIVITY_PREFIX = "http://www.peblproject.com/activities/";
 
 import { UserProfile } from "./models";
 import { getBrowserMetadata } from "./utils";
@@ -242,6 +243,23 @@ export class XApiGenerator {
             obj.currentClass = userProfile.currentClass;
 
         return obj;
+    }
+
+    addPeblActivity(activityURI?: string, activityType?: string, activityId?: string) {
+        if (activityURI)
+            return activityURI;
+
+        if (activityType) {
+            var peblActivity = PEBL_ACTIVITY_PREFIX + activityType;
+
+            if (activityId)
+                peblActivity += ('?id=' + activityId);
+
+            return peblActivity;
+        }
+        
+
+        return '';
     }
 
 }
