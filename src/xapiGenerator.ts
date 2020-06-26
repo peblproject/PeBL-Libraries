@@ -34,18 +34,36 @@ export class XApiGenerator {
         stmt.result.score.max = maxScore;
 
         if (extensions) {
-            if (!stmt.extensions)
-                stmt.extensions = {};
+            if (!stmt.result.extensions)
+                stmt.result.extensions = {};
 
             for (let key of Object.keys(extensions)) {
-                stmt.extensions[key] = extensions[key];
+                stmt.result.extensions[key] = extensions[key];
             }
         }
 
         return stmt;
     }
 
-    addObject(stmt: { [key: string]: any }, activityId: string, name?: string, description?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
+    addResultResponse(stmt: { [key: string]: any }, response: string, complete: boolean, duration?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
+        if (!stmt.result)
+            stmt.result = {};
+        stmt.result.response = response;
+        stmt.result.completion = complete;
+        if (duration)
+            stmt.result.duration = duration;
+        if (extensions) {
+            if (!stmt.result.extensions)
+                stmt.result.extensions = {};
+            for (let key of Object.keys(extensions)){
+                stmt.result.extensions[key] = extensions[key];
+            }
+        }
+
+        return stmt;
+    }
+
+    addObject(stmt: { [key: string]: any }, activityId: string, name?: string, description?: string, activityType?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
         if (!stmt.object)
             stmt.object = {};
 
@@ -68,6 +86,9 @@ export class XApiGenerator {
 
             stmt.object.definition.description["en-US"] = description;
         }
+
+        if (activityType)
+            stmt.object.definition.type = activityType;
 
         if (extensions)
             stmt.object.definition.extensions = extensions;
@@ -261,5 +282,4 @@ export class XApiGenerator {
 
         return '';
     }
-
 }
