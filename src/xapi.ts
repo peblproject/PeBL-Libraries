@@ -285,6 +285,9 @@ export class Message extends XApiStatement {
             this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
             this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
             this.peblAction = extensions[PREFIX_PEBL_EXTENSION + "peblAction"];
+            
+            if (extensions[PREFIX_PEBL_EXTENSION + "thread"])
+                this.thread = extensions[PREFIX_PEBL_EXTENSION + "thread"];
         }
     }
 
