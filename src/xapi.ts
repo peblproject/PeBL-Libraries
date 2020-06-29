@@ -272,7 +272,7 @@ export class Message extends XApiStatement {
         this.prompt = this.object.definition.name["en-US"];
         this.name = this.actor.name;
         this.direct = this.thread == (NAMESPACE_USER_MESSAGES + this.getActorId());
-        this.text = this.object.definition.description["en-US"];
+        this.text = this.result.response;
 
         let extensions = this.object.definition.extensions;
         if (extensions) {
