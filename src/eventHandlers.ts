@@ -166,7 +166,7 @@ export class PEBLEventHandlers {
                         self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/responded", "responded");
                         self.xapiGen.addTimestamp(xapi);
                         self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.prompt, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
-                        self.xapiGen.addResultResponse(xapi, payload.text, true, payload.duration, payload.additionalResultData);
+                        self.xapiGen.addResultResponse(xapi, payload.text, true, payload.duration, self.xapiGen.addExtensions(payload.additionalResultData));
                         self.xapiGen.addActorAccount(xapi, userProfile);
 
                         let message = new Message(xapi);
