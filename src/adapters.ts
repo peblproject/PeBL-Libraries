@@ -81,6 +81,14 @@ export interface StorageAdapter {
 
     getCurrentBook(callback: (book?: string) => void): void;
 
+    saveCurrentBookTitle(book: string, callback?: (() => void)): void;
+
+    getCurrentBookTitle(callback: (book?: string) => void): void;
+
+    saveCurrentBookId(book: string, callback?: (() => void)): void;
+
+    getCurrentBookId(callback: (book?: string) => void): void;
+
 
     saveEvent(userProfile: UserProfile, event: (XApiStatement | XApiStatement[]), callback?: (() => void)): void;
 

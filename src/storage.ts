@@ -5,6 +5,8 @@ import { Activity, toActivity } from "./activity";
 
 const MASTER_INDEX = "master";
 const CURRENT_BOOK = "peblCurrentBook";
+const CURRENT_BOOK_TITLE = "peblCurrentBookTitle";
+const CURRENT_BOOK_ID = "peblCurrentBookId";
 const CURRENT_USER = "peblCurrentUser";
 // const VERB_INDEX = "verbs";
 
@@ -491,6 +493,100 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let self = this;
             this.invocationQueue.push(function() {
                 self.getCurrentBook(callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    saveCurrentBookTitle(book: string, callback?: (() => void)): void {
+        let pack = {
+            value: book,
+            id: CURRENT_BOOK_TITLE
+        };
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readwrite").objectStore("state").put(this.cleanRecord(pack));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCurrentBookTitle(book, callback);
+            });
+        }
+    }
+
+    getCurrentBookTitle(callback: (book?: string) => void): void {
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(CURRENT_BOOK_TITLE);
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                let r = request.result;
+                if (callback != null) {
+                    if (r != null)
+                        callback(r.value);
+                    else
+                        callback();
+                }
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCurrentBookTitle(callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    saveCurrentBookId(book: string, callback?: (() => void)): void {
+        let pack = {
+            value: book,
+            id: CURRENT_BOOK_ID
+        };
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readwrite").objectStore("state").put(this.cleanRecord(pack));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCurrentBookId(book, callback);
+            });
+        }
+    }
+
+    getCurrentBookId(callback: (book?: string) => void): void {
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(CURRENT_BOOK_ID);
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                let r = request.result;
+                if (callback != null) {
+                    if (r != null)
+                        callback(r.value);
+                    else
+                        callback();
+                }
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCurrentBookId(callback);
             });
         }
     }

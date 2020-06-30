@@ -25,7 +25,10 @@ export class PEBLEventHandlers {
     // -------------------------------
 
     newBook(event: CustomEvent) {
-        let book: string = event.detail;
+        let payload = event.detail;
+        let book: string = payload.book;
+        let bookTitle: string = payload.bookTitle;
+        let bookId: string = payload.bookId;
         let self = this;
         // if (book.indexOf("/") != -1)
         //     book = book.substring(book.lastIndexOf("/") + 1);
@@ -42,6 +45,8 @@ export class PEBLEventHandlers {
                 self.pebl.unsubscribeAllEvents();
                 self.pebl.unsubscribeAllThreads();
                 self.pebl.storage.saveCurrentBook(book);
+                self.pebl.storage.saveCurrentBookTitle(bookTitle);
+                self.pebl.storage.saveCurrentBookId(bookId);
             } else {
                 self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
             }
@@ -50,7 +55,10 @@ export class PEBLEventHandlers {
     }
 
     newBookNoReset(event: CustomEvent) {
-        let book: string = event.detail;
+        let payload = event.detail;
+        let book: string = payload.book;
+        let bookTitle: string = payload.bookTitle;
+        let bookId: string = payload.bookId;
         let self = this;
         // if (book.indexOf("/") != -1)
         //     book = book.substring(book.lastIndexOf("/") + 1);
@@ -66,6 +74,8 @@ export class PEBLEventHandlers {
                 });
 
                 self.pebl.storage.saveCurrentBook(book);
+                self.pebl.storage.saveCurrentBookTitle(bookTitle);
+                self.pebl.storage.saveCurrentBookId(bookId);
             } else {
                 self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
             }
