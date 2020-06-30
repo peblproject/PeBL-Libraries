@@ -247,7 +247,7 @@ export class XApiGenerator {
         return stmt;
     }
 
-    addPeblContextExtensions(obj: { [key: string]: any }, userProfile: UserProfile) {
+    addPeblContextExtensions(obj: { [key: string]: any }, userProfile: UserProfile, bookTitle?: string, bookId?: string) {
         let platform = getBrowserMetadata();
 
         obj.browserName = platform.name;
@@ -262,6 +262,11 @@ export class XApiGenerator {
             obj.currentTeam = userProfile.currentTeam;
         if (userProfile.currentClass)
             obj.currentClass = userProfile.currentClass;
+
+        if (bookTitle)
+            obj.bookTitle = bookTitle;
+        if (bookId)
+            obj.bookId = bookId;
 
         return obj;
     }
