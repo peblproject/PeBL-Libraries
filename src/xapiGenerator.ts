@@ -285,6 +285,6 @@ export class XApiGenerator {
         }
         
 
-        return '';
+        return 'pebl://deprecated';
     }
 }
