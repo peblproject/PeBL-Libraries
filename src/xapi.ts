@@ -138,6 +138,8 @@ export class Annotation extends XApiStatement {
         this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
         this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
         this.style = extensions[PREFIX_PEBL_EXTENSION + "style"];
+        if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+            this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
     }
 
     static is(x: XApiStatement): boolean {
@@ -195,6 +197,8 @@ export class Action extends XApiStatement {
                 this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
                 this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
                 this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
+                if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                    this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
             }
         }
     }
@@ -234,6 +238,8 @@ export class Navigation extends XApiStatement {
         if (extensions) {
             this.firstCfi = extensions[PREFIX_PEBL_EXTENSION + "firstCfi"];
             this.lastCfi = extensions[PREFIX_PEBL_EXTENSION + "lastCfi"];
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
         }
     }
 
@@ -364,6 +370,12 @@ export class Question extends XApiStatement {
         this.answers = [];
         for (let key of Object.keys(choices))
             this.answers.push(choices[key].description["en-US"]);
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
@@ -412,6 +424,12 @@ export class Quiz extends XApiStatement {
         this.quizName = this.object.definition.description["en-US"];
 
         this.activityId = this.object.id;
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
@@ -448,6 +466,12 @@ export class Session extends XApiStatement {
             this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         this.type = this.verb.display["en-US"];
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+        }
     }
 
     static is(x: XApiStatement): boolean {

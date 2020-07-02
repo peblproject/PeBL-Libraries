@@ -18,7 +18,7 @@ export class Utils {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.storage.getCurrentBookId(function(book) {
                     if (book)
                         self.pebl.storage.getAnnotations(userProfile, book, callback);
                     else
@@ -33,7 +33,7 @@ export class Utils {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.storage.getCurrentBookId(function(book) {
                     if (book)
                         self.pebl.storage.getSharedAnnotations(userProfile, book, callback);
                     else
