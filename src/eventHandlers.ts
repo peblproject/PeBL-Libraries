@@ -2709,7 +2709,7 @@ export class PEBLEventHandlers {
                             if (book)
                                 self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                             else
-                                self.xapiGen.addObject(xapi, window.location.hostname, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
+                                self.xapiGen.addObject(xapi, window.location.origin, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
 
                             self.xapiGen.addActorAccount(xapi, userProfile);
 
@@ -2747,7 +2747,7 @@ export class PEBLEventHandlers {
                             if (book)
                                 self.xapiGen.addObject(xapi, PEBL_PREFIX + book, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                             else
-                                self.xapiGen.addObject(xapi, window.location.hostname, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
+                                self.xapiGen.addObject(xapi, window.location.origin, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile)));
 
                             self.xapiGen.addActorAccount(xapi, userProfile);
 
