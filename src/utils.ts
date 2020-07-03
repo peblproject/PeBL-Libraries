@@ -4,6 +4,8 @@ import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
 import { SYNC_THREAD, SYNC_PRIVATE_THREAD, SYNC_GROUP_THREAD } from "./constants";
 
+var platform = require('platform') as any; //https://github.com/bestiejs/platform.js
+
 export class Utils {
 
     private pebl: PEBL;
@@ -16,7 +18,7 @@ export class Utils {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.storage.getCurrentBookId(function(book) {
                     if (book)
                         self.pebl.storage.getAnnotations(userProfile, book, callback);
                     else
@@ -31,7 +33,7 @@ export class Utils {
         let self = this;
         this.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.storage.getCurrentBookId(function(book) {
                     if (book)
                         self.pebl.storage.getSharedAnnotations(userProfile, book, callback);
                     else
@@ -553,4 +555,8 @@ export class Utils {
             });
     }
 
+}
+
+export function getBrowserMetadata(): { [key: string]: any } {
+    return platform;
 }

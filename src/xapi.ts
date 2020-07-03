@@ -17,6 +17,14 @@ export class XApiStatement {
     readonly attachments: { [key: string]: any }[];
     readonly stored: string;
     readonly timestamp: string;
+    readonly browserName?: string;
+    readonly browserVersion?: string;
+    readonly osName?: string;
+    readonly osVersion?: string;
+    readonly contextOrigin?: string;
+    readonly contextUrl?: string;
+    readonly currentTeam?: string;
+    readonly currentClass?: string;
 
     constructor(raw: { [key: string]: any }) {
         this.id = raw.id;
@@ -28,6 +36,19 @@ export class XApiStatement {
         this.result = raw.result;
         this["object"] = raw.object;
         this.attachments = raw.attachments;
+
+        if (this["object"].definition) {
+            let extensions = this["object"].definition.extensions;
+            this.browserName = extensions[PREFIX_PEBL_EXTENSION + "browserName"];
+            this.browserVersion = extensions[PREFIX_PEBL_EXTENSION + "browserVersion"];
+            this.osName = extensions[PREFIX_PEBL_EXTENSION + "osName"];
+            this.osVersion = extensions[PREFIX_PEBL_EXTENSION + "osVersion"];
+            this.contextOrigin = extensions[PREFIX_PEBL_EXTENSION + "contextOrigin"];
+            this.contextUrl = extensions[PREFIX_PEBL_EXTENSION + "contextUrl"];
+            this.currentTeam = extensions[PREFIX_PEBL_EXTENSION + "currentTeam"];
+            this.currentClass = extensions[PREFIX_PEBL_EXTENSION + "currentClass"];
+        }
+        
     }
 
     toXAPI(): XApiStatement {
@@ -117,6 +138,8 @@ export class Annotation extends XApiStatement {
         this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
         this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
         this.style = extensions[PREFIX_PEBL_EXTENSION + "style"];
+        if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+            this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
     }
 
     static is(x: XApiStatement): boolean {
@@ -174,6 +197,8 @@ export class Action extends XApiStatement {
                 this.type = extensions[PREFIX_PEBL_EXTENSION + "type"];
                 this.idref = extensions[PREFIX_PEBL_EXTENSION + "idref"];
                 this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
+                if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                    this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
             }
         }
     }
@@ -213,6 +238,8 @@ export class Navigation extends XApiStatement {
         if (extensions) {
             this.firstCfi = extensions[PREFIX_PEBL_EXTENSION + "firstCfi"];
             this.lastCfi = extensions[PREFIX_PEBL_EXTENSION + "lastCfi"];
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
         }
     }
 
@@ -251,7 +278,7 @@ export class Message extends XApiStatement {
         this.prompt = this.object.definition.name["en-US"];
         this.name = this.actor.name;
         this.direct = this.thread == (NAMESPACE_USER_MESSAGES + this.getActorId());
-        this.text = this.object.definition.description["en-US"];
+        this.text = this.result ? this.result.response : this.object.definition.description['en-US'];
 
         let extensions = this.object.definition.extensions;
         if (extensions) {
@@ -264,6 +291,9 @@ export class Message extends XApiStatement {
             this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
             this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
             this.peblAction = extensions[PREFIX_PEBL_EXTENSION + "peblAction"];
+            
+            if (extensions[PREFIX_PEBL_EXTENSION + "thread"])
+                this.thread = extensions[PREFIX_PEBL_EXTENSION + "thread"];
         }
     }
 
@@ -340,6 +370,12 @@ export class Question extends XApiStatement {
         this.answers = [];
         for (let key of Object.keys(choices))
             this.answers.push(choices[key].description["en-US"]);
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
@@ -388,6 +424,12 @@ export class Quiz extends XApiStatement {
         this.quizName = this.object.definition.description["en-US"];
 
         this.activityId = this.object.id;
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
@@ -424,6 +466,12 @@ export class Session extends XApiStatement {
             this.book = this.book.substring(this.book.indexOf(PREFIX_PEBL_THREAD) + PREFIX_PEBL_THREAD.length);
 
         this.type = this.verb.display["en-US"];
+
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
+                this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+        }
     }
 
     static is(x: XApiStatement): boolean {
