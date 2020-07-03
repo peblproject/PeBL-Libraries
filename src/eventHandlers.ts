@@ -37,7 +37,8 @@ export class PEBLEventHandlers {
             if (currentBook != book) {
                 if (currentBook)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, {
-                        activityURI: currentBook
+                        activityURI: currentBook,
+                        activityType: 'book'
                     });
                 self.pebl.storage.removeCurrentActivity();
                 // self.pebl.emitEvent(self.pebl.events.eventInteracted, {
@@ -52,7 +53,9 @@ export class PEBLEventHandlers {
             } else {
                 self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
             }
-            self.pebl.emitEvent(self.pebl.events.eventLaunched, {});
+            self.pebl.emitEvent(self.pebl.events.eventLaunched, {
+                activityType: 'book'
+            });
         });
     }
 
@@ -1039,7 +1042,10 @@ export class PEBLEventHandlers {
             self.pebl.storage.saveUserProfile(userP, function() {
                 self.pebl.network.activate(() => {
                     if (userP.identity != currentIdentity) {
-                        self.pebl.emitEvent(self.pebl.events.eventLogin, userP);
+                        self.pebl.emitEvent(self.pebl.events.eventLogin, {
+                            userProfile: userP,
+                            activityType: 'login'
+                        });
                     }
                 });
             });
@@ -1051,7 +1057,10 @@ export class PEBLEventHandlers {
         this.pebl.user.getUser(function(currentUser) {
             self.pebl.network.disable(function() {
                 self.pebl.storage.removeCurrentUser(() => {
-                    self.pebl.emitEvent(self.pebl.events.eventLogout, currentUser);
+                    self.pebl.emitEvent(self.pebl.events.eventLogout, {
+                        userProfile: currentUser,
+                        activityType: 'login'
+                    });
                 });
             });
         });
@@ -2698,7 +2707,7 @@ export class PEBLEventHandlers {
     eventLogin(event: CustomEvent) {
         let payload = event.detail;
 
-        let userProfile = event.detail;
+        let userProfile = payload.userProfile;
         let xapi = {};
         let self = this;
         let exts = {};
