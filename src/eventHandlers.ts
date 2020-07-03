@@ -36,7 +36,9 @@ export class PEBLEventHandlers {
         this.pebl.storage.getCurrentBook(function(currentBook) { 
             if (currentBook != book) {
                 if (currentBook)
-                    self.pebl.emitEvent(self.pebl.events.eventTerminated, currentBook);
+                    self.pebl.emitEvent(self.pebl.events.eventTerminated, {
+                        activityURI: currentBook
+                    });
                 self.pebl.storage.removeCurrentActivity();
                 // self.pebl.emitEvent(self.pebl.events.eventInteracted, {
                 //     activity: book
@@ -1180,25 +1182,28 @@ export class PEBLEventHandlers {
         let exts = {};
 
         this.pebl.user.getUser(function(userProfile) {
-            self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                self.pebl.storage.getCurrentBookId(function(bookId) {
-                    if (userProfile) {
-                        self.xapiGen.addId(xapi);
-                        self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, PEBL_PREFIX + payload, undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
-                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/terminated", "terminated");
-                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload);
+            self.pebl.storage.getCurrentActivity(function(activity) {
+                self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
+                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                        if (userProfile) {
+                            self.xapiGen.addId(xapi);
+                            self.xapiGen.addTimestamp(xapi);
+                            self.xapiGen.addActorAccount(xapi, userProfile);
+                            self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
+                            self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/terminated", "terminated");
+                            if (activity)
+                                self.xapiGen.addParentActivity(xapi, activity);
 
-                        let s = new Session(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, {
-                            identity: userProfile.identity,
-                            id: s.id,
-                            requestType: "saveSessions",
-                            sessions: [s]
-                        });
-                        self.pebl.storage.saveEvent(userProfile, s);
-                    }
+                            let s = new Session(xapi);
+                            self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                identity: userProfile.identity,
+                                id: s.id,
+                                requestType: "saveSessions",
+                                sessions: [s]
+                            });
+                            self.pebl.storage.saveEvent(userProfile, s);
+                        }
+                    });
                 });
             });
         });
@@ -1215,11 +1220,11 @@ export class PEBLEventHandlers {
             self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
                     self.pebl.storage.getCurrentBookId(function(bookId) {
                     self.pebl.user.getUser(function(userProfile) {
-                        if (userProfile) {
+                        if (userProfile && book) {
                             self.xapiGen.addId(xapi);
                             self.xapiGen.addTimestamp(xapi);
                             self.xapiGen.addActorAccount(xapi, userProfile);
-                            self.xapiGen.addObject(xapi, PEBL_PREFIX + book, payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
+                            self.xapiGen.addObject(xapi, book, payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                             self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/initialized", "initialized");
                             self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
 
