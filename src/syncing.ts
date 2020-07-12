@@ -34,9 +34,12 @@ export class LLSyncAction implements SyncProcess {
     private reconnectionBackoffResetHandler?: number;
     private reconnectionBackoff: number;
     private active: boolean;
+    private serverReady: boolean;
 
     constructor(pebl: PEBL) {
         var self = this;
+
+        this.serverReady = false;
 
         this.pebl = pebl;
         this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
@@ -45,6 +48,15 @@ export class LLSyncAction implements SyncProcess {
 
         console.log(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
         this.messageHandlers = {};
+
+        this.messageHandlers.serverReady = (userProfile, payload) => {
+            this.serverReady = true;
+            this.pullNotifications();
+            this.pullAnnotations();
+            this.pullSharedAnnotations();
+            this.pullReferences();
+            this.pullSubscribedThreads();
+        };
 
         this.messageHandlers.getReferences = (userProfile, payload) => {
             this.pebl.storage.getSyncTimestamps(userProfile.identity, SYNC_REFERENCES, (timestamp: number) => {
@@ -226,7 +238,6 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.getAnnotations = (userProfile, payload) => {
-            console.log(payload);
             this.pebl.storage.getSyncTimestamps(userProfile.identity, SYNC_ANNOTATIONS, (timestamp: number) => {
                 let stmts = payload.data.map((stmt: any) => {
                     if (Voided.is(stmt)) {
@@ -355,11 +366,6 @@ export class LLSyncAction implements SyncProcess {
                     this.websocket = new WebSocket(this.pebl.config.PeBLServicesWSURL);
                     this.websocket.onopen = () => {
                         console.log('websocket opened');
-                        this.pullNotifications();
-                        this.pullAnnotations();
-                        this.pullSharedAnnotations();
-                        this.pullReferences();
-                        this.pullSubscribedThreads();
                         this.reconnectionBackoffResetHandler = setTimeout(
                             () => {
                                 this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
@@ -370,6 +376,7 @@ export class LLSyncAction implements SyncProcess {
 
                     this.websocket.onclose = () => {
                         console.log("Web socket closed retrying in " + this.reconnectionBackoff, event);
+                        this.serverReady = false;
                         if (this.active) {
                             if (this.reconnectionBackoffResetHandler) {
                                 clearTimeout(this.reconnectionBackoffResetHandler);
@@ -393,6 +400,7 @@ export class LLSyncAction implements SyncProcess {
 
                     this.websocket.onerror = (event: Event) => {
                         console.log("Web socket error retrying in " + this.reconnectionBackoff, event);
+                        this.serverReady = false;
                         if (this.active) {
                             if (this.reconnectionBackoffResetHandler) {
                                 clearTimeout(this.reconnectionBackoffResetHandler);
@@ -469,7 +477,7 @@ export class LLSyncAction implements SyncProcess {
 
     push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void {
         this.pebl.user.getUser((userProfile) => {
-            if (userProfile && this.websocket && this.websocket.readyState === 1) {
+            if (userProfile && this.serverReady && this.websocket && this.websocket.readyState === 1) {
                 this.websocket.send(JSON.stringify({
                     requestType: "bulkPush",
                     identity: userProfile.identity,
@@ -484,7 +492,7 @@ export class LLSyncAction implements SyncProcess {
 
     pushActivity(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void {
         this.pebl.user.getUser((userProfile) => {
-            if (userProfile && this.websocket && this.websocket.readyState === 1) {
+            if (userProfile && this.serverReady && this.websocket && this.websocket.readyState === 1) {
                 for (let message of outgoing) {
                     console.log(message);
                     this.websocket.send(JSON.stringify(message));
