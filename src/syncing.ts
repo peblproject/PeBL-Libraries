@@ -26,7 +26,7 @@ export class LLSyncAction implements SyncProcess {
 
     private pebl: PEBL;
 
-    private messageHandlers: { [key: string]: ((userProfile: UserProfile, payload: { [key: string]: any }) => void) }
+    private messageHandlers: { [key: string]: ((userProfile: UserProfile, payload: { [key: string]: any }) => void) };
 
     readonly DEFAULT_RECONNECTION_BACKOFF = 1000;
 
