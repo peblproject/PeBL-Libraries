@@ -8,8 +8,11 @@ export class UserProfile {
     readonly metadata?: { [key: string]: any };
     readonly endpoints: Endpoint[];
     readonly registryEndpoint?: Endpoint;
-    currentTeam?: string | null;
-    currentClass?: string | null;
+    currentTeam?: string;
+    currentTeamName?: string;
+    currentClass?: string;
+    currentClassName?: string;
+    memberships?: { [key: string]: string };
     readonly firstName?: string;
     readonly lastName?: string;
     readonly avatar?: string;
@@ -29,8 +32,11 @@ export class UserProfile {
         if (raw.registryEndpoint)
             this.registryEndpoint = new Endpoint(raw.registryEndpoint);
 
-        this.currentTeam = raw.currentTeam ? raw.currentTeam : 'guestTeam';
-        this.currentClass = raw.currentClass ? raw.currentClass : 'guestClass';
+        this.currentTeam = raw.currentTeam;
+        this.currentTeamName = raw.currentTeamName;
+        this.currentClass = raw.currentClass;
+        this.currentClassName = raw.currentClassName;
+        this.memberships = raw.memberships;
 
         this.endpoints = [];
 
@@ -78,7 +84,10 @@ export class UserProfile {
             "metadata": {},
             "registryEndpoint": this.registryEndpoint,
             "currentTeam": this.currentTeam,
+            "currentTeamName": this.currentTeamName,
             "currentClass": this.currentClass,
+            "currentClassName": this.currentClassName,
+            "memberships": this.memberships,
             "firstName": this.firstName,
             "lastName": this.lastName,
             "avatar": this.avatar,
