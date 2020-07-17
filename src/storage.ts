@@ -1133,6 +1133,23 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
     }
 
+    getNotification(userProfile: UserProfile, notificationId: string, callback: ((stmts?: XApiStatement) => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["notifications"], "readwrite").objectStore("notifications").get(IDBKeyRange.only([userProfile.identity, notificationId]));
+            request.onerror = function(e) {
+                console.log(e);
+            };
+            request.onsuccess = function() {
+                callback(request.result);
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getNotification(userProfile, notificationId, callback);
+            });
+        }
+    }
+
     getNotifications(userProfile: UserProfile, callback: ((stmts: XApiStatement[]) => void)): void {
         if (this.db) {
             let os = this.db.transaction(["notifications"], "readonly").objectStore("notifications");
@@ -1156,6 +1173,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             });
         }
     }
+
 
     removeNotification(userProfile: UserProfile, notificationId: string, callback?: (() => void)): void {
         if (this.db) {
