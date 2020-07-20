@@ -18,7 +18,8 @@ import { SyncProcess } from "./adapters";
 import { PEBL } from "./pebl";
 import { UserProfile } from "./models";
 import { Voided, Annotation, SharedAnnotation, Message, Reference } from "./xapi";
-import { SYNC_REFERENCES, SYNC_NOTIFICATIONS, SYNC_SHARED_ANNOTATIONS, SYNC_ANNOTATIONS } from "./constants";
+import { SYNC_REFERENCES, SYNC_SHARED_ANNOTATIONS, SYNC_ANNOTATIONS } from "./constants";
+import { consoleLog } from "./build";
 
 export class LLSyncAction implements SyncProcess {
 
@@ -36,7 +37,7 @@ export class LLSyncAction implements SyncProcess {
     private active: boolean;
     private serverReady: boolean;
     private notificationTimestamps: { [key: string]: number } = {};
-    private clearedNotifications: { [key: string]: string } = {};
+    private clearedNotifications: { [key: string]: boolean } = {};
 
     constructor(pebl: PEBL) {
         var self = this;
@@ -48,7 +49,7 @@ export class LLSyncAction implements SyncProcess {
 
         this.active = false;
 
-        console.log(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
+        consoleLog(this.pebl.config && this.pebl.config.PeBLServicesWSURL);
         this.messageHandlers = {};
 
         this.messageHandlers.serverReady = (userProfile, payload) => {
@@ -61,20 +62,20 @@ export class LLSyncAction implements SyncProcess {
         };
 
         this.messageHandlers.setLastNotifiedDates = (userProfile, payload) => {
-            for (let k of payload.clearedTimestamps) {
-                this.notificationTimestamps[k] = payload.clearedTimestamps[k];
+            for (let k in payload.clearedTimestamps) {
+                this.notificationTimestamps[k] = parseInt(payload.clearedTimestamps[k]);
+            }
+            for (let key of payload.clearedNotifications) {
+                this.clearedNotifications[key] = true;
             }
         };
 
-        this.messageHandlers.setClearedNotifications = (userProfile, payload) => {
-            if (payload.clearAll) {
-                this.clearedNotifications = {};
+        this.messageHandlers.removeClearedNotifications = (userProfile, payload) => {
+            for (let k of payload.clearedTimestamps) {
+                this.notificationTimestamps[k] = payload.clearedTimestamps[k];
             }
             for (let key of payload.clearedNotifications) {
-                if (payload.remove)
-                    delete this.clearedNotifications[key];
-                else
-                    this.clearedNotifications[key] = payload.clearedNotifications[key];
+                delete this.clearedNotifications[key];
             }
         };
 
@@ -85,13 +86,13 @@ export class LLSyncAction implements SyncProcess {
                     for (let stmt of payload.data) {
                         if (Voided.is(stmt)) {
                             //TODO
-                            console.log('TODO');
+                            consoleLog('TODO');
                         } else {
                             let ref = new Reference(stmt);
                             self.pebl.storage.saveQueuedReference(userProfile, ref);
                             let stored = new Date(ref.stored).getTime();
                             if ((!this.clearedNotifications[ref.id]) &&
-                                (stored > (this.notificationTimestamps["r" + ref.book] || 0))) {
+                                (stored >= (this.notificationTimestamps["r" + ref.book] || 0))) {
 
                                 self.pebl.storage.saveNotification(userProfile,
                                     ref,
@@ -113,13 +114,13 @@ export class LLSyncAction implements SyncProcess {
             this.pebl.storage.getSyncTimestamps(userProfile.identity, SYNC_REFERENCES, (timestamp: number) => {
                 if (Voided.is(payload.data)) {
                     //TODO
-                    console.log('TODO');
+                    consoleLog('TODO');
                 } else {
                     let ref = new Reference(payload.data);
                     self.pebl.storage.saveQueuedReference(userProfile, ref);
                     let stored = new Date(ref.stored).getTime();
                     if ((!this.clearedNotifications[ref.id]) &&
-                        (stored > (this.notificationTimestamps["r" + ref.book] || 0))) {
+                        (stored >= (this.notificationTimestamps["r" + ref.book] || 0))) {
 
                         self.pebl.storage.saveNotification(userProfile,
                             ref,
@@ -238,6 +239,7 @@ export class LLSyncAction implements SyncProcess {
                         for (let thread of payload.data.threads) {
                             let message = {
                                 thread: thread,
+                                options: {},
                                 timestamp: threadSyncTimestamps[thread] ? threadSyncTimestamps[thread] : 1
                             }
                             messageSet.push(message);
@@ -321,12 +323,24 @@ export class LLSyncAction implements SyncProcess {
                             let sa = new SharedAnnotation(stmt);
                             self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
                             let stored = new Date(sa.stored).getTime();
-                            if ((stored > (this.notificationTimestamps["sa" + sa.book] || 0)) &&
-                                (!this.clearedNotifications[sa.id]) &&
-                                (userProfile.identity !== sa.getActorId())) {
-
-                                this.pebl.storage.saveNotification(userProfile, sa);
-                                this.pebl.emitEvent(this.pebl.events.incomingNotifications, [sa]);
+                            if ((stored >= (this.notificationTimestamps["sa" + sa.book] || 0)) &&
+                                (!this.clearedNotifications[sa.id])) {
+                                if (userProfile.identity !== sa.getActorId()) {
+                                    this.pebl.storage.saveNotification(userProfile, sa);
+                                    this.pebl.emitEvent(this.pebl.events.incomingNotifications, [sa]);
+                                } else {
+                                    this.pebl.storage.saveOutgoingXApi(userProfile, {
+                                        id: sa.id,
+                                        identity: userProfile.identity,
+                                        requestType: "deleteNotification",
+                                        records: [{
+                                            id: sa.id,
+                                            type: "message",
+                                            location: sa.book,
+                                            stored: sa.stored
+                                        }]
+                                    });
+                                }
                             }
                             if (stored > timestamp)
                                 timestamp = stored;
@@ -387,12 +401,25 @@ export class LLSyncAction implements SyncProcess {
                     }
                     let stored = new Date(sa.stored).getTime();
                     if ((sa instanceof SharedAnnotation) &&
-                        (stored > (this.notificationTimestamps["sa" + sa.book] || 0)) &&
-                        (!this.clearedNotifications[sa.id]) &&
-                        (userProfile.identity !== sa.getActorId())) {
+                        (stored >= (this.notificationTimestamps["sa" + sa.book] || 0)) &&
+                        (!this.clearedNotifications[sa.id])) {
 
-                        this.pebl.storage.saveNotification(userProfile, sa);
-                        this.pebl.emitEvent(this.pebl.events.incomingNotifications, [sa]);
+                        if (userProfile.identity !== sa.getActorId()) {
+                            this.pebl.storage.saveNotification(userProfile, sa);
+                            this.pebl.emitEvent(this.pebl.events.incomingNotifications, [sa]);
+                        } else {
+                            this.pebl.storage.saveOutgoingXApi(userProfile, {
+                                id: sa.id,
+                                identity: userProfile.identity,
+                                requestType: "deleteNotification",
+                                records: [{
+                                    id: sa.id,
+                                    type: "message",
+                                    location: sa.book,
+                                    stored: sa.stored
+                                }]
+                            });
+                        }
                     }
                     if (stored > timestamp)
                         timestamp = stored;
@@ -413,7 +440,7 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.error = (userProfile, payload) => {
-            console.log("Message failed", payload);
+            consoleLog("Message failed", payload);
         }
     }
 
@@ -429,7 +456,7 @@ export class LLSyncAction implements SyncProcess {
                     }
                     this.websocket = new WebSocket(this.pebl.config.PeBLServicesWSURL);
                     this.websocket.onopen = () => {
-                        console.log('websocket opened');
+                        consoleLog('websocket opened');
                         this.reconnectionBackoffResetHandler = setTimeout(
                             () => {
                                 this.reconnectionBackoff = this.DEFAULT_RECONNECTION_BACKOFF;
@@ -439,7 +466,7 @@ export class LLSyncAction implements SyncProcess {
                     }
 
                     this.websocket.onclose = () => {
-                        console.log("Web socket closed retrying in " + this.reconnectionBackoff, event);
+                        consoleLog("Web socket closed retrying in " + this.reconnectionBackoff, event);
                         this.serverReady = false;
                         if (this.active) {
                             if (this.reconnectionBackoffResetHandler) {
@@ -463,7 +490,7 @@ export class LLSyncAction implements SyncProcess {
                     };
 
                     this.websocket.onerror = (event: Event) => {
-                        console.log("Web socket error retrying in " + this.reconnectionBackoff, event);
+                        consoleLog("Web socket error retrying in " + this.reconnectionBackoff, event);
                         this.serverReady = false;
                         if (this.active) {
                             if (this.reconnectionBackoffResetHandler) {
@@ -489,13 +516,13 @@ export class LLSyncAction implements SyncProcess {
                     this.websocket.onmessage = (message: any) => {
                         this.pebl.user.getUser((userProfile) => {
                             if (userProfile) {
-                                console.log('message recieved');
+                                consoleLog('message recieved');
                                 var parsedMessage = JSON.parse(message.data);
 
                                 if (this.messageHandlers[parsedMessage.requestType]) {
                                     this.messageHandlers[parsedMessage.requestType](userProfile, parsedMessage);
                                 } else {
-                                    console.log("Unknown request type", parsedMessage.requestType, parsedMessage);
+                                    consoleLog("Unknown request type", parsedMessage.requestType, parsedMessage);
                                 }
                             }
                         });
@@ -540,7 +567,51 @@ export class LLSyncAction implements SyncProcess {
     }
 
     private mergeRequests(outgoing: { [key: string]: any }[]): { [key: string]: any }[] {
-        return outgoing;
+        let compressedOutgoing: { [key: string]: any }[] = [];
+        let userRequestTypes: { [key: string]: { [key: string]: any } } = {};
+
+        for (let i = 0; i < outgoing.length; i++) {
+            let packet = outgoing[i];
+            let requestTypes = userRequestTypes[packet.identity];
+            if (!requestTypes) {
+                requestTypes = {};
+                userRequestTypes[packet.identity] = requestTypes;
+            }
+            if (!requestTypes[packet.requestType]) {
+                requestTypes[packet.requestType] = [];
+            }
+            requestTypes[packet.requestType].push(packet);
+        }
+
+        for (let user in userRequestTypes) {
+            let requestTypes = userRequestTypes[user];
+            for (let requestType in requestTypes) {
+                let objs: { [key: string]: any }[] = requestTypes[requestType];
+                let mergedRequestType: { [key: string]: any } = {
+                    requestType: requestType,
+                    identity: user
+                };
+                for (let obj of objs) {
+                    for (let key of Object.keys(obj)) {
+                        if ((key !== "id") && (key !== "requestType") && (key !== "identity")) {
+                            let val = obj[key];
+                            if (!mergedRequestType[key])
+                                mergedRequestType[key] = []
+                            if (val instanceof Array) {
+                                mergedRequestType[key].push(...val);
+                            } else if ((typeof val === "string") || (typeof val === "number") || (val instanceof Object)) {
+                                mergedRequestType[key].push(val);
+                            } else {
+                                throw new Error("unknown merge type");
+                            }
+                        }
+                    }
+                }
+                compressedOutgoing.push(mergedRequestType);
+            }
+        }
+
+        return compressedOutgoing;
     }
 
     push(outgoing: { [key: string]: any }[], callback: (result: boolean) => void): void {
@@ -562,7 +633,7 @@ export class LLSyncAction implements SyncProcess {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.serverReady && this.websocket && this.websocket.readyState === 1) {
                 for (let message of outgoing) {
-                    console.log(message);
+                    consoleLog(message);
                     this.websocket.send(JSON.stringify(message));
                 }
                 callback(true);
@@ -694,12 +765,25 @@ export class LLSyncAction implements SyncProcess {
         }
         let stored = new Date(m.stored).getTime();
         if ((m instanceof Message) &&
-            (stored > (this.notificationTimestamps[m.thread] || 0)) &&
-            (!this.clearedNotifications[m.id]) &&
-            (userProfile.identity !== m.getActorId())) {
+            (stored >= (this.notificationTimestamps[m.thread] || 0)) &&
+            (!this.clearedNotifications[m.id])) {
 
-            this.pebl.storage.saveNotification(userProfile, m);
-            this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
+            if (userProfile.identity !== m.getActorId()) {
+                this.pebl.storage.saveNotification(userProfile, m);
+                this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
+            } else {
+                this.pebl.storage.saveOutgoingXApi(userProfile, {
+                    id: m.id,
+                    identity: userProfile.identity,
+                    requestType: "deleteNotification",
+                    records: [{
+                        id: m.id,
+                        type: "message",
+                        location: m.thread,
+                        stored: m.stored
+                    }]
+                });
+            }
         }
 
         if (!groupThreadSyncTimestamps[groupId])
@@ -731,12 +815,25 @@ export class LLSyncAction implements SyncProcess {
 
         let stored = new Date(m.stored).getTime();
         if ((m instanceof Message) &&
-            (stored > (this.notificationTimestamps[m.thread] || 0)) &&
-            (!this.clearedNotifications[m.id]) &&
-            (userProfile.identity !== m.getActorId())) {
+            (stored >= (this.notificationTimestamps[m.thread] || 0)) &&
+            (!this.clearedNotifications[m.id])) {
 
-            this.pebl.storage.saveNotification(userProfile, m);
-            this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
+            if (userProfile.identity !== m.getActorId()) {
+                this.pebl.storage.saveNotification(userProfile, m);
+                this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
+            } else {
+                this.pebl.storage.saveOutgoingXApi(userProfile, {
+                    id: m.id,
+                    identity: userProfile.identity,
+                    requestType: "deleteNotification",
+                    records: [{
+                        id: m.id,
+                        type: "message",
+                        location: m.thread,
+                        stored: m.stored
+                    }]
+                });
+            }
         }
 
         if (!threadSyncTimestamps[thread])

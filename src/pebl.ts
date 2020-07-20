@@ -311,7 +311,7 @@ export class PEBL {
                         requestType: "getThreadedMessages",
                         requests: [{
                             thread: baseThread,
-                            options: options,
+                            options: options || {},
                             timestamp: 1
                         }]
                     });
@@ -321,7 +321,7 @@ export class PEBL {
                         identity: userProfile.identity,
                         requestType: "subscribeThread",
                         thread: baseThread,
-                        options: options
+                        options: options || {}
                     });
                 }
                 this.storage.getMessages(userProfile, thread, callback);
