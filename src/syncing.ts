@@ -335,7 +335,7 @@ export class LLSyncAction implements SyncProcess {
                                         requestType: "deleteNotification",
                                         records: [{
                                             id: sa.id,
-                                            type: "message",
+                                            type: "sharedAnnotation",
                                             location: sa.book,
                                             stored: sa.stored
                                         }]
@@ -414,7 +414,7 @@ export class LLSyncAction implements SyncProcess {
                                 requestType: "deleteNotification",
                                 records: [{
                                     id: sa.id,
-                                    type: "message",
+                                    type: "sharedAnnotation",
                                     location: sa.book,
                                     stored: sa.stored
                                 }]

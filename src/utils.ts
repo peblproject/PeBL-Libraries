@@ -582,15 +582,15 @@ export class Utils {
                     });
             });
     }
+}
 
-    pakoInflate(data: string): string {
-        return pako.inflate(data, stringObj);
-    }
 
-    pakoDeflate(data: string): string {
-        return pako.deflate(data, stringObj);
-    }
+export function pakoInflate(data: string): string {
+    return pako.inflate(data, stringObj);
+}
 
+export function pakoDeflate(data: string): string {
+    return pako.deflate(data, stringObj);
 }
 
 export function getBrowserMetadata(): { [key: string]: any } {
