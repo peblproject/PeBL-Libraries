@@ -42,6 +42,12 @@ export class EventSet {
 
     modifiedMembership = "modifiedMembership";
 
+    pinnedMessage = "pinnedMessage";
+    unpinnedMessage = "unpinnedMessage";
+
+    pinnedAnnotation = "pinnedAnnotation";
+    unpinnedAnnotation = "unpinnedAnnotation";
+
     removedPresence = "removedPresence";
     removedMembership = "removedMembership";
     removedAnnotation = "removedAnnotation";

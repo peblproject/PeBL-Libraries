@@ -117,6 +117,7 @@ export class Annotation extends XApiStatement {
     readonly style: string;
     readonly text?: string;
     readonly owner: string;
+    pinned?: boolean;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -138,8 +139,11 @@ export class Annotation extends XApiStatement {
         this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
         this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
         this.style = extensions[PREFIX_PEBL_EXTENSION + "style"];
+        
         if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
             this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
+
+        this.pinned = raw.pinned;
     }
 
     static is(x: XApiStatement): boolean {
@@ -267,6 +271,7 @@ export class Message extends XApiStatement {
     readonly cfi?: string;
     readonly idRef?: string;
     readonly peblAction?: string;
+    pinned?: boolean;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -292,9 +297,12 @@ export class Message extends XApiStatement {
             this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
             this.peblAction = extensions[PREFIX_PEBL_EXTENSION + "peblAction"];
             
+            
             if (extensions[PREFIX_PEBL_EXTENSION + "thread"])
                 this.thread = extensions[PREFIX_PEBL_EXTENSION + "thread"];
         }
+
+        this.pinned = raw.pinned;
     }
 
     static is(x: XApiStatement): boolean {

@@ -13,6 +13,7 @@ export class UserProfile {
     currentClass?: string;
     currentClassName?: string;
     memberships?: { [key: string]: string };
+    groups?: { [key: string]: any }[];
     readonly firstName?: string;
     readonly lastName?: string;
     readonly avatar?: string;
@@ -37,6 +38,7 @@ export class UserProfile {
         this.currentClass = raw.currentClass;
         this.currentClassName = raw.currentClassName;
         this.memberships = raw.memberships;
+        this.groups = raw.groups;
 
         this.endpoints = [];
 
