@@ -118,6 +118,7 @@ export class Annotation extends XApiStatement {
     readonly text?: string;
     readonly owner: string;
     pinned?: boolean;
+    pinMessage?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -144,6 +145,7 @@ export class Annotation extends XApiStatement {
             this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
 
         this.pinned = raw.pinned;
+        this.pinMessage = raw.pinMessage;
     }
 
     static is(x: XApiStatement): boolean {
@@ -272,6 +274,7 @@ export class Message extends XApiStatement {
     readonly idRef?: string;
     readonly peblAction?: string;
     pinned?: boolean;
+    pinMessage?: string;
 
     constructor(raw: { [key: string]: any }) {
         super(raw);
@@ -303,6 +306,7 @@ export class Message extends XApiStatement {
         }
 
         this.pinned = raw.pinned;
+        this.pinMessage = raw.pinMessage;
     }
 
     static is(x: XApiStatement): boolean {
