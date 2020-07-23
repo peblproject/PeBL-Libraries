@@ -8,8 +8,8 @@ stages:
    - build
    - downstream
 
-#---------------------------------------------------------------   
-     
+#---------------------------------------------------------------
+
 buildDev:
   stage: build
   only:
@@ -22,7 +22,7 @@ buildDev:
     - dist/PeBLCore.js
 
 #----------------------
-      
+
 buildQA:
   stage: build
   only:
@@ -42,18 +42,42 @@ buildProd:
     - master
   script:
     - npm install
-    - export MINIMIZE=true && npm run build    
+    - export MINIMIZE=true && npm run build
   artifacts:
     paths:
     - dist/PeBLCore.js
 
 
 
-#---------------------------------------------------------------   
+#---------------------------------------------------------------
 
 
 downstreamDev:
   stage: downstream
+  only:
+    - dev
   trigger:
     project: pebl/WebReader
     branch: Dev
+
+#----------------------
+
+downstreamQa:
+  stage: downstream
+  only:
+    - qa
+  trigger:
+    project: pebl/WebReader
+    branch: QA
+
+#----------------------
+
+downstreamMaster:
+  stage: downstream
+  only:
+    - master
+  trigger:
+    project: pebl/WebReader
+    branch: master
+
+#---------------------------------------------------------------
