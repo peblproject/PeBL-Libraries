@@ -6,6 +6,7 @@ cache:
 
 stages:
    - build
+   - downstream
 
 #---------------------------------------------------------------   
      
@@ -49,3 +50,10 @@ buildProd:
 
 
 #---------------------------------------------------------------   
+
+
+downstreamDev:
+  stage: downstream
+  trigger:
+    project: pebl/WebReader
+    branch: Dev
