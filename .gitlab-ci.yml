@@ -1,0 +1,46 @@
+image: node:11
+
+cache:
+    paths:
+    - node_modules/
+
+stages:
+   - build
+
+buildDev:
+  stage: build
+  only:
+    - Dev
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+    - dist/PeBLCore.js
+
+buildQA:
+  stage: build
+  only:
+    - QA
+  script:
+    - npm install
+    - export MINIMIZE=true && npm run build
+  artifacts:
+    paths:
+    - dist/PeBLCore.js
+
+
+buildProd:
+  stage: build
+  only:
+    - master
+  script:
+    - npm install
+    - export MINIMIZE=true && npm run build    
+  artifacts:
+    paths:
+    - dist/PeBLCore.js
+
+
+
+   
