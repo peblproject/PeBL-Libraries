@@ -7,10 +7,12 @@ cache:
 stages:
    - build
 
+#---------------------------------------------------------------   
+     
 buildDev:
   stage: build
   only:
-    - Dev
+    - dev
   script:
     - npm install
     - npm run build
@@ -18,10 +20,12 @@ buildDev:
     paths:
     - dist/PeBLCore.js
 
+#----------------------
+      
 buildQA:
   stage: build
   only:
-    - QA
+    - qa
   script:
     - npm install
     - export MINIMIZE=true && npm run build
@@ -29,6 +33,7 @@ buildQA:
     paths:
     - dist/PeBLCore.js
 
+#----------------------
 
 buildProd:
   stage: build
@@ -43,4 +48,4 @@ buildProd:
 
 
 
-   
+#---------------------------------------------------------------   
