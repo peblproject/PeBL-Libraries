@@ -307,7 +307,7 @@ export class PEBLEventHandlers {
     removedMessage(event: CustomEvent) {
         let payload = event.detail;
 
-        payload.message.pinned = true;
+        payload.message = new Message(payload.message);
 
         let xapi = {};
         let self = this;
