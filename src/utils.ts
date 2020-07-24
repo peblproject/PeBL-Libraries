@@ -1,12 +1,17 @@
 import { PEBL } from "./pebl";
-import { XApiStatement, Membership, ProgramAction, Message, ModuleEvent } from "./xapi";
+import { XApiStatement, Membership, ProgramAction, Message, ModuleEvent, SharedAnnotation, Reference } from "./xapi";
 import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
 import { SYNC_THREAD, SYNC_PRIVATE_THREAD, SYNC_GROUP_THREAD } from "./constants";
 
-var platform = require('platform') as any; //https://github.com/bestiejs/platform.js
+let pako = require("pako");
+
+var platform = require('platform') as any; //https://github.com/bestiejs/platform.
+
+const stringObj = { "to": "string" };
 
 export class Utils {
+
 
     private pebl: PEBL;
 
@@ -448,13 +453,36 @@ export class Utils {
         let self = this;
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                self.pebl.storage.removeNotification(userProfile, notificationId);
-                self.pebl.storage.saveOutgoingXApi(userProfile, {
-                    id: self.pebl.utils.getUuid(),
-                    identity: userProfile.identity,
-                    requestType: "deleteNotification",
-                    xId: notificationId
-                });
+                self.pebl.storage.getNotification(userProfile,
+                    notificationId,
+                    (stmt?: XApiStatement) => {
+                        if (stmt) {
+                            self.pebl.storage.removeNotification(userProfile, notificationId);
+                            let xType;
+                            let xLocation;
+                            if (SharedAnnotation.is(stmt)) {
+                                xType = "sharedAnnotation";
+                                xLocation = (<SharedAnnotation>stmt).book;
+                            } else if (Message.is(stmt)) {
+                                xType = "message";
+                                xLocation = (<Message>stmt).thread;
+                            } else if (Reference.is(stmt)) {
+                                xType = "reference";
+                                xLocation = (<Reference>stmt).book;
+                            }
+                            self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                id: self.pebl.utils.getUuid(),
+                                identity: userProfile.identity,
+                                requestType: "deleteNotification",
+                                records: [{
+                                    id: stmt.id,
+                                    type: xType,
+                                    location: xLocation,
+                                    stored: stmt.stored
+                                }]
+                            });
+                        }
+                    })
             }
         });
     }
@@ -554,7 +582,15 @@ export class Utils {
                     });
             });
     }
+}
 
+
+export function pakoInflate(data: string): string {
+    return pako.inflate(data, stringObj);
+}
+
+export function pakoDeflate(data: string): string {
+    return pako.deflate(data, stringObj);
 }
 
 export function getBrowserMetadata(): { [key: string]: any } {

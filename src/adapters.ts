@@ -137,6 +137,8 @@ export interface StorageAdapter {
 
     getNotifications(userProfile: UserProfile, callback: ((stmts: XApiStatement[]) => void)): void;
 
+    getNotification(userProfile: UserProfile, notificationId: string, callback: ((stmts?: XApiStatement) => void)): void;
+
     removeNotification(userProfile: UserProfile, notificationId: string, callback?: (() => void)): void;
 
 
