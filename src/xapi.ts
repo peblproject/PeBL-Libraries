@@ -157,8 +157,14 @@ export class Annotation extends XApiStatement {
 // -------------------------------
 
 export class SharedAnnotation extends Annotation {
+    groupId?: string;
+
     constructor(raw: { [key: string]: any }) {
         super(raw);
+        let extensions = this.object.definition.extensions;
+        if (extensions) {
+            this.groupId = extensions[PREFIX_PEBL_EXTENSION + 'groupId']
+        }
     }
 
     static is(x: XApiStatement): boolean {

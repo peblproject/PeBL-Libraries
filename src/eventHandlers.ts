@@ -905,7 +905,8 @@ export class PEBLEventHandlers {
                     type: payload.type,
                     cfi: payload.cfi,
                     idRef: payload.idRef,
-                    style: payload.style
+                    style: payload.style,
+                    groupId: payload.groupId
                 };
 
                 self.pebl.storage.getCurrentActivity(function(activity) {
