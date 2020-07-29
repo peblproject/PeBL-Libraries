@@ -13,7 +13,7 @@ export class UserProfile {
     currentClass?: string;
     currentClassName?: string;
     memberships?: { [key: string]: string };
-    groups?: { [key: string]: any }[];
+    groups?: string[];
     readonly firstName?: string;
     readonly lastName?: string;
     readonly avatar?: string;
