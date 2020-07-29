@@ -905,7 +905,8 @@ export class PEBLEventHandlers {
                     type: payload.type,
                     cfi: payload.cfi,
                     idRef: payload.idRef,
-                    style: payload.style
+                    style: payload.style,
+                    groupId: payload.groupId
                 };
 
                 self.pebl.storage.getCurrentActivity(function(activity) {
@@ -1106,7 +1107,7 @@ export class PEBLEventHandlers {
     }
 
     removedSharedAnnotation(event: CustomEvent) {
-        let xId = event.detail;
+        let sharedAnnotation = event.detail;
 
         let xapi = {};
         let self = this;
@@ -1125,19 +1126,18 @@ export class PEBLEventHandlers {
                                 else
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + book);
 
-                                self.xapiGen.addStatementRef(xapi, xId);
+                                self.xapiGen.addStatementRef(xapi, sharedAnnotation.id);
                                 self.xapiGen.addActorAccount(xapi, userProfile);
 
                                 let annotation = new Voided(xapi);
-                                self.pebl.storage.removeSharedAnnotation(userProfile, xId);
+                                self.pebl.storage.removeSharedAnnotation(userProfile, sharedAnnotation.id);
                                 self.pebl.storage.saveOutgoingXApi(userProfile, {
                                     identity: userProfile.identity,
-                                    id: annotation.id,
-                                    xId: xId,
+                                    id: sharedAnnotation.id,
+                                    annotation: sharedAnnotation,
                                     requestType: "deleteSharedAnnotation"
                                 });
                                 self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
-
                             });
                         });
                     });

@@ -18,7 +18,7 @@ import { SyncProcess } from "./adapters";
 import { PEBL } from "./pebl";
 import { UserProfile } from "./models";
 import { Voided, Annotation, SharedAnnotation, Message, Reference } from "./xapi";
-import { SYNC_REFERENCES, SYNC_SHARED_ANNOTATIONS, SYNC_ANNOTATIONS } from "./constants";
+import { generateGroupSharedAnnotationsSyncTimestampsKey, SYNC_REFERENCES, SYNC_ANNOTATIONS } from "./constants";
 import { consoleLog } from "./build";
 
 export class LLSyncAction implements SyncProcess {
@@ -306,51 +306,51 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.getSharedAnnotations = (userProfile, payload) => {
-            this.pebl.storage.getSyncTimestamps(userProfile.identity,
-                SYNC_SHARED_ANNOTATIONS,
-                (timestamp: number) => {
-                    let stmts = payload.data.map((stmt: any) => {
+            for (let stmt of payload.data) {
+                this.pebl.storage.getSyncTimestamps(userProfile.identity,
+                    generateGroupSharedAnnotationsSyncTimestampsKey(stmt.groupId),
+                    (timestamp: number) => {
+                        let annotation: Voided | SharedAnnotation;
                         if (Voided.is(stmt)) {
-                            let voided = new Voided(stmt);
-                            self.pebl.storage.removeSharedAnnotation(userProfile, voided.target);
-                            self.pebl.storage.removeNotification(userProfile, voided.target);
-                            this.pebl.emitEvent(this.pebl.events.incomingNotifications, [voided]);
-                            let stored = new Date(voided.stored).getTime();
+                            annotation = new Voided(stmt);
+                            self.pebl.storage.removeSharedAnnotation(userProfile, annotation.target);
+                            self.pebl.storage.removeNotification(userProfile, annotation.target);
+                            this.pebl.emitEvent(this.pebl.events.incomingNotifications, [annotation]);
+                            let stored = new Date(annotation.stored).getTime();
                             if (stored > timestamp)
                                 timestamp = stored;
-                            return voided;
                         } else {
-                            let sa = new SharedAnnotation(stmt);
-                            self.pebl.storage.saveSharedAnnotations(userProfile, [sa]);
-                            let stored = new Date(sa.stored).getTime();
-                            if ((stored >= (this.notificationTimestamps["sa" + sa.book] || 0)) &&
-                                (!this.clearedNotifications[sa.id])) {
-                                if (userProfile.identity !== sa.getActorId()) {
-                                    this.pebl.storage.saveNotification(userProfile, sa);
-                                    this.pebl.emitEvent(this.pebl.events.incomingNotifications, [sa]);
+                            annotation = new SharedAnnotation(stmt);
+                            self.pebl.storage.saveSharedAnnotations(userProfile, [annotation]);
+                            let stored = new Date(annotation.stored).getTime();
+                            if ((stored >= (this.notificationTimestamps["sa" + annotation.book] || 0)) &&
+                                (!this.clearedNotifications[annotation.id])) {
+                                if (userProfile.identity !== annotation.getActorId()) {
+                                    this.pebl.storage.saveNotification(userProfile, annotation);
+                                    this.pebl.emitEvent(this.pebl.events.incomingNotifications, [annotation]);
                                 } else {
                                     this.pebl.storage.saveOutgoingXApi(userProfile, {
-                                        id: sa.id,
+                                        id: annotation.id,
                                         identity: userProfile.identity,
                                         requestType: "deleteNotification",
                                         records: [{
-                                            id: sa.id,
+                                            id: annotation.id,
                                             type: "sharedAnnotation",
-                                            location: sa.book,
-                                            stored: sa.stored
+                                            location: annotation.book,
+                                            stored: annotation.stored
                                         }]
                                     });
                                 }
                             }
                             if (stored > timestamp)
                                 timestamp = stored;
-                            return sa;
                         }
+
+                        this.pebl.storage.saveSyncTimestamps(userProfile.identity, generateGroupSharedAnnotationsSyncTimestampsKey(stmt.groupId), timestamp, () => {
+                            self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
+                        });
                     });
-                    this.pebl.storage.saveSyncTimestamps(userProfile.identity, SYNC_SHARED_ANNOTATIONS, timestamp, () => {
-                        self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, stmts);
-                    });
-                });
+            }
         }
 
         this.messageHandlers.newAnnotation = (userProfile, payload) => {
@@ -388,8 +388,9 @@ export class LLSyncAction implements SyncProcess {
             } else {
                 allSharedAnnotations = [payload.data];
             }
-            this.pebl.storage.getSyncTimestamps(userProfile.identity, SYNC_SHARED_ANNOTATIONS, (timestamp: number) => {
-                let stmts = allSharedAnnotations.map((sa) => {
+        
+            for (let sa of allSharedAnnotations) {
+                this.pebl.storage.getSyncTimestamps(userProfile.identity, generateGroupSharedAnnotationsSyncTimestampsKey(sa.groupId), (timestamp: number) => {
                     if (Voided.is(sa)) {
                         sa = new Voided(sa);
                         this.pebl.storage.removeSharedAnnotation(userProfile, sa.target);
@@ -423,12 +424,12 @@ export class LLSyncAction implements SyncProcess {
                     }
                     if (stored > timestamp)
                         timestamp = stored;
-                    return sa;
+
+                    this.pebl.storage.saveSyncTimestamps(userProfile.identity, generateGroupSharedAnnotationsSyncTimestampsKey(sa.groupId), timestamp, () => {
+                        this.pebl.emitEvent(this.pebl.events.incomingSharedAnnotations, [sa]);
+                    });
                 });
-                this.pebl.storage.saveSyncTimestamps(userProfile.identity, SYNC_SHARED_ANNOTATIONS, timestamp, () => {
-                    this.pebl.emitEvent(this.pebl.events.incomingSharedAnnotations, stmts);
-                });
-            });
+            }
         }
 
         this.messageHandlers.loggedOut = (userProfile, payload) => {
@@ -680,16 +681,30 @@ export class LLSyncAction implements SyncProcess {
     pullSharedAnnotations(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
-                this.pebl.storage.getSyncTimestamps(userProfile.identity, SYNC_SHARED_ANNOTATIONS, (timestamp: number) => {
-                    let message = {
-                        identity: userProfile.identity,
-                        requestType: "getSharedAnnotations",
-                        timestamp: timestamp + 1
+                if (userProfile.groups) {
+                    for (let groupId of userProfile.groups) {
+                        ((groupId) => {
+                            this.pebl.storage.getSyncTimestamps(userProfile.identity, generateGroupSharedAnnotationsSyncTimestampsKey(groupId), (timestamp: number) => {
+                                let message = {
+                                    identity: userProfile.identity,
+                                    requestType: "getSharedAnnotations",
+                                    timestamp: timestamp + 1,
+                                    groupId: groupId
+                                }
+                                if (this.websocket) {
+                                    this.websocket.send(JSON.stringify(message));
+                                }
+                            })
+
+                            this.pebl.storage.saveOutgoingXApi(userProfile, {
+                                id: this.pebl.utils.getUuid(),
+                                identity: userProfile.identity,
+                                requestType: "subscribeSharedAnnotations",
+                                groupId: groupId
+                            });
+                        })(groupId)
                     }
-                    if (this.websocket) {
-                        this.websocket.send(JSON.stringify(message));
-                    }
-                });
+                }
             }
         });
     }
