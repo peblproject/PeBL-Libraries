@@ -822,34 +822,34 @@ export class LLSyncAction implements SyncProcess {
             m = new Voided(message);
             this.pebl.storage.removeMessage(userProfile, m.target);
             this.pebl.storage.removeNotification(userProfile, m.target);
-            this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
         } else {
             m = new Message(message);
             this.pebl.storage.saveMessages(userProfile, [m]);
         }
 
         let stored = new Date(m.stored).getTime();
-        if ((m instanceof Message) &&
-            (stored >= (this.notificationTimestamps[m.thread] || 0)) &&
-            (!this.clearedNotifications[m.id])) {
+        //No notifications for general messages
+        // if ((m instanceof Message) &&
+        //     (stored >= (this.notificationTimestamps[m.thread] || 0)) &&
+        //     (!this.clearedNotifications[m.id])) {
 
-            if (userProfile.identity !== m.getActorId()) {
-                this.pebl.storage.saveNotification(userProfile, m);
-                this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
-            } else {
-                this.pebl.storage.saveOutgoingXApi(userProfile, {
-                    id: m.id,
-                    identity: userProfile.identity,
-                    requestType: "deleteNotification",
-                    records: [{
-                        id: m.id,
-                        type: "message",
-                        location: m.thread,
-                        stored: m.stored
-                    }]
-                });
-            }
-        }
+        //     if (userProfile.identity !== m.getActorId()) {
+        //         this.pebl.storage.saveNotification(userProfile, m);
+        //         this.pebl.emitEvent(this.pebl.events.incomingNotifications, [m]);
+        //     } else {
+        //         this.pebl.storage.saveOutgoingXApi(userProfile, {
+        //             id: m.id,
+        //             identity: userProfile.identity,
+        //             requestType: "deleteNotification",
+        //             records: [{
+        //                 id: m.id,
+        //                 type: "message",
+        //                 location: m.thread,
+        //                 stored: m.stored
+        //             }]
+        //         });
+        //     }
+        // }
 
         if (!threadSyncTimestamps[thread])
             threadSyncTimestamps[thread] = 1;
