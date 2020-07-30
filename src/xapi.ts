@@ -415,9 +415,6 @@ export class Quiz extends XApiStatement {
 
     readonly activityId: string;
 
-    readonly quizId: string;
-    readonly quizName: string;
-
     readonly completion: boolean;
     readonly success: boolean;
 
@@ -436,10 +433,6 @@ export class Quiz extends XApiStatement {
 
         this.completion = this.result.completion;
         this.success = this.result.success;
-
-        this.quizId = this.object.definition.name["en-US"];
-
-        this.quizName = this.object.definition.description["en-US"];
 
         this.activityId = this.object.id;
 
