@@ -124,4 +124,9 @@ export class EventSet {
     moduleRemovedEvent = "moduleRemovedEvent";
 
     totalInstitutionActivities = "totalInstitutionActivities";
+
+    getChapterCompletionPercentages = "getChapterCompletionPercentages";
+    getMostAnsweredQuestions = "getMostAnsweredQuestions";
+    getLeastAnsweredQuestions = "getLeastAnsweredQuestions";
+    getQuizAttempts = "getQuizAttempts";
 }

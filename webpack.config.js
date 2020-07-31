@@ -13,7 +13,7 @@ module.exports = {
 	      ]
     },
     optimization: {
-	      minimize: process.env.MINIMIZE ? true : false
+	      minimize: process.env.MINIMIZE === "true" ? true : false
     },
     resolve: {
 	      extensions: ['.tsx', '.ts', '.js']
