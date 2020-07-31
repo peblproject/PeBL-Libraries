@@ -443,6 +443,22 @@ export class LLSyncAction implements SyncProcess {
         this.messageHandlers.error = (userProfile, payload) => {
             consoleLog("Message failed", payload);
         }
+
+        this.messageHandlers.getChapterCompletionPercentages = (userProfile, payload) => {
+            this.pebl.emitEvent(this.pebl.events.getChapterCompletionPercentages, payload.data);
+        }
+
+        this.messageHandlers.getMostAnsweredQuestions = (userProfile, payload) => {
+            this.pebl.emitEvent(this.pebl.events.getMostAnsweredQuestions, payload.data);
+        }
+
+        this.messageHandlers.getLeastAnsweredQuestions = (userProfile, payload) => {
+            this.pebl.emitEvent(this.pebl.events.getLeastAnsweredQuestions, payload.data);
+        }
+
+        this.messageHandlers.getQuizAttempts = (userProfile, payload) => {
+            this.pebl.emitEvent(this.pebl.events.getQuizAttempts, payload.data);
+        }
     }
 
     activate(callback?: (() => void)): void {

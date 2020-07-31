@@ -1152,10 +1152,10 @@ export class PEBLEventHandlers {
         let userP = new UserProfile(event.detail);
         let self = this;
 
-        this.pebl.storage.getCurrentUser(function(currentIdentity) {
+        this.pebl.user.getUser(function(userProfile) {
             self.pebl.storage.saveUserProfile(userP, function() {
                 self.pebl.network.activate(() => {
-                    if (userP.identity != currentIdentity) {
+                    if (!userProfile || (userProfile.identity !== userP.identity || userProfile.currentTeam !== userP.currentTeam || userProfile.currentClass !== userP.currentClass)) {
                         self.pebl.emitEvent(self.pebl.events.eventLogin, {
                             userProfile: userP,
                             activityType: 'login'
