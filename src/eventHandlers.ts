@@ -1129,7 +1129,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addStatementRef(xapi, sharedAnnotation.id);
                                 self.xapiGen.addActorAccount(xapi, userProfile);
 
-                                let annotation = new Voided(xapi);
+                                let voided = new Voided(xapi);
                                 self.pebl.storage.removeSharedAnnotation(userProfile, sharedAnnotation.id);
                                 self.pebl.storage.saveOutgoingXApi(userProfile, {
                                     identity: userProfile.identity,
@@ -1137,7 +1137,7 @@ export class PEBLEventHandlers {
                                     annotation: sharedAnnotation,
                                     requestType: "deleteSharedAnnotation"
                                 });
-                                self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
+                                self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [voided]);
                             });
                         });
                     });
