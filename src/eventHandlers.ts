@@ -1109,39 +1109,18 @@ export class PEBLEventHandlers {
     removedSharedAnnotation(event: CustomEvent) {
         let sharedAnnotation = event.detail;
 
-        let xapi = {};
         let self = this;
 
         self.pebl.user.getUser(function(userProfile) {
             if (userProfile) {
-                self.xapiGen.addId(xapi);
-                self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/voided", "voided");
-                self.xapiGen.addTimestamp(xapi);
-                self.pebl.storage.getCurrentActivity(function(activity) {
-                    self.pebl.storage.getCurrentBook(function(book) {
-                        self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                            self.pebl.storage.getCurrentBookId(function(bookId) {
-                                if (activity)
-                                    self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
-                                else
-                                    self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + book);
-
-                                self.xapiGen.addStatementRef(xapi, sharedAnnotation.id);
-                                self.xapiGen.addActorAccount(xapi, userProfile);
-
-                                let annotation = new Voided(xapi);
-                                self.pebl.storage.removeSharedAnnotation(userProfile, sharedAnnotation.id);
-                                self.pebl.storage.saveOutgoingXApi(userProfile, {
-                                    identity: userProfile.identity,
-                                    id: sharedAnnotation.id,
-                                    annotation: sharedAnnotation,
-                                    requestType: "deleteSharedAnnotation"
-                                });
-                                self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [annotation]);
-                            });
-                        });
-                    });
+                self.pebl.storage.removeSharedAnnotation(userProfile, sharedAnnotation.id);
+                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: sharedAnnotation.id,
+                    annotation: sharedAnnotation,
+                    requestType: "deleteSharedAnnotation"
                 });
+                self.pebl.emitEvent(self.pebl.events.incomingSharedAnnotations, [sharedAnnotation]);
             }
         });
     }
