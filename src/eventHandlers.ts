@@ -208,6 +208,23 @@ export class PEBLEventHandlers {
         });
     }
 
+    reportedMessage(event: CustomEvent) {
+        let payload = event.detail;
+        payload.message = new Message(payload.message);
+
+        this.pebl.user.getUser((userProfile) => {
+            if (userProfile) {
+                let clone = JSON.parse(JSON.stringify(payload.message));
+                this.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    id: payload.message.id,
+                    requestType: "reportThreadedMessage",
+                    message: clone
+                });
+            }
+        });
+    }
+
     pinnedMessage(event: CustomEvent) {
         let payload = event.detail;
 

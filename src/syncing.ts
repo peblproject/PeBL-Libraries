@@ -459,6 +459,10 @@ export class LLSyncAction implements SyncProcess {
         this.messageHandlers.getQuizAttempts = (userProfile, payload) => {
             this.pebl.emitEvent(this.pebl.events.getQuizAttempts, payload.data);
         }
+
+        this.messageHandlers.getReportedThreadedMessages = (userProfile, payload) => {
+            this.pebl.emitEvent(this.pebl.events.getReportedThreadedMessages, payload.data);
+        }
     }
 
     activate(callback?: (() => void)): void {

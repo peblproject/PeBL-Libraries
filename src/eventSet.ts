@@ -48,6 +48,8 @@ export class EventSet {
     pinnedAnnotation = "pinnedAnnotation";
     unpinnedAnnotation = "unpinnedAnnotation";
 
+    reportedMessage = "reportedMessage";
+
     removedPresence = "removedPresence";
     removedMembership = "removedMembership";
     removedAnnotation = "removedAnnotation";
@@ -129,4 +131,5 @@ export class EventSet {
     getMostAnsweredQuestions = "getMostAnsweredQuestions";
     getLeastAnsweredQuestions = "getLeastAnsweredQuestions";
     getQuizAttempts = "getQuizAttempts";
+    getReportedThreadedMessages = "getReportedThreadedMessages";
 }
