@@ -37,7 +37,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let groupStore = db.createObjectStore("groups", { keyPath: ["identity", "id"] });
             db.createObjectStore("user", { keyPath: "identity" });
             db.createObjectStore("state", { keyPath: "id" });
-            db.createObjectStore("assets", { keyPath: ["identity", "id"] });
+            db.createObjectStore("assets", { keyPath: "name"});
             let queuedReferences = db.createObjectStore("queuedReferences", { keyPath: ["identity", "id"] });
             let notificationStore = db.createObjectStore("notifications", { keyPath: ["identity", "id"] });
             let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "book", "section", "pageKey"] });
@@ -952,32 +952,46 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveAsset(assetId: string, data: { [key: string]: any }, callback?: (() => void)): void {
-        // data.id = id;
-        // data.content = new Blob([data.content.response], { type: data.content.getResponseHeader("Content-Type") });
-        // let request = this.db.transaction(["assets"], "readwrite").objectStore("assets").put(cleanRecord(data));
-        // request.onerror = function(e) {
-        //     // consoleError(e);
-        // };
-        // request.onabort = function(e) {
-        //     consoleError("Abort", query, e);
-        // };
-        // request.onsuccess = function(e) {
-        //     // consoleError(e);
-        // };
-        throw new Error("Method not implemented.");
+    saveAsset(assetId: string, data: File, callback?: (() => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["assets"], "readwrite").objectStore("assets").put(data);
+            request.onerror = function(e) {
+                consoleError(e);
+            };
+            request.onsuccess = function(e) {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveAsset(assetId, data, callback);
+            });
+        }
+        
     }
 
-    getAsset(assetId: string, callback: (data: { [key: string]: any }) => void): void {
-        // let request = this.db.transaction(["assets"], "readonly").objectStore("assets").get(id);
-        // request.onerror = function(e) {
-        //     //consoleError(e);
-        // };
-        // request.onsuccess = function(e) {
-        //     if (callback != null)
-        //         callback(e.target.result);
-        // };
-        throw new Error("Method not implemented.");
+    getAsset(assetId: string): Promise<File> {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                let request = this.db.transaction(["assets"], "readonly").objectStore("assets").get(assetId);
+                request.onerror = function(e) {
+                    consoleError(e);
+                    reject();
+                };
+                request.onsuccess = function(e) {
+                    if (e.target)
+                        resolve((e.target as any).result as File);
+                    else
+                        reject();
+                };
+            } else {
+                let self = this;
+                this.invocationQueue.push(function() {
+                    resolve(self.getAsset(assetId));
+                });
+            }
+        })
     }
 
     // -------------------------------
