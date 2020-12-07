@@ -579,6 +579,9 @@ export class LLSyncAction implements SyncProcess {
                     }
                 };
                 processDisable();
+            } else {
+                if (callback)
+                    callback();
             }
         } else {
             if (callback) {
