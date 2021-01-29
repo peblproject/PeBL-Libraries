@@ -61,7 +61,7 @@ export class PEBL {
 
         let self = this;
         // if (this.useIndexedDB) {
-        this.storage = new IndexedDBStorageAdapter(function() {
+        this.storage = new IndexedDBStorageAdapter(this, function() {
             self.loaded = true;
             self.addSystemEventListeners();
             if (callback)
