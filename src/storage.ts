@@ -41,6 +41,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             db.createObjectStore("user", { keyPath: "identity" });
             db.createObjectStore("state", { keyPath: "id" });
             db.createObjectStore("assets");
+            db.createObjectStore("variables");
             let queuedReferences = db.createObjectStore("queuedReferences", { keyPath: ["identity", "id"] });
             let notificationStore = db.createObjectStore("notifications", { keyPath: ["identity", "id"] });
             let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "book", "section", "pageKey"] });
@@ -996,6 +997,49 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 let self = this;
                 this.invocationQueue.push(function() {
                     resolve(self.getAsset(assetId));
+                });
+            }
+        })
+    }
+
+    // -------------------------------
+
+    saveVariable(id: string, data: any, callback?: ((id: string) => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["variables"], "readwrite").objectStore("variables").put(data, id);
+            request.onerror = function(e) {
+                consoleError(e);
+            };
+            request.onsuccess = function(e) {
+                if (callback)
+                    callback(id);
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveAsset(id, data, callback);
+            });
+        }
+    }
+
+    getVariable(id: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                let request = this.db.transaction(["variables"], "readonly").objectStore("variables").get(id);
+                request.onerror = function(e) {
+                    consoleError(e);
+                    reject();
+                };
+                request.onsuccess = function() {
+                    if (request.result !== undefined)
+                        resolve(request.result);
+                    else
+                        reject();
+                };
+            } else {
+                let self = this;
+                this.invocationQueue.push(function() {
+                    resolve(self.getVariable(id));
                 });
             }
         })

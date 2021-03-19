@@ -128,6 +128,10 @@ export interface StorageAdapter {
 
     getAsset(assetId: string): Promise<File>;
 
+    saveVariable(id: string, data: any, callback?: (() => void)): void;
+    
+    getVariable(id: string): Promise<any>;
+
 
     saveQueuedReference(userProfile: UserProfile, ref: Reference, callback?: (() => void)): void;
 
