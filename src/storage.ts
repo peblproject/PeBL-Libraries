@@ -19,7 +19,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private pebl: PEBL;
 
     constructor(pebl: PEBL, callback: () => void) {
-        let request = window.indexedDB.open("pebl", 27);
+        let request = window.indexedDB.open("pebl", 28);
         let self: IndexedDBStorageAdapter = this;
         this.pebl = pebl;
 
