@@ -1632,6 +1632,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#uploaded", "uploaded");
                                 self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
+                                self.xapiGen.addAttachments(xapi, payload.attachments);
 
                                 let s = new Action(xapi);
                                 self.pebl.storage.saveOutgoingXApi(userProfile, {
