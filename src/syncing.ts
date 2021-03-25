@@ -1,3 +1,5 @@
+declare var window: any;
+
 const USER_PREFIX = "_user-";
 const GROUP_PREFIX = "_group-";
 
@@ -433,11 +435,20 @@ export class LLSyncAction implements SyncProcess {
         }
 
         this.messageHandlers.loggedOut = (userProfile, payload) => {
+            if (window.PeBLConfig && window.PeBLConfig.guestLogin) {
+                if (userProfile.identity === 'guest')
+                    return;
+            }
+            
             self.pebl.storage.removeCurrentUser(() => {
                 this.notificationTimestamps = {};
                 this.clearedNotifications = {};
                 self.pebl.emitEvent(self.pebl.events.eventRefreshLogin, null);
             });
+        }
+
+        this.messageHandlers.requestUpload = (userProfile, payload) => {
+            this.pebl.network.uploadAsset(payload.filename, payload.activityId);
         }
 
         this.messageHandlers.error = (userProfile, payload) => {
@@ -579,6 +590,9 @@ export class LLSyncAction implements SyncProcess {
                     }
                 };
                 processDisable();
+            } else {
+                if (callback)
+                    callback();
             }
         } else {
             if (callback) {

@@ -102,6 +102,7 @@ export class EventSet {
     eventInvited = "eventInvited";
     eventUninvited = "eventUninvited";
     eventSubmitted = "eventSubmitted";
+    eventUploadedMedia = "eventUploadedMedia";
 
     eventProgramLevelUp = "eventProgramLevelUp";
     eventProgramLevelDown = "eventProgramLevelDown";

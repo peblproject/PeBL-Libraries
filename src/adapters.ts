@@ -40,6 +40,9 @@ export interface NetworkAdapter {
     retrievePresence(): void;
 
     push(finished: (() => void)): void;
+
+    uploadAsset(assetId: string, activityId: string): Promise<string>;
+    fetchAsset(assetId: string): Promise<File>;
 }
 
 // -------------------------------
@@ -123,7 +126,11 @@ export interface StorageAdapter {
 
     saveAsset(assetId: string, data: { [key: string]: any }, callback?: (() => void)): void;
 
-    getAsset(assetId: string, callback: (data: { [key: string]: any }) => void): void;
+    getAsset(assetId: string): Promise<File>;
+
+    saveVariable(id: string, data: any, callback?: (() => void)): void;
+    
+    getVariable(id: string): Promise<any>;
 
 
     saveQueuedReference(userProfile: UserProfile, ref: Reference, callback?: (() => void)): void;

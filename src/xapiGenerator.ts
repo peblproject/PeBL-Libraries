@@ -287,4 +287,11 @@ export class XApiGenerator {
 
         return 'pebl://deprecated';
     }
+
+    addAttachments(stmt: { [key: string]: any }, attachments: {display: {[key: string]: string}, contentType: string, length: number, sha2: string}[]) {
+        if (!stmt.attachments)
+            stmt.attachments = attachments;
+
+        return stmt;
+    }
 }

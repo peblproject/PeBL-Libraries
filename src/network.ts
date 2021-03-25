@@ -51,6 +51,50 @@ export class Network implements NetworkAdapter {
         //     sync.retrievePresence();
     }
 
+    uploadAsset(assetId: string, activityId: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this.pebl.storage.getAsset(assetId).then((file) => {
+                if (this.pebl.config && this.pebl.config.PeBLServicesURL) {
+                    let fd = new FormData();
+                    fd.append('activityId', activityId);
+                    fd.append('mediaId', assetId);
+                    fd.append('media', file);
+                    
+                    fetch(this.pebl.config.PeBLServicesURL + '/user/media', {
+                        credentials: 'include',
+                        method: 'POST',
+                        body: fd
+                    }).then((res) => {
+                        console.log(res);
+                        resolve(res.statusText);
+                    }).catch((e) => {
+                        console.error(e);
+                        reject();
+                    })
+                }
+            }).catch(() => {
+                reject();
+            })
+        })
+    }
+
+    fetchAsset(assetId: string): Promise<File> {
+        return new Promise((resolve, reject) => {
+            if (this.pebl.config && this.pebl.config.PeBLServicesURL) {
+                fetch(this.pebl.config.PeBLServicesURL + '/user/media?mediaId=' + assetId, {
+                    credentials: 'include',
+                    method: 'GET'
+                }).then(res => res.blob()).then(blob => {
+                    console.log(blob);
+                    resolve(new File([blob], assetId));
+                }).catch((e) => {
+                    console.error(e);
+                    reject();
+                })
+            }
+        })
+    }
+
     private pullAsset(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && userProfile.registryEndpoint) {

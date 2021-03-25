@@ -1,3 +1,4 @@
+import { PEBL } from "./pebl";
 import { StorageAdapter } from "./adapters";
 import { XApiStatement, Reference, Message, Annotation, SharedAnnotation, Membership, ProgramAction, ModuleEvent, ModuleRating, ModuleFeedback, ModuleExample, ModuleExampleRating, ModuleExampleFeedback } from "./xapi";
 import { UserProfile } from "./models";
@@ -15,10 +16,12 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     private db?: IDBDatabase;
     private invocationQueue: Function[] = [];
+    private pebl: PEBL;
 
-    constructor(callback: () => void) {
-        let request = window.indexedDB.open("pebl", 26);
+    constructor(pebl: PEBL, callback: () => void) {
+        let request = window.indexedDB.open("pebl", 28);
         let self: IndexedDBStorageAdapter = this;
+        this.pebl = pebl;
 
         request.onupgradeneeded = function() {
             let db = request.result;
@@ -37,7 +40,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let groupStore = db.createObjectStore("groups", { keyPath: ["identity", "id"] });
             db.createObjectStore("user", { keyPath: "identity" });
             db.createObjectStore("state", { keyPath: "id" });
-            db.createObjectStore("assets", { keyPath: "name"});
+            db.createObjectStore("assets");
+            db.createObjectStore("variables");
             let queuedReferences = db.createObjectStore("queuedReferences", { keyPath: ["identity", "id"] });
             let notificationStore = db.createObjectStore("notifications", { keyPath: ["identity", "id"] });
             let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "book", "section", "pageKey"] });
@@ -952,26 +956,26 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     // -------------------------------
 
-    saveAsset(assetId: string, data: File, callback?: (() => void)): void {
+    saveAsset(id: string, data: File, callback?: ((id: string) => void)): void {
         if (this.db) {
-            let request = this.db.transaction(["assets"], "readwrite").objectStore("assets").put(data);
+            let request = this.db.transaction(["assets"], "readwrite").objectStore("assets").put(data, id);
             request.onerror = function(e) {
                 consoleError(e);
             };
             request.onsuccess = function(e) {
                 if (callback)
-                    callback();
+                    callback(id);
             };
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.saveAsset(assetId, data, callback);
+                self.saveAsset(id, data, callback);
             });
         }
-        
     }
 
     getAsset(assetId: string): Promise<File> {
+        let self = this;
         return new Promise((resolve, reject) => {
             if (this.db) {
                 let request = this.db.transaction(["assets"], "readonly").objectStore("assets").get(assetId);
@@ -979,16 +983,63 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                     consoleError(e);
                     reject();
                 };
-                request.onsuccess = function(e) {
-                    if (e.target)
-                        resolve((e.target as any).result as File);
+                request.onsuccess = function() {
+                    if (request.result)
+                        resolve(request.result as File);
+                    else
+                        self.pebl.network.fetchAsset(assetId).then((file) => {
+                            resolve(file);
+                        }).catch(() => {
+                            reject();
+                        })
+                };
+            } else {
+                let self = this;
+                this.invocationQueue.push(function() {
+                    resolve(self.getAsset(assetId));
+                });
+            }
+        })
+    }
+
+    // -------------------------------
+
+    saveVariable(id: string, data: any, callback?: ((id: string) => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["variables"], "readwrite").objectStore("variables").put(data, id);
+            request.onerror = function(e) {
+                consoleError(e);
+            };
+            request.onsuccess = function(e) {
+                if (callback)
+                    callback(id);
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveAsset(id, data, callback);
+            });
+        }
+    }
+
+    getVariable(id: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                let request = this.db.transaction(["variables"], "readonly").objectStore("variables").get(id);
+                request.onerror = function(e) {
+                    consoleError(e);
+                    reject();
+                };
+                request.onsuccess = function() {
+                    if (request.result !== undefined)
+                        resolve(request.result);
                     else
                         reject();
                 };
             } else {
                 let self = this;
                 this.invocationQueue.push(function() {
-                    resolve(self.getAsset(assetId));
+                    resolve(self.getVariable(id));
                 });
             }
         })
