@@ -1,0 +1,83 @@
+image: node:11
+
+cache:
+    paths:
+    - node_modules/
+
+stages:
+   - build
+   - downstream
+
+#---------------------------------------------------------------
+
+buildDev:
+  stage: build
+  only:
+    - dev
+  script:
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+    - dist/PeBLCore.js
+
+#----------------------
+
+buildQA:
+  stage: build
+  only:
+    - qa
+  script:
+    - npm install
+    - export MINIMIZE=true && npm run build
+  artifacts:
+    paths:
+    - dist/PeBLCore.js
+
+#----------------------
+
+buildProd:
+  stage: build
+  only:
+    - master
+  script:
+    - npm install
+    - export MINIMIZE=true && npm run build
+  artifacts:
+    paths:
+    - dist/PeBLCore.js
+
+
+
+#---------------------------------------------------------------
+
+
+downstreamDev:
+  stage: downstream
+  only:
+    - dev
+  trigger:
+    project: pebl/WebReader
+    branch: Dev
+
+#----------------------
+
+downstreamQa:
+  stage: downstream
+  only:
+    - qa
+  trigger:
+    project: pebl/WebReader
+    branch: QA
+
+#----------------------
+
+downstreamMaster:
+  stage: downstream
+  only:
+    - master
+  trigger:
+    project: pebl/WebReader
+    branch: master
+
+#---------------------------------------------------------------

@@ -1,6 +1,8 @@
 const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
+const PEBL_ACTIVITY_PREFIX = "http://www.peblproject.com/activities/";
 
 import { UserProfile } from "./models";
+import { getBrowserMetadata } from "./utils";
 
 export class XApiGenerator {
 
@@ -32,18 +34,36 @@ export class XApiGenerator {
         stmt.result.score.max = maxScore;
 
         if (extensions) {
-            if (!stmt.extensions)
-                stmt.extensions = {};
+            if (!stmt.result.extensions)
+                stmt.result.extensions = {};
 
             for (let key of Object.keys(extensions)) {
-                stmt.extensions[key] = extensions[key];
+                stmt.result.extensions[key] = extensions[key];
             }
         }
 
         return stmt;
     }
 
-    addObject(stmt: { [key: string]: any }, activityId: string, name?: string, description?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
+    addResultResponse(stmt: { [key: string]: any }, response: string, complete: boolean, duration?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
+        if (!stmt.result)
+            stmt.result = {};
+        stmt.result.response = response;
+        stmt.result.completion = complete;
+        if (duration)
+            stmt.result.duration = duration;
+        if (extensions) {
+            if (!stmt.result.extensions)
+                stmt.result.extensions = {};
+            for (let key of Object.keys(extensions)){
+                stmt.result.extensions[key] = extensions[key];
+            }
+        }
+
+        return stmt;
+    }
+
+    addObject(stmt: { [key: string]: any }, activityId: string, name?: string, description?: string, activityType?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
         if (!stmt.object)
             stmt.object = {};
 
@@ -67,6 +87,9 @@ export class XApiGenerator {
             stmt.object.definition.description["en-US"] = description;
         }
 
+        if (activityType)
+            stmt.object.definition.type = activityType;
+
         if (extensions)
             stmt.object.definition.extensions = extensions;
 
@@ -88,7 +111,7 @@ export class XApiGenerator {
         return clone;
     }
 
-    addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][]): { [key: string]: any } {
+    addObjectInteraction(stmt: { [key: string]: any }, activityId: string, name: string, prompt: string, interaction: string, answers: string[], correctAnswers: string[][], extensions?: { [key: string]: any }): { [key: string]: any } {
         if (!stmt.object)
             stmt.object = {};
 
@@ -131,6 +154,9 @@ export class XApiGenerator {
             stmt.object.definition.description = {}
 
         stmt.object.definition.description["en-US"] = prompt;
+
+        if (extensions)
+            stmt.object.definition.extensions = extensions;
 
         return stmt;
     }
@@ -221,4 +247,51 @@ export class XApiGenerator {
         return stmt;
     }
 
+    addPeblContextExtensions(obj: { [key: string]: any }, userProfile: UserProfile, bookTitle?: string, bookId?: string) {
+        let platform = getBrowserMetadata();
+
+        obj.browserName = platform.name;
+        obj.browserVersion = platform.version;
+        obj.osName = platform.os.family;
+        obj.osVersion = platform.os.version;
+
+        obj.contextOrigin = window.location.origin;
+        obj.contextUrl = window.location.href;
+
+        if (userProfile.currentTeam)
+            obj.currentTeam = userProfile.currentTeam;
+        if (userProfile.currentClass)
+            obj.currentClass = userProfile.currentClass;
+
+        if (bookTitle)
+            obj.bookTitle = bookTitle;
+        if (bookId)
+            obj.bookId = bookId;
+
+        return obj;
+    }
+
+    addPeblActivity(activityURI?: string, activityType?: string, activityId?: string) {
+        if (activityURI)
+            return activityURI;
+
+        if (activityType) {
+            var peblActivity = PEBL_ACTIVITY_PREFIX + activityType;
+
+            if (activityId)
+                peblActivity += ('?id=' + activityId);
+
+            return peblActivity;
+        }
+        
+
+        return 'pebl://deprecated';
+    }
+
+    addAttachments(stmt: { [key: string]: any }, attachments: {display: {[key: string]: string}, contentType: string, length: number, sha2: string}[]) {
+        if (!stmt.attachments)
+            stmt.attachments = attachments;
+
+        return stmt;
+    }
 }
