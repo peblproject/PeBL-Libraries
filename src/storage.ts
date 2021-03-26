@@ -1017,7 +1017,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         } else {
             let self = this;
             this.invocationQueue.push(function() {
-                self.saveAsset(id, data, callback);
+                self.saveVariable(id, data, callback);
             });
         }
     }
