@@ -41,7 +41,7 @@ export interface NetworkAdapter {
 
     push(finished: (() => void)): void;
 
-    uploadAsset(assetId: string, activityId: string): Promise<string>;
+    uploadAsset(file: File, activityId: string): Promise<string>;
     fetchAsset(assetId: string): Promise<File>;
 }
 

@@ -447,9 +447,9 @@ export class LLSyncAction implements SyncProcess {
             });
         }
 
-        this.messageHandlers.requestUpload = (userProfile, payload) => {
-            this.pebl.network.uploadAsset(payload.filename, payload.activityId);
-        }
+        // this.messageHandlers.requestUpload = (userProfile, payload) => {
+        //     this.pebl.network.uploadAsset(payload.filename, payload.activityId);
+        // }
 
         this.messageHandlers.error = (userProfile, payload) => {
             consoleLog("Message failed", payload);
