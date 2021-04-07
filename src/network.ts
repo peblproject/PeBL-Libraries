@@ -83,7 +83,7 @@ export class Network implements NetworkAdapter {
                     method: 'GET'
                 }).then(res => res.blob()).then(blob => {
                     console.log(blob);
-                    resolve(new File([blob], assetId));
+                    resolve(new File([blob], assetId, {type: blob.type}));
                 }).catch((e) => {
                     console.error(e);
                     reject();
