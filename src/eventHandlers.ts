@@ -189,6 +189,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.prompt, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addResultResponse(xapi, payload.text, true, payload.duration, payload.additionalResultData ? self.xapiGen.addExtensions(payload.additionalResultData) : undefined);
                                 self.xapiGen.addActorAccount(xapi, userProfile);
+                                self.xapiGen.addAttachments(xapi, payload.attachments);
 
                                 let message = new Message(xapi);
                                 let clone = JSON.parse(JSON.stringify(message));

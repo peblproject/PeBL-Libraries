@@ -289,7 +289,7 @@ export class XApiGenerator {
     }
 
     addAttachments(stmt: { [key: string]: any }, attachments: {display: {[key: string]: string}, contentType: string, length: number, sha2: string}[]) {
-        if (!stmt.attachments)
+        if (!stmt.attachments && attachments)
             stmt.attachments = attachments;
 
         return stmt;
