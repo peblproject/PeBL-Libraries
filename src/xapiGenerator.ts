@@ -11,27 +11,34 @@ export class XApiGenerator {
         let result: { [key: string]: any } = {};
 
         for (let key of Object.keys(extensions)) {
-            result[PREFIX_PEBL_EXTENSION + key] = extensions[key];
+            if (key.startsWith('http') || key.startsWith('https'))
+                result[key] = extensions[key];
+            else
+                result[PREFIX_PEBL_EXTENSION + key] = extensions[key];
         }
 
         return result;
     }
 
-    addResult(stmt: { [key: string]: any }, score: number, minScore: number, maxScore: number, complete: boolean, success: boolean, answered?: string, duration?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
+    addResult(stmt: { [key: string]: any }, score?: number, minScore?: number, maxScore?: number, complete?: boolean, success?: boolean, answered?: string, duration?: string, extensions?: { [key: string]: any }): { [key: string]: any } {
         if (!stmt.result)
             stmt.result = {};
         stmt.result.success = success;
         stmt.result.completion = complete;
         stmt.result.response = answered;
 
-        if (!stmt.result.score)
-            stmt.result.score = {};
+        if (score) {
+            if (!stmt.result.score)
+                stmt.result.score = {};
 
-        stmt.result.score.raw = score;
-        stmt.result.score.duration = duration;
-        stmt.result.score.scaled = (score - minScore) / (maxScore - minScore);
-        stmt.result.score.min = minScore;
-        stmt.result.score.max = maxScore;
+            stmt.result.score.raw = score;
+            stmt.result.score.duration = duration;
+            if (minScore && maxScore)
+                stmt.result.score.scaled = (score - minScore) / (maxScore - minScore);
+            stmt.result.score.min = minScore;
+            stmt.result.score.max = maxScore;
+        }
+        
 
         if (extensions) {
             if (!stmt.result.extensions)
@@ -58,6 +65,18 @@ export class XApiGenerator {
             for (let key of Object.keys(extensions)){
                 stmt.result.extensions[key] = extensions[key];
             }
+        }
+
+        return stmt;
+    }
+
+    addResultExtensions(stmt: { [key: string]: any }, extensions: { [key: string]: any }): { [key: string]: any } {
+        if (!stmt.result)
+            stmt.result = {};
+        if (!stmt.result.extensions)
+            stmt.result.extensions = {};
+        for (let key of Object.keys(extensions)) {
+            stmt.result.extensions[key] = extensions[key];
         }
 
         return stmt;

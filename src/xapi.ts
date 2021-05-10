@@ -220,7 +220,7 @@ export class Action extends XApiStatement {
         return (verb == "preferred") || (verb == "morphed") || (verb == "interacted") || (verb == "experienced") || (verb == "disliked") ||
             (verb == "liked") || (verb == "accessed") || (verb == "hid") || (verb == "showed") || (verb == "displayed") || (verb == "undisplayed") ||
             (verb == "searched") || (verb == "selected") || (verb == "unbookmarked") || (verb == "discarded") || (verb == "unshared") || (verb == "unannotated") ||
-            (verb == "submitted");
+            (verb == "submitted") || (verb === 'played') || (verb === 'paused') || (verb === 'seeked');
     }
 }
 
