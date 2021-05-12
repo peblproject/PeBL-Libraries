@@ -70,13 +70,15 @@ export class XApiGenerator {
         return stmt;
     }
 
-    addResultExtensions(stmt: { [key: string]: any }, extensions: { [key: string]: any }): { [key: string]: any } {
-        if (!stmt.result)
-            stmt.result = {};
-        if (!stmt.result.extensions)
-            stmt.result.extensions = {};
-        for (let key of Object.keys(extensions)) {
-            stmt.result.extensions[key] = extensions[key];
+    addResultExtensions(stmt: { [key: string]: any }, extensions?: { [key: string]: any }): { [key: string]: any } {
+        if (extensions) {
+            if (!stmt.result)
+                stmt.result = {};
+            if (!stmt.result.extensions)
+                stmt.result.extensions = {};
+            for (let key of Object.keys(extensions)) {
+                stmt.result.extensions[key] = extensions[key];
+            }
         }
 
         return stmt;
