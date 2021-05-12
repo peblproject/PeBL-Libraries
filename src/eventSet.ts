@@ -103,7 +103,7 @@ export class EventSet {
     eventUninvited = "eventUninvited";
     eventSubmitted = "eventSubmitted";
     eventUploadedMedia = "eventUploadedMedia";
-    eventIntializedGeneric = "eventInitializedGeneric";
+    eventInitializedGeneric = "eventInitializedGeneric";
     eventCompletedGeneric = "eventCompletedGeneric";
     eventPlayed = "eventPlayed";
     eventPaused = "eventPaused";
