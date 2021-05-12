@@ -53,7 +53,7 @@ export class PEBLEventHandlers {
                                     identity: userProfile.identity,
                                     id: s.id,
                                     requestType: "saveSessions",
-                                    actions: [s]
+                                    sessions: [s]
                                 });
                                 self.pebl.storage.saveEvent(userProfile, s);
                             }
@@ -96,7 +96,7 @@ export class PEBLEventHandlers {
                                     identity: userProfile.identity,
                                     id: s.id,
                                     requestType: "saveNavigations",
-                                    actions: [s]
+                                    navigations: [s]
                                 });
                                 self.pebl.storage.saveEvent(userProfile, s);
                             }
