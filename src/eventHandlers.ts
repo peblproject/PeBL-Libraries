@@ -1,3 +1,21 @@
+/*
+
+Copyright 2021 Eduworks Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
 const PEBL_PREFIX = "";
 // const PEBL_THREAD_PREFIX = "peblThread://";
 const PEBL_THREAD_USER_PREFIX = "peblThread://user-";
@@ -29,7 +47,7 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            
+
         }
 
         this.pebl.user.getUser(function(userProfile) {
@@ -43,7 +61,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addActorAccount(xapi, userProfile);
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/initialized", "initialized");
-                                self.xapiGen.addContext(xapi, {extensions: payload.contextExtensions})
+                                self.xapiGen.addContext(xapi, { extensions: payload.contextExtensions })
                                 if (activity || book)
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
                                 self.xapiGen.addResultExtensions(xapi, payload.resultExtensions);
@@ -71,7 +89,7 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            
+
         }
 
         this.pebl.user.getUser(function(userProfile) {
@@ -85,7 +103,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addActorAccount(xapi, userProfile);
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/completed", "completed");
-                                self.xapiGen.addContext(xapi, {extensions: payload.contextExtensions})
+                                self.xapiGen.addContext(xapi, { extensions: payload.contextExtensions })
                                 if (activity || book)
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
                                 self.xapiGen.addResult(xapi, payload.score, payload.minScore, payload.maxScore, payload.complete, payload.success, payload.answered, payload.duration);
@@ -114,7 +132,7 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            
+
         }
 
         this.pebl.user.getUser(function(userProfile) {
@@ -128,7 +146,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addActorAccount(xapi, userProfile);
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "https://w3id.org/xapi/video/verbs/played", "played");
-                                self.xapiGen.addContext(xapi, {extensions: payload.contextExtensions})
+                                self.xapiGen.addContext(xapi, { extensions: payload.contextExtensions })
                                 if (activity || book)
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
                                 self.xapiGen.addResultExtensions(xapi, payload.resultExtensions);
@@ -156,7 +174,7 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            
+
         }
 
         this.pebl.user.getUser(function(userProfile) {
@@ -170,7 +188,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addActorAccount(xapi, userProfile);
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "https://w3id.org/xapi/video/verbs/paused", "paused");
-                                self.xapiGen.addContext(xapi, {extensions: payload.contextExtensions})
+                                self.xapiGen.addContext(xapi, { extensions: payload.contextExtensions })
                                 if (activity || book)
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
                                 self.xapiGen.addResultExtensions(xapi, payload.resultExtensions);
@@ -198,7 +216,7 @@ export class PEBLEventHandlers {
         let self = this;
 
         let exts = {
-            
+
         }
 
         this.pebl.user.getUser(function(userProfile) {
@@ -212,7 +230,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addActorAccount(xapi, userProfile);
                                 self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "https://w3id.org/xapi/video/verbs/seeked", "seeked");
-                                self.xapiGen.addContext(xapi, {extensions: payload.contextExtensions})
+                                self.xapiGen.addContext(xapi, { extensions: payload.contextExtensions })
                                 if (activity || book)
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (activity || book));
                                 self.xapiGen.addResultExtensions(xapi, payload.resultExtensions);
@@ -244,7 +262,7 @@ export class PEBLEventHandlers {
         // if (book.indexOf("/") != -1)
         //     book = book.substring(book.lastIndexOf("/") + 1);
 
-        this.pebl.storage.getCurrentBook(function(currentBook) { 
+        this.pebl.storage.getCurrentBook(function(currentBook) {
             if (currentBook != book) {
                 if (currentBook)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, {
@@ -1570,7 +1588,7 @@ export class PEBLEventHandlers {
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                self.pebl.storage.getCurrentBookId(function(bookId) {
                     self.pebl.user.getUser(function(userProfile) {
                         if (userProfile && book) {
                             self.xapiGen.addId(xapi);
@@ -1640,7 +1658,7 @@ export class PEBLEventHandlers {
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                self.pebl.storage.getCurrentBookId(function(bookId) {
                     self.pebl.storage.getCurrentActivity(function(activity) {
                         self.pebl.user.getUser(function(userProfile) {
                             if (userProfile) {
@@ -2399,7 +2417,7 @@ export class PEBLEventHandlers {
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                self.pebl.storage.getCurrentBookId(function(bookId) {
                     self.pebl.storage.getCurrentActivity(function(activity) {
                         self.pebl.user.getUser(function(userProfile) {
                             if (userProfile) {
@@ -2440,7 +2458,7 @@ export class PEBLEventHandlers {
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                self.pebl.storage.getCurrentBookId(function(bookId) {
                     self.pebl.storage.getCurrentActivity(function(activity) {
                         self.pebl.user.getUser(function(userProfile) {
                             if (userProfile) {
@@ -2526,7 +2544,7 @@ export class PEBLEventHandlers {
 
         this.pebl.storage.getCurrentBook(function(book) {
             self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                self.pebl.storage.getCurrentBookId(function(bookId) {
                     self.pebl.storage.getCurrentActivity(function(activity) {
                         self.pebl.user.getUser(function(userProfile) {
                             if (userProfile) {

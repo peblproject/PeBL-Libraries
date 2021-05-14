@@ -1,3 +1,21 @@
+/*
+
+Copyright 2021 Eduworks Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
 const NAMESPACE_USER_MESSAGES = "user-";
 const PREFIX_PEBL_THREAD = "peblThread://";
 const PREFIX_PEBL = "pebl://";
@@ -48,7 +66,7 @@ export class XApiStatement {
             this.currentTeam = extensions[PREFIX_PEBL_EXTENSION + "currentTeam"];
             this.currentClass = extensions[PREFIX_PEBL_EXTENSION + "currentClass"];
         }
-        
+
     }
 
     toXAPI(): XApiStatement {
@@ -140,7 +158,7 @@ export class Annotation extends XApiStatement {
         this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
         this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
         this.style = extensions[PREFIX_PEBL_EXTENSION + "style"];
-        
+
         if (extensions[PREFIX_PEBL_EXTENSION + "bookId"])
             this.book = extensions[PREFIX_PEBL_EXTENSION + "bookId"];
 
@@ -305,8 +323,8 @@ export class Message extends XApiStatement {
             this.cfi = extensions[PREFIX_PEBL_EXTENSION + "cfi"];
             this.idRef = extensions[PREFIX_PEBL_EXTENSION + "idRef"];
             this.peblAction = extensions[PREFIX_PEBL_EXTENSION + "peblAction"];
-            
-            
+
+
             if (extensions[PREFIX_PEBL_EXTENSION + "thread"])
                 this.thread = extensions[PREFIX_PEBL_EXTENSION + "thread"];
         }

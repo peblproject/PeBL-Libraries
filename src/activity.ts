@@ -1,3 +1,21 @@
+/*
+
+Copyright 2021 Eduworks Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
 // import { PEBL } from "./pebl";
 import { XApiStatement } from "./xapi";
 import { Membership } from "./xapi";
@@ -250,7 +268,7 @@ export class Program extends Activity {
         let keys = Object.keys(this);
 
         for (let key of keys) {
-            if(key.indexOf('member-') !== -1) {
+            if (key.indexOf('member-') !== -1) {
                 if (self[key] == null) {
                     obj[key] = self[key];
                 } else if ((XApiStatement.is(self[key]) && Membership.is(self[key] as XApiStatement)) || TempMembership.is(self[key])) {
@@ -272,8 +290,8 @@ export class Program extends Activity {
         obj.programCommunities = this.programCommunities;
         obj.programInstitutions = this.programInstitutions;
         obj.completed = this.completed ? this.completed.toISOString() : undefined,
-        obj.created = this.created ? this.created.toISOString() : undefined,
-        obj.members = encodeURIComponent(JSON.stringify(this.members));
+            obj.created = this.created ? this.created.toISOString() : undefined,
+            obj.members = encodeURIComponent(JSON.stringify(this.members));
         return obj;
     }
 
@@ -352,7 +370,7 @@ export class Institution extends Activity {
                     self[key] = member;
                 }
             } else if (key.indexOf('program-') !== -1) {
-                let program = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key] ?  raw[key] : null);
+                let program = typeof (raw[key]) === "string" ? JSON.parse(decodeURIComponent(raw[key])) : (raw[key] ? raw[key] : null);
                 if (program == null || (Program.is(program))) {
                     self[key] = program;
                 }
