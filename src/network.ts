@@ -62,12 +62,16 @@ export class Network implements NetworkAdapter {
                     credentials: 'include',
                     method: 'POST',
                     body: fd
-                }).then(res => res.text()).then((mediaId) => {
+                }).then(async (res) => {
+                    if (!res.ok)
+                        throw Error(await res.text());
+                    return res.text();
+                }).then((mediaId) => {
                     console.log(mediaId);
                     resolve(mediaId);
                 }).catch((e) => {
                     console.error(e);
-                    reject();
+                    reject(e);
                 })
             } else {
                 reject();
