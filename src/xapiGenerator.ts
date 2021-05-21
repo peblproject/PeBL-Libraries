@@ -1,3 +1,21 @@
+/*
+
+Copyright 2021 Eduworks Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
 const PREFIX_PEBL_EXTENSION = "https://www.peblproject.com/definitions.html#";
 const PEBL_ACTIVITY_PREFIX = "http://www.peblproject.com/activities/";
 
@@ -38,7 +56,7 @@ export class XApiGenerator {
             stmt.result.score.min = minScore;
             stmt.result.score.max = maxScore;
         }
-        
+
 
         if (extensions) {
             if (!stmt.result.extensions)
@@ -62,7 +80,7 @@ export class XApiGenerator {
         if (extensions) {
             if (!stmt.result.extensions)
                 stmt.result.extensions = {};
-            for (let key of Object.keys(extensions)){
+            for (let key of Object.keys(extensions)) {
                 stmt.result.extensions[key] = extensions[key];
             }
         }
@@ -304,12 +322,12 @@ export class XApiGenerator {
 
             return peblActivity;
         }
-        
+
 
         return 'pebl://deprecated';
     }
 
-    addAttachments(stmt: { [key: string]: any }, attachments: {display: {[key: string]: string}, contentType: string, length: number, sha2: string}[]) {
+    addAttachments(stmt: { [key: string]: any }, attachments: { display: { [key: string]: string }, contentType: string, length: number, sha2: string }[]) {
         if (!stmt.attachments && attachments)
             stmt.attachments = attachments;
 
