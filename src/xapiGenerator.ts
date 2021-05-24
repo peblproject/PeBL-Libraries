@@ -45,13 +45,13 @@ export class XApiGenerator {
         stmt.result.completion = complete;
         stmt.result.response = answered;
 
-        if (score) {
+        if (typeof score !== 'undefined') {
             if (!stmt.result.score)
                 stmt.result.score = {};
 
             stmt.result.score.raw = score;
             stmt.result.score.duration = duration;
-            if (minScore && maxScore)
+            if (typeof minScore !== 'undefined' && typeof maxScore !== 'undefined')
                 stmt.result.score.scaled = (score - minScore) / (maxScore - minScore);
             stmt.result.score.min = minScore;
             stmt.result.score.max = maxScore;
