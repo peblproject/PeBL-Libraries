@@ -67,6 +67,7 @@ export class EventSet {
     unpinnedAnnotation = "unpinnedAnnotation";
 
     reportedMessage = "reportedMessage";
+    unreportedMessage = "unreportedMessage";
 
     removedPresence = "removedPresence";
     removedMembership = "removedMembership";
