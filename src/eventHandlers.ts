@@ -1641,26 +1641,30 @@ export class PEBLEventHandlers {
             type: payload.type
         }
 
-        this.pebl.user.getUser(function(userProfile) {
-            self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
-                self.pebl.storage.getCurrentBookId(function(bookId) {
-                    if (userProfile) {
-                        self.xapiGen.addId(xapi);
-                        self.xapiGen.addTimestamp(xapi);
-                        self.xapiGen.addActorAccount(xapi, userProfile);
-                        self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
-                        self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/interacted", "interacted");
-                        self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + payload.activity);
+        this.pebl.storage.getCurrentActivity(function(activity) {
+            self.pebl.storage.getCurrentBook(function(book) {
+                self.pebl.storage.getCurrentBookTitle(function(bookTitle) {
+                    self.pebl.storage.getCurrentBookId(function(bookId) {
+                        self.pebl.user.getUser(function(userProfile) {
+                            if (userProfile) {
+                                self.xapiGen.addId(xapi);
+                                self.xapiGen.addTimestamp(xapi);
+                                self.xapiGen.addActorAccount(xapi, userProfile);
+                                self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
+                                self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/interacted", "interacted");
+                                self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + activity);
 
-                        let s = new Action(xapi);
-                        self.pebl.storage.saveOutgoingXApi(userProfile, {
-                            identity: userProfile.identity,
-                            id: s.id,
-                            requestType: "saveActions",
-                            actions: [s]
+                                let s = new Action(xapi);
+                                self.pebl.storage.saveOutgoingXApi(userProfile, {
+                                    identity: userProfile.identity,
+                                    id: s.id,
+                                    requestType: "saveActions",
+                                    actions: [s]
+                                });
+                                self.pebl.storage.saveEvent(userProfile, s);
+                            }
                         });
-                        self.pebl.storage.saveEvent(userProfile, s);
-                    }
+                    });
                 });
             });
         });
