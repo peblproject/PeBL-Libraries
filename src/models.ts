@@ -31,6 +31,7 @@ export class UserProfile {
     currentClass?: string;
     currentClassName?: string;
     memberships?: { [key: string]: string };
+    instanceRoles?: { [key: string]: string};
     role?: string;
     groups?: string[];
     readonly firstName?: string;
@@ -57,6 +58,7 @@ export class UserProfile {
         this.currentClass = raw.currentClass;
         this.currentClassName = raw.currentClassName;
         this.memberships = raw.memberships;
+        this.instanceRoles = raw.instanceRoles;
         this.role = raw.role;
         this.groups = raw.groups;
 
@@ -110,6 +112,7 @@ export class UserProfile {
             "currentClass": this.currentClass,
             "currentClassName": this.currentClassName,
             "memberships": this.memberships,
+            "instanceRoles": this.instanceRoles,
             "firstName": this.firstName,
             "lastName": this.lastName,
             "avatar": this.avatar,
