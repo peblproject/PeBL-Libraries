@@ -60,6 +60,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             db.createObjectStore("state", { keyPath: "id" });
             db.createObjectStore("assets");
             db.createObjectStore("variables");
+            db.createObjectStore("completion");
             let queuedReferences = db.createObjectStore("queuedReferences", { keyPath: ["identity", "id"] });
             let notificationStore = db.createObjectStore("notifications", { keyPath: ["identity", "id"] });
             let tocStore = db.createObjectStore("tocs", { keyPath: ["identity", "book", "section", "pageKey"] });
@@ -1058,6 +1059,49 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
                 let self = this;
                 this.invocationQueue.push(function() {
                     resolve(self.getVariable(id));
+                });
+            }
+        })
+    }
+
+    // -------------------------------
+
+    saveCompletion(id: string, data: {[key: string]: any}, callback?: ((id: string) => void)): void {
+        if (this.db) {
+            let request = this.db.transaction(["completion"], "readwrite").objectStore("completion").put(JSON.stringify(data), id);
+            request.onerror = function(e) {
+                consoleError(e);
+            };
+            request.onsuccess = function(e) {
+                if (callback)
+                    callback(id);
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveVariable(id, data, callback);
+            });
+        }
+    }
+
+    getCompletion(id: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                let request = this.db.transaction(["completion"], "readonly").objectStore("completion").get(id);
+                request.onerror = function(e) {
+                    consoleError(e);
+                    reject();
+                };
+                request.onsuccess = function() {
+                    if (request.result !== undefined)
+                        resolve(JSON.parse(request.result));
+                    else
+                        resolve(null);
+                };
+            } else {
+                let self = this;
+                this.invocationQueue.push(function() {
+                    resolve(self.getCompletion(id));
                 });
             }
         })
