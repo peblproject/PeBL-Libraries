@@ -384,9 +384,9 @@ export class LLSyncAction implements SyncProcess {
                         if (variable.timestamp > timestamp)
                             timestamp = variable.timestamp;
                         
-                        this.pebl.storage.saveVariable(variable.id, variable.value, () => {
+                        this.pebl.storage.saveVariable(id, variable.value, () => {
                             this.pebl.emitEvent(this.pebl.events.newVariable, {
-                                id: variable.id,
+                                id: id,
                                 value: variable.value
                             })
                         })

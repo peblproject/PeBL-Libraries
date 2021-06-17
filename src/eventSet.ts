@@ -159,4 +159,6 @@ export class EventSet {
     getLeastAnsweredQuestions = "getLeastAnsweredQuestions";
     getQuizAttempts = "getQuizAttempts";
     getReportedThreadedMessages = "getReportedThreadedMessages";
+
+    eventSaveVariable = "eventSaveVariable";
 }
