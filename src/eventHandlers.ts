@@ -3446,4 +3446,18 @@ export class PEBLEventHandlers {
             }
         }
     }
+
+    eventSaveVariable(event: CustomEvent) {
+        let variable = event.detail;
+
+        this.pebl.user.getUser((userProfile) => {
+            if (userProfile) {
+                this.pebl.storage.saveOutgoingXApi(userProfile, {
+                    identity: userProfile.identity,
+                    requestType: "saveVariables",
+                    variables: [variable]
+                });
+            }
+        });
+    }
 }

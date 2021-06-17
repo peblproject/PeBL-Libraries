@@ -79,6 +79,7 @@ export class LLSyncAction implements SyncProcess {
             this.pullSharedAnnotations();
             this.pullReferences();
             this.pullSubscribedThreads();
+            this.pullVariables();
         };
 
         this.messageHandlers.setLastNotifiedDates = (userProfile, payload) => {
@@ -371,6 +372,27 @@ export class LLSyncAction implements SyncProcess {
                         });
                     });
             }
+        }
+
+        this.messageHandlers.getVariables = (userProfile, payload) => {
+            console.log(payload);
+            this.pebl.storage.getSyncTimestamps(userProfile.identity,
+                'variables',
+                (timestamp: number) => {
+                    for (let id in payload.data) {
+                        let variable = payload.data[id];
+                        if (variable.timestamp > timestamp)
+                            timestamp = variable.timestamp;
+                        
+                        this.pebl.storage.saveVariable(variable.id, variable.value, () => {
+                            this.pebl.emitEvent(this.pebl.events.newVariable, {
+                                id: variable.id,
+                                value: variable.value
+                            })
+                        })
+                    }
+                    this.pebl.storage.saveSyncTimestamps(userProfile.identity, 'variables', timestamp, () => {});
+                });
         }
 
         this.messageHandlers.newAnnotation = (userProfile, payload) => {
@@ -757,6 +779,23 @@ export class LLSyncAction implements SyncProcess {
                         })(groupId)
                     }
                 }
+            }
+        });
+    }
+
+    pullVariables(): void {
+        this.pebl.user.getUser((userProfile) => {
+            if (userProfile && this.websocket && this.websocket.readyState === 1) {
+                this.pebl.storage.getSyncTimestamps(userProfile.identity, 'variables', (timestamp: number) => {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getVariables",
+                        timestamp: timestamp + 1
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify(message));
+                    }
+                })
             }
         });
     }

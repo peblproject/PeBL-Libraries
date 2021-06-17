@@ -57,6 +57,7 @@ export class EventSet {
     newMembership = "newMembership";
     newSharedAnnotation = "newSharedAnnotation";
     newArtifact = "newArtifact";
+    newVariable = "newVariable";
 
     modifiedMembership = "modifiedMembership";
 
