@@ -3455,6 +3455,7 @@ export class PEBLEventHandlers {
                 variable.identity = userProfile.identity;
                 this.pebl.storage.saveOutgoingXApi(userProfile, {
                     identity: userProfile.identity,
+                    id: variable.id,
                     requestType: "saveVariables",
                     variables: [variable]
                 });
