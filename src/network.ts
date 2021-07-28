@@ -1,18 +1,18 @@
 /*
 
-Copyright 2021 Eduworks Corporation
+  Copyright 2021 Eduworks Corporation
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
 
 */
 
@@ -20,8 +20,6 @@ import { PEBL } from "./pebl";
 import { LLSyncAction } from "./syncing";
 import { NetworkAdapter, SyncProcess } from "./adapters";
 import { Reference } from "./xapi";
-// import { Activity } from "./activity";
-
 
 export class Network implements NetworkAdapter {
 
@@ -33,10 +31,24 @@ export class Network implements NetworkAdapter {
 
     private pebl: PEBL;
     private syncingProcess: SyncProcess;
+    private networkId: string;
+
+    private ELECTED_PUSH_SHORT_TIMEOUT = 3 * 1000;
+    private ELECTED_PUSH_LONG_TIMEOUT = 7.5 * 1000;
+
+    private SHORT_PUSH_TIMEOUT = 2000;
+    private LONG_PUSH_TIMEOUT = 5000;
+
+    private LEADER_SHORT = "leaderShort";
+    private LEADER_LONG = "leaderLong";
+
+    private ELECTED_SHORT = "electedShort";
+    private ELECTED_LONG = "electedLong";
 
     constructor(pebl: PEBL) {
         this.pebl = pebl;
         this.running = false;
+        this.networkId = this.pebl.utils.getUuid();
         this.syncingProcess = new LLSyncAction(pebl);
     }
 
@@ -47,6 +59,10 @@ export class Network implements NetworkAdapter {
                 this.push();
                 this.pushActivity();
                 this.pullAsset();
+                localStorage[this.LEADER_SHORT] = this.networkId;
+                localStorage[this.ELECTED_SHORT] = Date.now();
+                localStorage[this.LEADER_LONG] = this.networkId;
+                localStorage[this.ELECTED_LONG] = Date.now();
                 if (callback)
                     callback();
             });
@@ -143,7 +159,7 @@ export class Network implements NetworkAdapter {
                                         this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
                                         if (this.running)
-                                            this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                                            this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
 
                                         // The below requires an API that is currently unavailable and also not needed at this time
                                         // let xhr = new XMLHttpRequest();
@@ -167,7 +183,7 @@ export class Network implements NetworkAdapter {
                                         //     this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
                                         //     if (this.running)
-                                        //         this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                                        //         this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
                                         // });
 
                                         // xhr.addEventListener("error", function() {
@@ -178,7 +194,7 @@ export class Network implements NetworkAdapter {
                                         //     this.pebl.storage.removeQueuedReference(userProfile, ref.id);
 
                                         //     if (this.running)
-                                        //         this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                                        //         this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
                                         // });
 
                                         // let url = userProfile.registryEndpoint && userProfile.registryEndpoint.url;
@@ -187,23 +203,23 @@ export class Network implements NetworkAdapter {
                                         //     xhr.open("GET", url + ref.url);
                                         //     xhr.send();
                                         // } else if (this.running)
-                                        //     this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                                        //     this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
                                     } else {
-                                        this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                                        this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
                                     }
                                 });
 
                             } else {
                                 if (this.running)
-                                    this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                                    this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
                             }
                         });
                     } else if (this.running) {
-                        this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                        this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
                     }
                 });
             } else if (this.running)
-                this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), 5000);
+                this.pullAssetTimeout = setTimeout(this.pullAsset.bind(this), this.LONG_PUSH_TIMEOUT);
         });
     }
 
@@ -236,6 +252,21 @@ export class Network implements NetworkAdapter {
             this.pushActivityTimeout = undefined;
         }
 
+        if (localStorage[this.LEADER_LONG] !== this.networkId) {
+            const electedTime = parseInt(localStorage[this.ELECTED_LONG] || '0');
+            const time = Date.now();
+            if ((electedTime + this.ELECTED_PUSH_LONG_TIMEOUT) < time) {
+                localStorage[this.LEADER_LONG] = this.networkId;
+                localStorage[this.ELECTED_LONG] = time;
+            }
+            if (this.running)
+                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), this.LONG_PUSH_TIMEOUT);
+            if (finished)
+                finished();
+            return;
+        }
+        localStorage[this.ELECTED_LONG] = Date.now();
+
         this.pebl.user.getUser((userProfile) => {
             if (userProfile) {
                 this.pebl.storage.getOutgoingActivity(userProfile,
@@ -246,21 +277,21 @@ export class Network implements NetworkAdapter {
                                     if (success)
                                         this.pebl.storage.removeOutgoingActivity(userProfile, stmts);
                                     if (this.running)
-                                        this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), 5000);
+                                        this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), this.LONG_PUSH_TIMEOUT);
 
                                     if (finished)
                                         finished();
                                 });
                         } else {
                             if (this.running)
-                                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), 5000);
+                                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), this.LONG_PUSH_TIMEOUT);
 
                             if (finished)
                                 finished();
                         }
                     });
             } else if (this.running)
-                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), 5000);
+                this.pushActivityTimeout = setTimeout(this.pushActivity.bind(this), this.LONG_PUSH_TIMEOUT);
         });
     }
 
@@ -269,6 +300,21 @@ export class Network implements NetworkAdapter {
             clearTimeout(this.pushTimeout);
             this.pushTimeout = undefined;
         }
+
+        if (localStorage[this.LEADER_SHORT] !== this.networkId) {
+            const electedTime = parseInt(localStorage[this.ELECTED_SHORT] || '0');
+            const time = Date.now();
+            if ((electedTime + this.ELECTED_PUSH_SHORT_TIMEOUT) < time) {
+                localStorage[this.LEADER_SHORT] = this.networkId;
+                localStorage[this.ELECTED_SHORT] = time;
+            }
+            if (this.running)
+                this.pushTimeout = setTimeout(this.push.bind(this), this.SHORT_PUSH_TIMEOUT);
+            if (finished)
+                finished();
+            return;
+        }
+        localStorage[this.ELECTED_SHORT] = Date.now();
 
         this.pebl.user.getUser((userProfile) => {
             if (userProfile) {
@@ -280,14 +326,14 @@ export class Network implements NetworkAdapter {
                                     if (success)
                                         this.pebl.storage.removeOutgoingXApi(userProfile, stmts);
                                     if (this.running)
-                                        this.pushTimeout = setTimeout(this.push.bind(this), 2000);
+                                        this.pushTimeout = setTimeout(this.push.bind(this), this.SHORT_PUSH_TIMEOUT);
 
                                     if (finished)
                                         finished();
                                 });
                         } else {
                             if (this.running)
-                                this.pushTimeout = setTimeout(this.push.bind(this), 2000);
+                                this.pushTimeout = setTimeout(this.push.bind(this), this.SHORT_PUSH_TIMEOUT);
 
                             if (finished)
                                 finished();
@@ -295,7 +341,7 @@ export class Network implements NetworkAdapter {
                     });
             } else {
                 if (this.running)
-                    this.pushTimeout = setTimeout(this.push.bind(this), 2000);
+                    this.pushTimeout = setTimeout(this.push.bind(this), this.SHORT_PUSH_TIMEOUT);
 
                 if (finished)
                     finished();

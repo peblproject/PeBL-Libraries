@@ -22,11 +22,11 @@ import { Program, Activity, Institution, System } from "./activity";
 import { TempMembership } from "./models";
 import { SYNC_THREAD, SYNC_PRIVATE_THREAD, SYNC_GROUP_THREAD } from "./constants";
 
-let pako = require("pako");
+// let pako = require("pako");
 
 var platform = require('platform') as any; //https://github.com/bestiejs/platform.
 
-const stringObj = { "to": "string" };
+// const stringObj = { "to": "string" };
 
 export class Utils {
 
@@ -603,13 +603,13 @@ export class Utils {
 }
 
 
-export function pakoInflate(data: string): string {
-    return pako.inflate(data, stringObj);
-}
+// export function pakoInflate(data: string): string {
+//     return pako.inflate(data, stringObj);
+// }
 
-export function pakoDeflate(data: string): string {
-    return pako.deflate(data, stringObj);
-}
+// export function pakoDeflate(data: string): string {
+//     return pako.deflate(data, stringObj);
+// }
 
 export function getBrowserMetadata(): { [key: string]: any } {
     return platform;
