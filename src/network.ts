@@ -59,10 +59,14 @@ export class Network implements NetworkAdapter {
                 this.push();
                 this.pushActivity();
                 this.pullAsset();
-                localStorage[this.LEADER_SHORT] = this.networkId;
-                localStorage[this.ELECTED_SHORT] = Date.now();
-                localStorage[this.LEADER_LONG] = this.networkId;
-                localStorage[this.ELECTED_LONG] = Date.now();
+                if (localStorage[this.LEADER_SHORT] === "") {
+                    localStorage[this.LEADER_SHORT] = this.networkId;
+                    localStorage[this.ELECTED_SHORT] = Date.now();
+                }
+                if (localStorage[this.LEADER_LONG] === "") {
+                    localStorage[this.LEADER_LONG] = this.networkId;
+                    localStorage[this.ELECTED_LONG] = Date.now();
+                }
                 if (callback)
                     callback();
             });
