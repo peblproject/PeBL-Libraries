@@ -280,7 +280,9 @@ export class PEBLEventHandlers {
                 self.pebl.storage.saveCurrentBookTitle(bookTitle);
                 self.pebl.storage.saveCurrentBookId(bookId);
             } else {
-                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
+                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
+                    activityType: 'page'
+                });
             }
             self.pebl.emitEvent(self.pebl.events.eventLaunched, {
                 activityType: 'book'
@@ -311,7 +313,9 @@ export class PEBLEventHandlers {
                 self.pebl.storage.saveCurrentBookTitle(bookTitle);
                 self.pebl.storage.saveCurrentBookId(bookId);
             } else {
-                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {});
+                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
+                    activityType: 'page'
+                });
             }
         });
     }
