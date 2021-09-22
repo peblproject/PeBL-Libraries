@@ -255,7 +255,7 @@ export class PEBLEventHandlers {
 
     newBook(event: CustomEvent) {
         let payload = event.detail;
-        let book: string = payload.book;
+        let book: string = this.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId);
         let bookTitle: string = payload.bookTitle;
         let bookId: string = payload.bookId;
         let self = this;
@@ -266,9 +266,7 @@ export class PEBLEventHandlers {
             if (currentBook != book) {
                 if (currentBook)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, {
-                        activityURI: payload.activityURI,
-                        activityType: payload.activityType,
-                        activityId: payload.activityId
+                        activityURI: currentBook
                     });
                 self.pebl.storage.removeCurrentActivity();
                 // self.pebl.emitEvent(self.pebl.events.eventInteracted, {
@@ -297,7 +295,7 @@ export class PEBLEventHandlers {
 
     newBookNoReset(event: CustomEvent) {
         let payload = event.detail;
-        let book: string = payload.book;
+        let book: string = this.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId);
         let bookTitle: string = payload.bookTitle;
         let bookId: string = payload.bookId;
         let self = this;
@@ -308,9 +306,7 @@ export class PEBLEventHandlers {
             if (currentBook != book) {
                 if (currentBook)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, {
-                        activityURI: payload.activityURI,
-                        activityType: payload.activityType,
-                        activityId: payload.activityId
+                        activityURI: currentBook
                     });
                 self.pebl.storage.removeCurrentActivity();
                 self.pebl.emitEvent(self.pebl.events.eventInteracted, {
@@ -336,14 +332,13 @@ export class PEBLEventHandlers {
 
     newActivity(event: CustomEvent) {
         let payload = event.detail;
+        let activity = this.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId)
         let self = this;
         this.pebl.storage.getCurrentActivity(function(currentActivity) {
-            if (payload.activity != currentActivity) {
+            if (activity != currentActivity) {
                 if (currentActivity)
                     self.pebl.emitEvent(self.pebl.events.eventTerminated, {
-                        activityURI: payload.activityURI,
-                        activityType: payload.activityType,
-                        activityId: payload.activityId
+                        activityURI: currentActivity
                     });
                 self.pebl.emitEvent(self.pebl.events.eventInitialized, {
                     name: payload.name,
@@ -354,7 +349,7 @@ export class PEBLEventHandlers {
                 });
             }
 
-            self.pebl.storage.saveCurrentActivity(payload.activity);
+            self.pebl.storage.saveCurrentActivity(activity);
         });
     }
 
