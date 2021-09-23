@@ -286,6 +286,7 @@ export class PEBLEventHandlers {
                 });
             }
             self.pebl.emitEvent(self.pebl.events.eventLaunched, {
+                name: bookTitle,
                 activityURI: payload.activityURI,
                 activityType: payload.activityType,
                 activityId: payload.activityId
@@ -322,6 +323,7 @@ export class PEBLEventHandlers {
                 self.pebl.storage.saveCurrentBookId(bookId);
             } else {
                 self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
+                    name, bookTitle,
                     activityURI: payload.activityURI,
                     activityType: payload.activityType,
                     activityId: payload.activityId
@@ -1558,7 +1560,7 @@ export class PEBLEventHandlers {
                                 self.xapiGen.addId(xapi);
                                 self.xapiGen.addTimestamp(xapi);
                                 self.xapiGen.addActorAccount(xapi, userProfile);
-                                self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
+                                self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                                 self.xapiGen.addVerb(xapi, "http://www.peblproject.com/definitions.html#launched", "launched");
                                 if (book || activity)
                                     self.xapiGen.addParentActivity(xapi, PEBL_PREFIX + (book || activity));
@@ -1597,7 +1599,7 @@ export class PEBLEventHandlers {
                             self.xapiGen.addId(xapi);
                             self.xapiGen.addTimestamp(xapi);
                             self.xapiGen.addActorAccount(xapi, userProfile);
-                            self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), undefined, undefined, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
+                            self.xapiGen.addObject(xapi, self.xapiGen.addPeblActivity(payload.activityURI, payload.activityType, payload.activityId), payload.name, payload.description, self.xapiGen.addPeblActivity(undefined, payload.activityType, undefined), self.xapiGen.addExtensions(self.xapiGen.addPeblContextExtensions(exts, userProfile, bookTitle, bookId)));
                             self.xapiGen.addVerb(xapi, "http://adlnet.gov/expapi/verbs/terminated", "terminated");
                             if (activity)
                                 self.xapiGen.addParentActivity(xapi, activity);
