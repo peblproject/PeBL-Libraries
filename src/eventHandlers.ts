@@ -263,34 +263,38 @@ export class PEBLEventHandlers {
         //     book = book.substring(book.lastIndexOf("/") + 1);
 
         this.pebl.storage.getCurrentBook(function(currentBook) {
-            if (currentBook != book) {
-                if (currentBook)
-                    self.pebl.emitEvent(self.pebl.events.eventTerminated, {
-                        activityURI: currentBook
+            self.pebl.storage.getCurrentBookType(function(bookType) {
+                if (currentBook != book) {
+                    if (currentBook)
+                        self.pebl.emitEvent(self.pebl.events.eventTerminated, {
+                            activityURI: currentBook,
+                            activityType: bookType
+                        });
+                    self.pebl.storage.removeCurrentActivity();
+                    // self.pebl.emitEvent(self.pebl.events.eventInteracted, {
+                    //     activity: book
+                    // });
+    
+                    self.pebl.unsubscribeAllEvents();
+                    self.pebl.unsubscribeAllThreads();
+                    self.pebl.storage.saveCurrentBook(book);
+                    self.pebl.storage.saveCurrentBookType(payload.activityType);
+                    self.pebl.storage.saveCurrentBookTitle(bookTitle);
+                    self.pebl.storage.saveCurrentBookId(bookId);
+                } else {
+                    self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
+                        activityURI: payload.activityURI,
+                        activityType: payload.activityType,
+                        activityId: payload.activityId
                     });
-                self.pebl.storage.removeCurrentActivity();
-                // self.pebl.emitEvent(self.pebl.events.eventInteracted, {
-                //     activity: book
-                // });
-
-                self.pebl.unsubscribeAllEvents();
-                self.pebl.unsubscribeAllThreads();
-                self.pebl.storage.saveCurrentBook(book);
-                self.pebl.storage.saveCurrentBookTitle(bookTitle);
-                self.pebl.storage.saveCurrentBookId(bookId);
-            } else {
-                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
+                }
+                self.pebl.emitEvent(self.pebl.events.eventLaunched, {
+                    name: bookTitle,
                     activityURI: payload.activityURI,
                     activityType: payload.activityType,
                     activityId: payload.activityId
                 });
-            }
-            self.pebl.emitEvent(self.pebl.events.eventLaunched, {
-                name: bookTitle,
-                activityURI: payload.activityURI,
-                activityType: payload.activityType,
-                activityId: payload.activityId
-            });
+            })
         });
     }
 
@@ -304,31 +308,35 @@ export class PEBLEventHandlers {
         //     book = book.substring(book.lastIndexOf("/") + 1);
 
         this.pebl.storage.getCurrentBook(function(currentBook) {
-            if (currentBook != book) {
-                if (currentBook)
-                    self.pebl.emitEvent(self.pebl.events.eventTerminated, {
-                        activityURI: currentBook
+            self.pebl.storage.getCurrentBookType(function(bookType) {
+                if (currentBook != book) {
+                    if (currentBook)
+                        self.pebl.emitEvent(self.pebl.events.eventTerminated, {
+                            activityURI: currentBook,
+                            activityType: bookType
+                        });
+                    self.pebl.storage.removeCurrentActivity();
+                    self.pebl.emitEvent(self.pebl.events.eventInteracted, {
+                        activity: book,
+                        target: book,
+                        activityURI: payload.activityURI,
+                        activityType: payload.activityType,
+                        activityId: payload.activityId
                     });
-                self.pebl.storage.removeCurrentActivity();
-                self.pebl.emitEvent(self.pebl.events.eventInteracted, {
-                    activity: book,
-                    target: book,
-                    activityURI: payload.activityURI,
-                    activityType: payload.activityType,
-                    activityId: payload.activityId
-                });
-
-                self.pebl.storage.saveCurrentBook(book);
-                self.pebl.storage.saveCurrentBookTitle(bookTitle);
-                self.pebl.storage.saveCurrentBookId(bookId);
-            } else {
-                self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
-                    name, bookTitle,
-                    activityURI: payload.activityURI,
-                    activityType: payload.activityType,
-                    activityId: payload.activityId
-                });
-            }
+    
+                    self.pebl.storage.saveCurrentBook(book);
+                    self.pebl.storage.saveCurrentBookType(payload.activityType);
+                    self.pebl.storage.saveCurrentBookTitle(bookTitle);
+                    self.pebl.storage.saveCurrentBookId(bookId);
+                } else {
+                    self.pebl.emitEvent(self.pebl.events.eventJumpPage, {
+                        name, bookTitle,
+                        activityURI: payload.activityURI,
+                        activityType: payload.activityType,
+                        activityId: payload.activityId
+                    });
+                }
+            })
         });
     }
 

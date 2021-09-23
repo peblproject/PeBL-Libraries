@@ -110,6 +110,10 @@ export interface StorageAdapter {
 
     getCurrentBookId(callback: (book?: string) => void): void;
 
+    saveCurrentBookType(book: string, callback?: (() => void)): void;
+
+    getCurrentBookType(callback: (book?: string) => ): void;
+
 
     saveEvent(userProfile: UserProfile, event: (XApiStatement | XApiStatement[]), callback?: (() => void)): void;
 

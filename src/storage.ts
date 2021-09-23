@@ -27,6 +27,7 @@ const MASTER_INDEX = "master";
 const CURRENT_BOOK = "peblCurrentBook";
 const CURRENT_BOOK_TITLE = "peblCurrentBookTitle";
 const CURRENT_BOOK_ID = "peblCurrentBookId";
+const CURRENT_BOOK_TYPE = "peblCurrentBookType";
 const CURRENT_USER = "peblCurrentUser";
 // const VERB_INDEX = "verbs";
 
@@ -37,7 +38,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     private pebl: PEBL;
 
     constructor(pebl: PEBL, callback: () => void) {
-        let request = window.indexedDB.open("pebl", 28);
+        let request = window.indexedDB.open("pebl", 29);
         let self: IndexedDBStorageAdapter = this;
         this.pebl = pebl;
 
@@ -611,6 +612,53 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             let self = this;
             this.invocationQueue.push(function() {
                 self.getCurrentBookId(callback);
+            });
+        }
+    }
+
+    // -------------------------------
+
+    saveCurrentBookType(book: string, callback?: (() => void)): void {
+        let pack = {
+            value: book,
+            id: CURRENT_BOOK_TYPE
+        };
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readwrite").objectStore("state").put(this.cleanRecord(pack));
+            request.onerror = function(e) {
+                consoleError(e);
+            };
+            request.onsuccess = function() {
+                if (callback)
+                    callback();
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.saveCurrentBookId(book, callback);
+            });
+        }
+    }
+
+    getCurrentBookType(callback: (book?: string) => void): void {
+        if (this.db) {
+            let request = this.db.transaction(["state"], "readonly").objectStore("state").get(CURRENT_BOOK_TYPE);
+            request.onerror = function(e) {
+                consoleError(e);
+            };
+            request.onsuccess = function() {
+                let r = request.result;
+                if (callback != null) {
+                    if (r != null)
+                        callback(r.value);
+                    else
+                        callback();
+                }
+            };
+        } else {
+            let self = this;
+            this.invocationQueue.push(function() {
+                self.getCurrentBookType(callback);
             });
         }
     }
