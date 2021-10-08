@@ -755,6 +755,23 @@ export class LLSyncAction implements SyncProcess {
     pullSharedAnnotations(): void {
         this.pebl.user.getUser((userProfile) => {
             if (userProfile && this.websocket && this.websocket.readyState === 1) {
+                this.pebl.storage.getSyncTimestamps(userProfile.identity, generateGroupSharedAnnotationsSyncTimestampsKey(''), (timestamp: number) => {
+                    let message = {
+                        identity: userProfile.identity,
+                        requestType: "getSharedAnnotations",
+                        timestamp: timestamp + 1
+                    }
+                    if (this.websocket) {
+                        this.websocket.send(JSON.stringify(message));
+                    }
+                })
+
+                this.pebl.storage.saveOutgoingXApi(userProfile, {
+                    id: this.pebl.utils.getUuid(),
+                    identity: userProfile.identity,
+                    requestType: "subscribeSharedAnnotations"
+                });
+
                 if (userProfile.groups) {
                     for (let groupId of userProfile.groups) {
                         ((groupId) => {
