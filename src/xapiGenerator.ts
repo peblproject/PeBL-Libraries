@@ -318,7 +318,7 @@ export class XApiGenerator {
             var peblActivity = PEBL_ACTIVITY_PREFIX + activityType;
 
             if (activityId)
-                peblActivity += ('?id=' + activityId);
+                peblActivity += ('?id=' + encodeURIComponent(activityId));
 
             return peblActivity;
         }
